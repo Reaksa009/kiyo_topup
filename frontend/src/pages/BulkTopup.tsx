@@ -74,8 +74,8 @@ export function BulkTopup() {
           const ml = activeGames.find((g: any) => g.slug === 'mobile-legends') || activeGames[0];
           handleGameChange(ml);
         }
-      } catch (err) {
-        setErrorMsg('Failed to load games catalog.');
+      } catch (err: any) {
+        setErrorMsg(err.response?.data?.message || 'Failed to load games catalog.');
       } finally {
         setLoading(false);
       }
@@ -91,8 +91,8 @@ export function BulkTopup() {
       const res = await apiClient.get(`/games/${game.slug}`);
       const pkgs = res.data.data.packages || [];
       setPackages(pkgs);
-    } catch (err) {
-      setErrorMsg('Failed to load game packages.');
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || 'Failed to load game packages.');
     }
   };
 

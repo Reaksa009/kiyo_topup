@@ -55,7 +55,7 @@ export function GameDetail() {
         setPackages(res.data.data.packages || []);
         setSelectedPackage(null);
       } catch (err: any) {
-        setErrorMsg('Game not found.');
+        setErrorMsg(err.response?.data?.message || 'Game not found.');
       } finally {
         setLoading(false);
       }
