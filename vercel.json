@@ -1,1 +1,23 @@
-{"services":{"frontend":{"root":"frontend","framework":"vite"},"backend":{"root":"backend"}},"rewrites":[{"source":"/api(/.*)?","destination":{"type":"service","service":"backend"}},{"source":"/(.*)","destination":{"type":"service","service":"frontend"}}]}
+{
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.ts": {
+      "memory": 1024,
+      "maxDuration": 15
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/socket.io/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
+    }
+  ]
+}
