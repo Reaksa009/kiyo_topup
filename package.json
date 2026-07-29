@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Enterprise Online Game Top-Up Platform",
   "private": true,
+  "workspaces": ["backend", "frontend"],
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
