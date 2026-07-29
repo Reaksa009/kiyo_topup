@@ -16,89 +16,108 @@ interface G2Product {
   description?: string;
 }
 
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+const formatDate = (date: Date): string => {
+  return date.toISOString().replace('T', ' ').substring(0, 19);
+};
+
+const normalizePackage = (title: string, gameSlug: string) => {
+  let clean = title;
+  if (gameSlug === 'mobile-legends') {
+    clean = title.replace(/^(Mobile Legends\s*(Global|Special)?)\s*-\s*/i, '').trim();
+  } else if (gameSlug === 'pubg-mobile') {
+    clean = title.replace(/^(PUBG Mobile)\s*-\s*/i, '').trim();
+  } else if (gameSlug === 'free-fire') {
+    clean = title.replace(/^(Free Fire)\s*-\s*/i, '').trim();
+  } else if (gameSlug === 'valorant') {
+    clean = title.replace(/^(Valorant)\s*-\s*/i, '').trim();
+  } else if (gameSlug === 'honor-of-kings') {
+    clean = title.replace(/^(Honor of Kings)\s*-\s*/i, '').trim();
+  } else if (gameSlug === 'cod-mobile') {
+    clean = title.replace(/^(Call of Duty: Mobile|CODM)\s*-\s*/i, '').trim();
+  }
+  
+  let amount = '';
+  let type = 'default';
+  const cleanLower = clean.toLowerCase();
+  
+  if (cleanLower.includes('weekly') && cleanLower.includes('pass')) {
+    amount = 'weekly';
+    type = 'pass';
+  } else if (cleanLower.includes('twilight') && cleanLower.includes('pass')) {
+    amount = 'twilight';
+    type = 'pass';
+  } else if (cleanLower.includes('monthly') && cleanLower.includes('pass')) {
+    amount = 'monthly';
+    type = 'pass';
+  } else if (cleanLower.includes('starlight')) {
+    amount = 'starlight';
+    type = 'pass';
+  } else {
+    const match = clean.match(/^([\d\s(+)]+)\s*(diamonds|diamond|uc|vp|points|tokens|gems|coins|cp)/i);
+    if (match) {
+      amount = match[1].replace(/\s+/g, '');
+      type = match[2].toLowerCase();
+    } else {
+      amount = clean.toLowerCase().replace(/\s+/g, '');
+      type = 'item';
+    }
+  }
+  
+  return {
+    cleanName: clean,
+    amount,
+    type,
+    uniqueKey: `${amount}-${type}`
+  };
+};
+
 export const syncG2BulkCatalog = async () => {
   const syncStartTime = new Date();
-  
-  // Track metrics for reporting
+  logger.info(`G2Bulk Sync Started: ${formatDate(syncStartTime)}`);
+
+  // Track metrics for report
   let totalOldDeleted = 0;
   let totalNewImported = 0;
   let totalDuplicatesRemoved = 0;
   let totalMissing = 0;
   let totalExtra = 0;
-  let totalDuplicateRemaining = 0;
-  
-  let useTransaction = true;
-  let session: any = null;
+
+  let session: mongoose.ClientSession | null = null;
 
   try {
     await connectDatabase();
-    logger.info('Starting production-safe catalog sync...');
 
-    const actualUri = (mongoose.connection as any).actualUri || env.MONGODB_URI || 'mongodb://localhost:27017/kiyo_topup';
-    const isInMemory = (mongoose.connection as any).isInMemory === true;
+    // Ensure all model indexes are built before starting the transaction
+    logger.info('Ensuring database indexes are built...');
+    await Promise.all([
+      Category.ensureIndexes(),
+      Game.ensureIndexes(),
+      Package.ensureIndexes(),
+      Settings.ensureIndexes()
+    ]);
 
-    // Mask URI credentials
-    const maskUri = (uri: string): string => {
-      try {
-        return uri.replace(/(mongodb(?:\+srv)?:\/\/)([^:]+):([^@]+)@/, (m, protocol, user, pass) => {
-          const maskedUser = user.length > 2 ? `${user.substring(0, 2)}***` : '***';
-          const maskedPass = pass.length > 2 ? `${pass.substring(0, 2)}***` : '***';
-          return `${protocol}${maskedUser}:${maskedPass}@`;
-        });
-      } catch (e) {
-        return 'mongodb://***:***@...';
-      }
-    };
-
-    let connectionType = 'Local MongoDB';
-    if (isInMemory) {
-      connectionType = 'MongoMemoryServer';
-    } else if (actualUri.includes('mongodb+srv://') || actualUri.includes('.mongodb.net') || actualUri.includes('atlas')) {
-      connectionType = 'MongoDB Atlas';
-    }
-
-    logger.info('================================================================');
-    logger.info('              MONGODB CONNECTION DIAGNOSTICS                    ');
-    logger.info('================================================================');
-    logger.info(`- Active MongoDB connection URI (masked): ${maskUri(actualUri)}`);
-    logger.info(`- Database name: ${mongoose.connection.name || 'kiyo_topup'}`);
-    logger.info(`- Detected connection type: ${connectionType}`);
-    logger.info('================================================================');
-
-    const forceSync = process.env.FORCE_SYNC === 'true' || process.argv.includes('--force');
-    if (isInMemory) {
-      if (!forceSync) {
-        logger.error('Sync aborted: connected to an in-memory database. Connect to the persistent MongoDB database first.');
-        throw new Error('Sync aborted: connected to an in-memory database. Connect to the persistent MongoDB database first.');
-      } else {
-        logger.warn('WARNING: Running catalog sync on dynamic in-memory database due to FORCE_SYNC / --force flag.');
-      }
-    }
-
-    // 1. Initialize MongoDB session & transaction
+    // Start MongoDB session and transaction
     session = await mongoose.startSession();
-    try {
-      session.startTransaction();
-      // Execute a quick dummy query inside the transaction to verify replica set support
-      await Game.findOne({}).session(session);
-      logger.info('MongoDB transaction started and verified.');
-    } catch (txErr) {
-      useTransaction = false;
-      session.endSession();
-      session = null;
-      logger.warn('Transactions not supported in this database setup. Proceeding without transactions.');
-    }
+    session.startTransaction();
+    logger.info('MongoDB transaction started.');
 
-    // 2. Enable Sync Lock (disable APIs)
+    // Enable sync lock
     await Settings.findOneAndUpdate(
       {},
       { isSyncing: true },
-      { upsert: true, session: useTransaction ? session : undefined }
+      { upsert: true, session }
     );
-    logger.info('Platform synchronization lock enabled (isSyncing = true).');
+    logger.info('Sync lock enabled (isSyncing = true). Package/checkout APIs disabled.');
 
-    // 3. Fetch live G2Bulk products
-    logger.info('Fetching live G2Bulk products & games catalog...');
+    // Fetch live G2Bulk catalog
+    logger.info('Fetching catalog from G2Bulk API...');
     const res = await axios.get('https://api.g2bulk.com/v1/products', {
       headers: {
         'x-api-key': env.G2BULK_API_KEY,
@@ -111,7 +130,7 @@ export const syncG2BulkCatalog = async () => {
       ? res.data.products
       : (Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []));
 
-    logger.info(`Received ${products.length} live products from G2Bulk API.`);
+    logger.info(`Fetched ${products.length} catalog items from G2Bulk API.`);
 
     const gameDefinitions = [
       {
@@ -201,17 +220,8 @@ export const syncG2BulkCatalog = async () => {
       }
     ];
 
-    const extractQuantityKey = (title: string): string => {
-      let clean = title.replace(/^Mobile Legends\s*(Global|Special)?\s*-\s*/i, '').trim();
-      const match = clean.match(/(\d+)\s*(diamond|diamonds|uc|vp|points|tokens|gems|pass|cp)/i);
-      if (match) {
-        return `${match[1]}-${match[2].toLowerCase()}`;
-      }
-      return clean.toLowerCase().replace(/[^a-z0-9]/g, '');
-    };
-
     for (const gameMeta of gameDefinitions) {
-      // Create / Update Category Doc
+      // Create/Update Category
       const categoryDoc = await Category.findOneAndUpdate(
         { slug: gameMeta.categorySlug },
         {
@@ -220,10 +230,10 @@ export const syncG2BulkCatalog = async () => {
           icon: gameMeta.categoryIcon,
           status: 'active'
         },
-        { upsert: true, new: true, session: useTransaction ? session : undefined }
+        { upsert: true, new: true, session }
       );
 
-      // Create / Update Game Doc
+      // Create/Update Game
       const gameDoc = await Game.findOneAndUpdate(
         { slug: gameMeta.slug },
         {
@@ -237,7 +247,7 @@ export const syncG2BulkCatalog = async () => {
           status: 'active',
           isPopular: true
         },
-        { upsert: true, new: true, session: useTransaction ? session : undefined }
+        { upsert: true, new: true, session }
       );
 
       // Filter products for this game
@@ -277,49 +287,45 @@ export const syncG2BulkCatalog = async () => {
         }
       }
 
-      // Deduplicate using quantity key normalizer
-      const bestPriceMap = new Map<string, { prod: G2Product; supportsBoth: boolean }>();
+      // Group and Deduplicate by Diamond Amount + Package Type
+      const grouped = new Map<string, G2Product[]>();
       for (const prod of finalProducts) {
-        const qtyKey = extractQuantityKey(prod.title);
-        const existing = bestPriceMap.get(qtyKey);
-
-        let supportsBoth = false;
-        if (gameMeta.slug === 'mobile-legends') {
-          const inGlobal = finalProducts.some(p => extractQuantityKey(p.title) === qtyKey && (p.category_title || '').toLowerCase() === 'mobile legends global');
-          const inStandard = finalProducts.some(p => extractQuantityKey(p.title) === qtyKey && (p.category_title || '').toLowerCase() === 'mobile legends');
-          supportsBoth = inGlobal && inStandard;
-        }
-
-        if (
-          !existing || 
-          prod.unit_price < existing.prod.unit_price || 
-          (prod.unit_price === existing.prod.unit_price && 
-           (existing.prod.category_title || '').toLowerCase().includes('global') && 
-           !(prod.category_title || '').toLowerCase().includes('global'))
-        ) {
-          bestPriceMap.set(qtyKey, { prod, supportsBoth });
-        } else {
-          if (supportsBoth) {
-            existing.supportsBoth = true;
-          }
-        }
+        const norm = normalizePackage(prod.title, gameMeta.slug);
+        const list = grouped.get(norm.uniqueKey) || [];
+        list.push(prod);
+        grouped.set(norm.uniqueKey, list);
       }
 
-      const deduplicatedProducts = Array.from(bestPriceMap.values());
+      const deduplicatedProducts: { prod: G2Product; uniqueKey: string; cleanName: string }[] = [];
+      
+      for (const [uniqueKey, prods] of grouped.entries()) {
+        // Choose the product with the lowest wholesale cost (lowest unit_price)
+        let bestProd = prods[0];
+        for (let i = 1; i < prods.length; i++) {
+          if (prods[i].unit_price < bestProd.unit_price) {
+            bestProd = prods[i];
+          }
+        }
+        
+        const norm = normalizePackage(bestProd.title, gameMeta.slug);
+        deduplicatedProducts.push({
+          prod: bestProd,
+          uniqueKey,
+          cleanName: norm.cleanName
+        });
+      }
+
       totalDuplicatesRemoved += (finalProducts.length - deduplicatedProducts.length);
 
-      // Perform Clean Catalog Replacement
-      const oldCount = await Package.countDocuments({ gameId: gameDoc._id }).session(useTransaction ? session : null);
-      totalOldDeleted += oldCount;
+      // Full catalog replacement: Delete ALL existing packages for this game in the session
+      const deleteResult = await Package.deleteMany({ gameId: gameDoc._id }, { session });
+      totalOldDeleted += deleteResult.deletedCount || 0;
+      logger.info(`Deleted ${deleteResult.deletedCount || 0} existing packages for game: ${gameMeta.title}.`);
 
       if (deduplicatedProducts.length > 0) {
-        // Delete all old packages
-        await Package.deleteMany({ gameId: gameDoc._id }, { session: useTransaction ? session : undefined });
-        
         // Write new packages via bulkWrite performance insert
         const bulkOps = deduplicatedProducts.map((item, idx) => {
           const prod = item.prod;
-          const supportsBoth = item.supportsBoth;
           const costPrice = prod.unit_price;
           const retailPrice = parseFloat((costPrice * 1.18).toFixed(2));
 
@@ -333,7 +339,7 @@ export const syncG2BulkCatalog = async () => {
             badge = 'BEST VALUE';
           }
 
-          let packageTitle = prod.title;
+          let packageTitle = item.cleanName;
           if (gameMeta.slug === 'mobile-legends') {
             const rawTitleLower = prod.title.toLowerCase();
             if (rawTitleLower.includes('weekly') && !rawTitleLower.includes('elite')) {
@@ -343,14 +349,15 @@ export const syncG2BulkCatalog = async () => {
             } else if (rawTitleLower.includes('monthly') && !rawTitleLower.includes('elite')) {
               packageTitle = 'Monthly Pass';
             } else {
-              let clean = prod.title.replace(/^Mobile Legends\s*(Global|Special)?\s*-\s*/i, '').trim();
-              if (!isNaN(Number(clean))) {
-                packageTitle = `${clean} Diamonds`;
-              } else {
-                packageTitle = clean;
+              if (!isNaN(Number(item.cleanName))) {
+                packageTitle = `${item.cleanName} Diamonds`;
               }
             }
           }
+
+          const supportsBoth = gameMeta.slug === 'mobile-legends' && 
+            finalProducts.some(p => normalizePackage(p.title, gameMeta.slug).uniqueKey === item.uniqueKey && (p.category_title || '').toLowerCase().includes('global')) &&
+            finalProducts.some(p => normalizePackage(p.title, gameMeta.slug).uniqueKey === item.uniqueKey && !(p.category_title || '').toLowerCase().includes('global'));
 
           return {
             insertOne: {
@@ -372,82 +379,154 @@ export const syncG2BulkCatalog = async () => {
           };
         });
 
-        await Package.bulkWrite(bulkOps, { session: useTransaction ? session : undefined });
+        await Package.bulkWrite(bulkOps, { session });
         totalNewImported += deduplicatedProducts.length;
+        logger.info(`Imported ${deduplicatedProducts.length} packages for game: ${gameMeta.title}.`);
 
-        // Strict validation: Verify every package details match exactly
-        const dbPackages = await Package.find({ gameId: gameDoc._id }).session(useTransaction ? session : null).lean();
+        // Strict verification: Verify every single package matches exactly
+        const dbPackages = await Package.find({ gameId: gameDoc._id }).session(session).lean();
         
+        let localMissing = 0;
+        let localExtra = 0;
+        let localDuplicates = 0;
+        
+        const missingList: string[] = [];
+        const extraList: string[] = [];
+        const duplicateList: string[] = [];
+
         for (const item of deduplicatedProducts) {
           const prod = item.prod;
-          const matchedDbPkg = dbPackages.find(p => p.providerProductId === prod.id.toString());
-          if (!matchedDbPkg) {
-            totalMissing++;
+          const expectedPrice = Math.max(0.25, parseFloat((prod.unit_price * 1.18).toFixed(2)));
+          
+          const matches = dbPackages.filter(p => p.providerProductId === prod.id.toString());
+          if (matches.length === 0) {
+            localMissing++;
+            missingList.push(`${item.cleanName} (ID: ${prod.id})`);
+          } else {
+            if (matches.length > 1) {
+              localDuplicates += (matches.length - 1);
+              duplicateList.push(`${item.cleanName} (ID: ${prod.id})`);
+            }
+            
+            const dbPkg = matches[0];
+            const priceDiff = Math.abs(dbPkg.price - expectedPrice);
+            const costDiff = Math.abs(dbPkg.costPrice - prod.unit_price);
+            
+            // Check Package Name, Diamond Amount, Selling Price, Supplier ID (providerType), Supplier Product ID
+            if (priceDiff > 0.01 || costDiff > 0.01 || dbPkg.providerType !== 'G2BULK' || dbPkg.providerProductId !== prod.id.toString()) {
+              throw new ValidationError(`Validation values mismatch for product ${item.cleanName} (ID: ${prod.id})`);
+            }
           }
         }
 
         for (const dbPkg of dbPackages) {
           const matchedCatalog = deduplicatedProducts.find(item => item.prod.id.toString() === dbPkg.providerProductId);
           if (!matchedCatalog) {
-            totalExtra++;
-          }
-
-          const copies = dbPackages.filter(p => p.providerProductId === dbPkg.providerProductId);
-          if (copies.length > 1) {
-            totalDuplicateRemaining++;
+            localExtra++;
+            extraList.push(`${dbPkg.title} (ID: ${dbPkg.providerProductId})`);
           }
         }
 
-        if (dbPackages.length !== deduplicatedProducts.length || totalMissing > 0 || totalExtra > 0 || totalDuplicateRemaining > 0) {
-          throw new Error(`Sync verification failed for game: ${gameMeta.title}. Count mismatched (DB: ${dbPackages.length}, Catalog: ${deduplicatedProducts.length}) or corrupt packages detected.`);
+        totalMissing += localMissing;
+        totalExtra += localExtra;
+        totalDuplicatesRemoved += localDuplicates;
+
+        if (localMissing > 0 || localExtra > 0 || localDuplicates > 0) {
+          throw new ValidationError(
+            `Sync validation failed for game ${gameMeta.title}.\n` +
+            `Missing: ${missingList.join(', ') || 'None'}\n` +
+            `Extra: ${extraList.join(', ') || 'None'}\n` +
+            `Duplicates: ${duplicateList.join(', ') || 'None'}`
+          );
         }
+        
+        logger.info(`Validation PASSED for game: ${gameMeta.title}.`);
       }
     }
 
-    // 4. Commit MongoDB Transaction
-    if (useTransaction) {
-      await session.commitTransaction();
-      logger.info('MongoDB transaction committed successfully.');
-    }
+    // Commit Transaction
+    const syncFinishedTime = new Date();
+    const finalDbCount = await Package.countDocuments({}).session(session);
 
-    const finalDbCount = await Package.countDocuments({});
-    
-    // Output success verification report
-    console.log(`
+    await session.commitTransaction();
+    session.endSession();
+    session = null;
+    logger.info('MongoDB transaction committed successfully.');
+
+    // Generate Sync Report
+    const report = `
 ========== G2Bulk Sync Report ==========
-Connected Database Name: ${mongoose.connection.name || 'kiyo_topup'}
-Packages Deleted: ${totalOldDeleted}
-Packages Imported: ${totalNewImported}
-Final Package Count: ${finalDbCount}
-Validation Result: PASSED
-Sync Status: SUCCESS
-========================================`);
+Sync Started: ${formatDate(syncStartTime)}
+Sync Finished: ${formatDate(syncFinishedTime)}
+
+Old Packages Deleted:
+${totalOldDeleted}
+
+New Packages Imported:
+${totalNewImported}
+
+Duplicate Packages Removed:
+${totalDuplicatesRemoved}
+
+Missing Packages:
+${totalMissing}
+
+Extra Packages:
+${totalExtra}
+
+Final Database Count:
+${finalDbCount}
+
+Latest Catalog Count:
+${totalNewImported}
+
+Validation:
+PASSED
+
+Transaction:
+COMMITTED
+
+Status:
+SUCCESS
+========================================`;
+    console.log(report);
 
   } catch (error: any) {
-    // 5. Rollback Transaction
-    if (useTransaction && session) {
-      await session.abortTransaction();
-      logger.error('MongoDB transaction rolled back due to synchronization error.');
+    // Rollback Transaction
+    if (session) {
+      try {
+        await session.abortTransaction();
+        session.endSession();
+      } catch (abortErr) {
+        logger.error('Failed to abort transaction:', abortErr);
+      }
+      session = null;
+      logger.error('MongoDB transaction rolled back due to synchronization error. Database UNCHANGED.');
     }
-    
-    // Output failure report
-    console.log(`
-========== G2Bulk Sync Report ==========
-Sync Status: FAILED
-Reason: ${error.message}
-========================================`);
 
+    const report = `
+========== G2Bulk Sync Report ==========
+Status:
+FAILED
+
+Reason:
+${error.message}
+
+Transaction:
+ROLLED BACK
+
+Database:
+UNCHANGED
+========================================`;
+    console.log(report);
     throw error;
   } finally {
-    // 6. Unlock API lock outside session
-    if (session) {
-      session.endSession();
-    }
+    // Unlock sync lock outside the transaction
     try {
       await Settings.findOneAndUpdate({}, { isSyncing: false }, { upsert: true });
       logger.info('Platform synchronization lock disabled (isSyncing = false). APIs unlocked.');
     } catch (unlockErr: any) {
-      logger.error('Failed to disable isSyncing lock:', unlockErr.message);
+      logger.error('Failed to disable isSyncing lock in finally block:', unlockErr.message);
     }
   }
 };

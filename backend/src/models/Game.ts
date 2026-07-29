@@ -125,4 +125,7 @@ const PackageSchema = new Schema<IPackage>(
   { timestamps: true }
 );
 
+PackageSchema.index({ gameId: 1, status: 1 });
+PackageSchema.index({ providerProductId: 1 });
+
 export const Package = model<IPackage>('Package', PackageSchema);

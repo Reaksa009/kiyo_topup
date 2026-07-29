@@ -1,11 +1,21 @@
 import { Request, Response } from 'express';
 import { Package } from '../models/Game';
+import { Settings } from '../models/System';
 import { AuditService } from '../services/audit.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export class PackageController {
   static async getPackagesByGame(req: Request, res: Response) {
     try {
+      // Check if catalog synchronization lock is enabled
+      const settings = await Settings.findOne();
+      if (settings?.isSyncing) {
+        return res.status(503).json({
+          success: false,
+          message: "Catalog is updating. Please try again in a few minutes."
+        });
+      }
+
       const { gameId } = req.params;
       const packages = await Package.find({ gameId, status: 'active' }).sort({ sortOrder: 1, price: 1 });
       res.json({ success: true, count: packages.length, data: packages });
