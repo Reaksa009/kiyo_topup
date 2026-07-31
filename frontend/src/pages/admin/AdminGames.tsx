@@ -11,6 +11,8 @@ export const AdminGames: React.FC = () => {
   const [selectedGame, setSelectedGame] = useState<any>(null);
   const [packages, setPackages] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [packageLoading, setPackageLoading] = useState(false);
+  const [packageError, setPackageError] = useState('');
   
   // Package control states
   const [editingPkgId, setEditingPkgId] = useState<string | null>(null);
@@ -76,10 +78,16 @@ export const AdminGames: React.FC = () => {
     if (!selectedGame?._id) return;
     const fetchPkgs = async () => {
       try {
-        const res = await apiClient.get(`/packages/game/${selectedGame._id}`);
+        setPackageLoading(true);
+        setPackageError('');
+        const res = await apiClient.get(`/packages/admin/game/${selectedGame._id}`);
         setPackages(res.data.data || []);
-      } catch (err) {
+      } catch (err: any) {
+        setPackages([]);
+        setPackageError(err.response?.data?.message || 'Failed to load packages from MongoDB.');
         console.error(err);
+      } finally {
+        setPackageLoading(false);
       }
     };
     fetchPkgs();
@@ -203,7 +211,7 @@ export const AdminGames: React.FC = () => {
                           Category: {typeof selectedGame.categoryId === 'object' ? selectedGame.categoryId?.name : 'GAME'}
                         </span>
                         <span className="text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-md border border-emerald-500/30">
-                          {packages.length} Live Packages
+                          {packages.filter((pkg) => pkg.status === 'active').length} Active / {packages.length} Total
                         </span>
                       </div>
                     </div>
@@ -225,9 +233,17 @@ export const AdminGames: React.FC = () => {
                       <Tag className="w-4 h-4" />
                       <span>Configured Store Packages</span>
                     </h4>
+                    <span className="text-[10px] font-semibold text-gray-500">MongoDB catalog</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {packageLoading ? (
+                    <div className="py-10 text-center text-xs text-gray-400">Loading MongoDB packages...</div>
+                  ) : packageError ? (
+                    <div className="py-10 text-center text-xs text-red-400">{packageError}</div>
+                  ) : packages.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-gray-400">No packages found for this game in MongoDB.</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {packages.map((pkg) => {
                       const margin = pkg.price - pkg.costPrice;
                       const marginPercent = pkg.costPrice > 0 ? ((margin / pkg.costPrice) * 100).toFixed(1) : '18.0';
@@ -348,7 +364,8 @@ export const AdminGames: React.FC = () => {
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (

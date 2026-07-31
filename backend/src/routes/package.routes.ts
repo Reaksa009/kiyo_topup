@@ -5,6 +5,7 @@ import { authenticateJwt, requirePermission } from '../middleware/auth.middlewar
 const router = Router();
 
 router.get('/game/:gameId', PackageController.getPackagesByGame);
+router.get('/admin/game/:gameId', authenticateJwt, requirePermission('games:write'), PackageController.getAllPackagesByGame);
 router.post('/', authenticateJwt, requirePermission('games:write'), PackageController.createPackage);
 router.put('/:id', authenticateJwt, requirePermission('games:write'), PackageController.updatePackage);
 router.delete('/:id', authenticateJwt, requirePermission('games:write'), PackageController.deletePackage);

@@ -24,6 +24,26 @@ export class PackageController {
     }
   }
 
+  /**
+   * Admin catalog view: return every MongoDB package for a game, including
+   * inactive and out-of-stock records. The public endpoint intentionally
+   * returns active packages only so hidden catalog entries never reach buyers.
+   */
+  static async getAllPackagesByGame(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { gameId } = req.params;
+      const packages = await Package.find({ gameId }).sort({ status: 1, sortOrder: 1, price: 1 }).lean();
+      res.json({
+        success: true,
+        count: packages.length,
+        activeCount: packages.filter((pkg) => pkg.status === 'active').length,
+        data: packages
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   static async createPackage(req: AuthenticatedRequest, res: Response) {
     try {
       const pkg = await Package.create(req.body);
