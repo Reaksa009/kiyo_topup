@@ -6,15 +6,127 @@ import { Settings } from '../models/System';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 
-interface G2Product {
+export interface G2Product {
   id: number | string;
   title: string;
-  category_id: number;
+  category_id?: number | string;
   category_title: string;
   unit_price: number;
   stock: number;
   description?: string;
 }
+
+export interface GameCatalogMatchDefinition {
+  slug: string;
+  keywords: string[];
+  categoryAliases?: string[];
+}
+
+const GAME_IDENTITY_ALIASES: Record<string, string[]> = {
+  'mobile-legends': ['mobile legends', 'mobile legends global', 'mlbb'],
+  'pubg-mobile': ['pubg mobile', 'pubg'],
+  'free-fire': ['free fire', 'freefire', 'garena free fire'],
+  valorant: ['valorant'],
+  'honor-of-kings': ['honor of kings', 'hok'],
+  'cod-mobile': ['call of duty mobile', 'call of duty: mobile', 'cod mobile', 'codm']
+};
+
+const normalizeText = (value: unknown): string =>
+  String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+export const normalizeG2Product = (raw: any): G2Product | null => {
+  const id = raw?.id ?? raw?.product_id ?? raw?.productId ?? raw?.service_id ?? raw?.serviceId;
+  const title = raw?.title ?? raw?.name ?? raw?.product_name ?? raw?.service_name;
+  const category = raw?.category_title ?? raw?.category ?? raw?.category_name ?? raw?.game ?? '';
+  const unitPrice = Number(raw?.unit_price ?? raw?.unitPrice ?? raw?.price ?? raw?.cost ?? raw?.wholesale_price);
+  const stockValue = Number(raw?.stock ?? raw?.quantity ?? -1);
+
+  if (id === undefined || id === null || !String(title || '').trim() || !Number.isFinite(unitPrice) || unitPrice < 0) {
+    return null;
+  }
+
+  return {
+    id,
+    title: String(title).trim(),
+    category_id: raw?.category_id ?? raw?.categoryId,
+    category_title: String(category?.title ?? category?.name ?? category).trim(),
+    unit_price: unitPrice,
+    stock: Number.isFinite(stockValue) ? stockValue : -1,
+    description: raw?.description ? String(raw.description) : undefined
+  };
+};
+
+export const normalizeG2Products = (payload: any): G2Product[] => {
+  const source: any[] = Array.isArray(payload?.products)
+    ? payload.products
+    : Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload)
+        ? payload
+        : [];
+  return source.map((item) => normalizeG2Product(item)).filter((product): product is G2Product => Boolean(product));
+};
+
+export const productMatchesGame = (product: G2Product, definition: GameCatalogMatchDefinition): boolean => {
+  const title = normalizeText(product.title);
+  const category = normalizeText(product.category_title);
+  const aliases = (definition.categoryAliases || definition.keywords).map(normalizeText).filter(Boolean);
+  return aliases.some((alias) => category === alias || category.startsWith(`${alias} `) || title.includes(alias));
+};
+
+export interface SelectedCatalogProduct {
+  prod: G2Product;
+  uniqueKey: string;
+  cleanName: string;
+  supportsBoth: boolean;
+}
+
+export const selectCheapestProducts = (products: G2Product[], gameSlug: string): SelectedCatalogProduct[] => {
+  const grouped = new Map<string, G2Product[]>();
+  for (const product of products) {
+    const normalized = normalizePackage(product.title, gameSlug);
+    const list = grouped.get(normalized.uniqueKey) || [];
+    list.push(product);
+    grouped.set(normalized.uniqueKey, list);
+  }
+
+  return Array.from(grouped.entries()).map(([uniqueKey, variants]) => {
+    const best = variants.reduce((current, candidate) =>
+      candidate.unit_price < current.unit_price ? candidate : current
+    );
+    const supportsBoth = gameSlug === 'mobile-legends' && variants.length > 0;
+    return {
+      prod: best,
+      uniqueKey,
+      cleanName: normalizePackage(best.title, gameSlug).cleanName,
+      supportsBoth
+    };
+  });
+};
+
+const EVENT_PATTERN = /weekly|monthly|twilight|starlight|membership|battle\s*pass|event|season|limited|royale|pass/i;
+
+export const classifyPackage = (product: G2Product, index: number, gameSlug: string): string => {
+  const title = normalizeText(product.title);
+  if (EVENT_PATTERN.test(title)) return 'EVENT / PASS';
+
+  const bestsellerAmounts: Record<string, string[]> = {
+    'mobile-legends': ['86', '257', '706', '2195'],
+    'pubg-mobile': ['60 uc', '325 uc'],
+    'free-fire': ['100 diamonds', '530 diamonds'],
+    valorant: ['1000 vp', '2050 vp']
+  };
+  const known = bestsellerAmounts[gameSlug] || [];
+  if (known.some((amount) => title.includes(normalizeText(amount))) || /best\s*seller|popular|recommended/i.test(title)) {
+    return 'BEST SELLER';
+  }
+  return index === 0 ? 'BEST SELLER' : 'NORMAL';
+};
 
 class ValidationError extends Error {
   constructor(message: string) {
@@ -27,45 +139,45 @@ const formatDate = (date: Date): string => {
   return date.toISOString().replace('T', ' ').substring(0, 19);
 };
 
-const normalizePackage = (title: string, gameSlug: string) => {
-  let clean = title;
+export const normalizePackage = (title: string, gameSlug: string) => {
+  let clean = title.replace(/\s+/g, ' ').trim();
   if (gameSlug === 'mobile-legends') {
-    clean = title.replace(/^(Mobile Legends\s*(Global|Special)?)\s*-\s*/i, '').trim();
+    clean = clean.replace(/^(Mobile Legends(?:\s+(?:Global|Special))?)\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'pubg-mobile') {
-    clean = title.replace(/^(PUBG Mobile)\s*-\s*/i, '').trim();
+    clean = clean.replace(/^(PUBG Mobile|PUBG)\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'free-fire') {
-    clean = title.replace(/^(Free Fire)\s*-\s*/i, '').trim();
+    clean = clean.replace(/^(Free Fire|FreeFire)\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'valorant') {
-    clean = title.replace(/^(Valorant)\s*-\s*/i, '').trim();
+    clean = clean.replace(/^Valorant\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'honor-of-kings') {
-    clean = title.replace(/^(Honor of Kings)\s*-\s*/i, '').trim();
+    clean = clean.replace(/^Honor of Kings\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'cod-mobile') {
-    clean = title.replace(/^(Call of Duty: Mobile|CODM)\s*-\s*/i, '').trim();
+    clean = clean.replace(/^(Call of Duty: Mobile|CODM)\s*[-:|]\s*/i, '').trim();
   }
   
   let amount = '';
   let type = 'default';
   const cleanLower = clean.toLowerCase();
   
-  if (cleanLower.includes('weekly') && cleanLower.includes('pass')) {
+  if (cleanLower.includes('weekly')) {
     amount = 'weekly';
     type = 'pass';
-  } else if (cleanLower.includes('twilight') && cleanLower.includes('pass')) {
+  } else if (cleanLower.includes('twilight')) {
     amount = 'twilight';
     type = 'pass';
-  } else if (cleanLower.includes('monthly') && cleanLower.includes('pass')) {
+  } else if (cleanLower.includes('monthly')) {
     amount = 'monthly';
     type = 'pass';
   } else if (cleanLower.includes('starlight')) {
     amount = 'starlight';
     type = 'pass';
   } else {
-    const match = clean.match(/^([\d\s(+)]+)\s*(diamonds|diamond|uc|vp|points|tokens|gems|coins|cp)/i);
+    const match = clean.match(/^(?:[^\d]*)([\d][\d\s,().+]*?)\s*(diamonds?|uc|vp|points?|tokens?|gems?|coins?|cp)\b/i);
     if (match) {
-      amount = match[1].replace(/\s+/g, '');
+      amount = match[1].replace(/[\s,().+]/g, '');
       type = match[2].toLowerCase();
     } else {
-      amount = clean.toLowerCase().replace(/\s+/g, '');
+      amount = normalizeText(clean).replace(/\s+/g, '-');
       type = 'item';
     }
   }
@@ -118,7 +230,8 @@ export const syncG2BulkCatalog = async () => {
 
     // Fetch live G2Bulk catalog
     logger.info('Fetching catalog from G2Bulk API...');
-    const res = await axios.get('https://api.g2bulk.com/v1/products', {
+    const catalogUrl = `${env.G2BULK_API_URL.replace(/\/$/, '')}/products`;
+    const res = await axios.get(catalogUrl, {
       headers: {
         'x-api-key': env.G2BULK_API_KEY,
         'X-API-Key': env.G2BULK_API_KEY
@@ -126,9 +239,7 @@ export const syncG2BulkCatalog = async () => {
       timeout: 20000
     });
 
-    const products: G2Product[] = Array.isArray(res.data?.products)
-      ? res.data.products
-      : (Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []));
+    const products = normalizeG2Products(res.data);
 
     logger.info(`Fetched ${products.length} catalog items from G2Bulk API.`);
 
@@ -251,15 +362,11 @@ export const syncG2BulkCatalog = async () => {
       );
 
       // Filter products for this game
-      const matchedProducts = products.filter((p) => {
-        const titleLower = p.title.toLowerCase();
-        const catLower = (p.category_title || '').toLowerCase();
-        if (gameMeta.slug === 'mobile-legends') {
-          if (catLower.includes('special')) return false;
-          return catLower === 'mobile legends' || catLower === 'mobile legends global';
-        }
-        return gameMeta.keywords.some((kw) => titleLower.includes(kw) || catLower.includes(kw));
-      });
+      const matchedProducts = products.filter((product) => productMatchesGame(product, {
+        slug: gameMeta.slug,
+        keywords: gameMeta.keywords,
+        categoryAliases: GAME_IDENTITY_ALIASES[gameMeta.slug] || gameMeta.keywords
+      }));
 
       // Sandbox Fallback
       let finalProducts = matchedProducts;
@@ -287,33 +394,14 @@ export const syncG2BulkCatalog = async () => {
         }
       }
 
-      // Group and Deduplicate by Diamond Amount + Package Type
-      const grouped = new Map<string, G2Product[]>();
-      for (const prod of finalProducts) {
-        const norm = normalizePackage(prod.title, gameMeta.slug);
-        const list = grouped.get(norm.uniqueKey) || [];
-        list.push(prod);
-        grouped.set(norm.uniqueKey, list);
+      if (finalProducts.length === 0) {
+        logger.warn(`No G2Bulk products matched ${gameMeta.title}; existing packages were preserved.`);
+        continue;
       }
 
-      const deduplicatedProducts: { prod: G2Product; uniqueKey: string; cleanName: string }[] = [];
-      
-      for (const [uniqueKey, prods] of grouped.entries()) {
-        // Choose the product with the lowest wholesale cost (lowest unit_price)
-        let bestProd = prods[0];
-        for (let i = 1; i < prods.length; i++) {
-          if (prods[i].unit_price < bestProd.unit_price) {
-            bestProd = prods[i];
-          }
-        }
-        
-        const norm = normalizePackage(bestProd.title, gameMeta.slug);
-        deduplicatedProducts.push({
-          prod: bestProd,
-          uniqueKey,
-          cleanName: norm.cleanName
-        });
-      }
+      // Group by denomination/event and keep exactly one cheapest provider product.
+      // For MLBB, one selected product is intentionally shared by regular and Global servers.
+      const deduplicatedProducts = selectCheapestProducts(finalProducts, gameMeta.slug);
 
       totalDuplicatesRemoved += (finalProducts.length - deduplicatedProducts.length);
 
@@ -324,20 +412,13 @@ export const syncG2BulkCatalog = async () => {
 
       if (deduplicatedProducts.length > 0) {
         // Write new packages via bulkWrite performance insert
-        const bulkOps = deduplicatedProducts.map((item, idx) => {
+        const orderedProducts = [...deduplicatedProducts].sort((a, b) => a.prod.unit_price - b.prod.unit_price);
+        const bulkOps = orderedProducts.map((item, idx) => {
           const prod = item.prod;
           const costPrice = prod.unit_price;
           const retailPrice = parseFloat((costPrice * 1.18).toFixed(2));
 
-          let badge = 'NORMAL';
-          const titleLower = prod.title.toLowerCase();
-          if (titleLower.includes('pass') || titleLower.includes('event') || titleLower.includes('starlight')) {
-            badge = 'EVENT / PASS';
-          } else if (idx === 0 || titleLower.includes('86') || titleLower.includes('weekly') || titleLower.includes('60 uc')) {
-            badge = 'BEST SELLER';
-          } else if (costPrice > 10.0) {
-            badge = 'BEST VALUE';
-          }
+          const badge = classifyPackage(prod, idx, gameMeta.slug);
 
           let packageTitle = item.cleanName;
           if (gameMeta.slug === 'mobile-legends') {
@@ -355,16 +436,12 @@ export const syncG2BulkCatalog = async () => {
             }
           }
 
-          const supportsBoth = gameMeta.slug === 'mobile-legends' && 
-            finalProducts.some(p => normalizePackage(p.title, gameMeta.slug).uniqueKey === item.uniqueKey && (p.category_title || '').toLowerCase().includes('global')) &&
-            finalProducts.some(p => normalizePackage(p.title, gameMeta.slug).uniqueKey === item.uniqueKey && !(p.category_title || '').toLowerCase().includes('global'));
-
           return {
             insertOne: {
               document: {
                 gameId: gameDoc._id,
                 title: packageTitle,
-                description: prod.description || `${packageTitle} (Automated Instant Top-up | Source: G2Bulk ${prod.category_title}${supportsBoth ? ' | Supports Global & Regular Servers' : ''})`,
+                description: prod.description || `${packageTitle} (Automated Instant Top-up | Source: G2Bulk ${prod.category_title}${item.supportsBoth ? ' | Supports Global & Regular Servers' : ''})`,
                 price: Math.max(0.25, retailPrice),
                 costPrice,
                 providerType: 'G2BULK',
@@ -373,7 +450,7 @@ export const syncG2BulkCatalog = async () => {
                 stock: prod.stock >= 0 ? prod.stock : -1,
                 status: 'active',
                 sortOrder: idx,
-                supportsBoth
+                supportsBoth: item.supportsBoth
               }
             }
           };

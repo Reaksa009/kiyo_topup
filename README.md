@@ -48,3 +48,10 @@ KIYO TOPUP is a complete, enterprise-grade, secure, and scalable online game top
    cd backend
    npm test
    ```
+
+6. **Sync the live G2Bulk catalog**:
+   ```bash
+   cd backend
+   npm run sync-catalog
+   ```
+   The sync imports PUBG Mobile, Valorant, Free Fire, Mobile Legends, Mobile Legends Global, and the other configured games. It keeps event/pass products, labels bestseller and normal packages, and selects the cheapest product for duplicate denominations. Mobile Legends packages are shared across regular and Global servers when only one regional product exists.
