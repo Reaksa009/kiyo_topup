@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd frontend && npm install --workspaces=false && cd ../backend && npm install --workspaces=false",
+  "installCommand": "cd frontend && npm install --workspaces=false --include=dev && cd ../backend && npm install --workspaces=false --include=dev",
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.ts": {
