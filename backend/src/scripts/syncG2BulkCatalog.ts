@@ -28,7 +28,9 @@ const GAME_IDENTITY_ALIASES: Record<string, string[]> = {
   'free-fire': ['free fire', 'freefire', 'garena free fire'],
   valorant: ['valorant'],
   'honor-of-kings': ['honor of kings', 'hok'],
-  'cod-mobile': ['call of duty mobile', 'call of duty: mobile', 'cod mobile', 'codm']
+  'cod-mobile': ['call of duty mobile', 'call of duty: mobile', 'cod mobile', 'codm'],
+  'blood-strike': ['blood strike', 'bloodstrike'],
+  'delta-force': ['delta force', 'deltaforce']
 };
 
 const normalizeText = (value: unknown): string =>
@@ -153,6 +155,10 @@ export const normalizePackage = (title: string, gameSlug: string) => {
     clean = clean.replace(/^Honor of Kings\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'cod-mobile') {
     clean = clean.replace(/^(Call of Duty: Mobile|CODM)\s*[-:|]\s*/i, '').trim();
+  } else if (gameSlug === 'blood-strike') {
+    clean = clean.replace(/^Blood\s*Strike\s*[-:|]\s*/i, '').trim();
+  } else if (gameSlug === 'delta-force') {
+    clean = clean.replace(/^Delta\s*Force\s*[-:|]\s*/i, '').trim();
   }
   
   let amount = '';
@@ -172,7 +178,7 @@ export const normalizePackage = (title: string, gameSlug: string) => {
     amount = 'starlight';
     type = 'pass';
   } else {
-    const match = clean.match(/^(?:[^\d]*)([\d][\d\s,().+]*?)\s*(diamonds?|uc|vp|points?|tokens?|gems?|coins?|cp)\b/i);
+    const match = clean.match(/^(?:[^\d]*)([\d][\d\s,().+]*?)\s*(?:delta\s+)?(diamonds?|uc|vp|points?|tokens?|gems?|gold|credits?|coins?|cp)\b/i);
     if (match) {
       amount = match[1].replace(/[\s,().+]/g, '');
       type = match[2].toLowerCase();
@@ -327,6 +333,34 @@ export const syncG2BulkCatalog = async () => {
         keywords: ['cod', 'call of duty', 'cp'],
         inputFields: [
           { name: 'openId', label: 'Open ID', placeholder: 'e.g. 678912345678', type: 'text', required: true }
+        ]
+      },
+      {
+        slug: 'blood-strike',
+        title: 'Blood Strike',
+        publisher: 'NetEase Games',
+        categoryName: 'Tactical Shooter',
+        categorySlug: 'tactical-shooter',
+        categoryIcon: 'Crosshair',
+        thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=400&q=75',
+        bannerUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=75',
+        keywords: ['blood strike', 'bloodstrike', 'gold'],
+        inputFields: [
+          { name: 'userCode', label: 'User Code', placeholder: 'e.g. BS998877', type: 'text', required: true, helpText: 'Your Blood Strike user code' }
+        ]
+      },
+      {
+        slug: 'delta-force',
+        title: 'Delta Force',
+        publisher: 'Team Jade',
+        categoryName: 'Tactical Shooter',
+        categorySlug: 'tactical-shooter',
+        categoryIcon: 'Crosshair',
+        thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=75',
+        bannerUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=75',
+        keywords: ['delta force', 'deltaforce', 'delta coins'],
+        inputFields: [
+          { name: 'playerTag', label: 'Player Tag', placeholder: 'e.g. DF-100293', type: 'text', required: true, helpText: 'Your Delta Force account tag' }
         ]
       }
     ];
