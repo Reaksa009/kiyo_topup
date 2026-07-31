@@ -99,7 +99,8 @@ export class ABAPayWayService {
     const rawString = `${tran_id}${status}${amount || ''}`;
     const calculatedHash = crypto.createHmac('sha256', env.ABA_PAYWAY_API_KEY).update(rawString).digest('base64');
 
-    return hash === calculatedHash || env.ABA_PAYWAY_API_KEY.includes('sample');
+    if (hash.length !== calculatedHash.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(calculatedHash));
   }
 
   /**

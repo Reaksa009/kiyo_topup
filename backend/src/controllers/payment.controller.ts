@@ -5,6 +5,7 @@ import { BakongKHQRService } from '../services/payments/BakongKHQRService';
 import { orderQueue } from '../queues/orderQueue';
 import { TelegramService } from '../services/telegram.service';
 import { logger } from '../utils/logger';
+import { env } from '../config/env';
 
 const fulfillBatchIfApplicable = async (orderNo: string) => {
   if (orderNo.startsWith('BCH-')) {
@@ -107,6 +108,10 @@ export class PaymentController {
    */
   static async simulateSuccess(req: Request, res: Response) {
     try {
+      if (env.NODE_ENV === 'production' || !env.ENABLE_PAYMENT_SIMULATOR) {
+        return res.status(404).json({ success: false, message: 'Not found.' });
+      }
+
       const { orderNumber } = req.body;
       const order = await Order.findOne({ orderNumber });
       if (!order) return res.status(404).json({ success: false, message: 'Order not found' });

@@ -34,8 +34,16 @@ services:
       NODE_ENV: production
       MONGODB_URI: mongodb://mongodb:27017/kiyo_topup
       REDIS_URI: redis://redis:6379
-      JWT_SECRET: kiyo_topup_prod_jwt_secret_2026
-      JWT_REFRESH_SECRET: kiyo_topup_prod_refresh_secret_2026
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set}
+      ABA_PAYWAY_API_KEY: ${ABA_PAYWAY_API_KEY:?ABA_PAYWAY_API_KEY must be set}
+      BAKONG_API_TOKEN: ${BAKONG_API_TOKEN:?BAKONG_API_TOKEN must be set}
+      G2BULK_API_KEY: ${G2BULK_API_KEY:?G2BULK_API_KEY must be set}
+      G2BULK_API_SECRET: ${G2BULK_API_SECRET:?G2BULK_API_SECRET must be set}
+      BAKONG_WEBHOOK_SECRET: ${BAKONG_WEBHOOK_SECRET:?BAKONG_WEBHOOK_SECRET must be set}
+      G2BULK_WEBHOOK_SECRET: ${G2BULK_WEBHOOK_SECRET:?G2BULK_WEBHOOK_SECRET must be set}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?SEED_ADMIN_EMAIL must be set}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD must be set}
     depends_on:
       - mongodb
       - redis

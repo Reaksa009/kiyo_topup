@@ -156,8 +156,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </button>
             </div>
 
-            {/* Instant Test Payment Simulator Button */}
-            <div className="pt-2">
+            {/* Instant Test Payment Simulator Button (development only) */}
+            {import.meta.env.DEV && <div className="pt-2">
               <button
                 onClick={handleSimulatePayment}
                 disabled={simulating}
@@ -172,7 +172,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </>
                 )}
               </button>
-            </div>
+            </div>}
           </>
         )}
 

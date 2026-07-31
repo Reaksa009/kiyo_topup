@@ -17,10 +17,32 @@ import { seedDatabase } from './seed';
 const app = express();
 const server = http.createServer(app);
 
+const configuredOrigins = [
+  env.CLIENT_URL,
+  env.ADMIN_URL,
+  ...env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+]
+  .filter(Boolean)
+  .map((origin) => {
+    try {
+      return new URL(origin).origin;
+    } catch {
+      return origin.replace(/\/$/, '');
+    }
+  });
+const allowedOrigins = new Set(configuredOrigins);
+const corsOrigin = (origin: string | undefined, callback: (error: Error | null, allowed?: boolean) => void) => {
+  if (!origin || allowedOrigins.has(origin)) {
+    callback(null, true);
+    return;
+  }
+  callback(new Error('Origin is not allowed by CORS'));
+};
+
 // Initialize Socket.IO with CORS
 const io = new SocketServer(server, {
   cors: {
-    origin: '*',
+    origin: corsOrigin,
     methods: ['GET', 'POST']
   }
 });
@@ -35,23 +57,63 @@ io.on('connection', (socket) => {
 });
 
 // Middleware
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: '*', credentials: true }));
+if (env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+app.use(helmet());
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('combined', { stream: { write: (msg) => logger.info(msg.trim()) } }));
-
-// Rate Limiting
-app.use(env.API_PREFIX, apiRateLimiter);
 
 // Health Check
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'KIYO TOPUP Backend API',
+    initialized: isInitialized,
     time: new Date().toISOString()
   });
 });
+
+// Middleware to ensure DB and Redis connection in serverless environment (Vercel)
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
+export const initApp = async () => {
+  if (isInitialized) return;
+
+  if (!initializationPromise) {
+    initializationPromise = (async () => {
+      await connectDatabase();
+      await connectRedis();
+      if (env.AUTO_SEED_DATABASE) {
+        await seedDatabase();
+      }
+      isInitialized = true;
+    })().catch((error) => {
+      initializationPromise = null;
+      throw error;
+    });
+  }
+
+  await initializationPromise;
+};
+
+app.use(async (req, res, next) => {
+  try {
+    await initApp();
+    next();
+  } catch (error: any) {
+    logger.error(`Application initialization failed: ${error.message}`);
+    res.status(503).json({
+      success: false,
+      message: 'Service initialization failed. Please try again shortly.'
+    });
+  }
+});
+
+// Rate Limiting
+app.use(env.API_PREFIX, apiRateLimiter);
 
 // Mount Versioned API Router (/api/v1)
 app.use(env.API_PREFIX, apiRouter);
@@ -59,31 +121,12 @@ app.use(env.API_PREFIX, apiRouter);
 // Global Error Handler
 app.use(errorHandler);
 
-// Middleware to ensure DB and Redis connection in serverless environment (Vercel)
-let isInitialized = false;
-const initApp = async () => {
-  if (isInitialized) return;
-  try {
-    await connectDatabase();
-    await connectRedis();
-    if (process.env.VERCEL) {
-      await seedDatabase();
-    }
-    isInitialized = true;
-  } catch (error: any) {
-    logger.warn('Initialization warning (Server remains active with fallback mock data):', error.message);
-  }
-};
-
-app.use(async (req, res, next) => {
-  await initApp();
-  next();
-});
-
 const startServer = async () => {
   const PORT = parseInt(env.PORT, 10) || 5000;
 
-  // Always listen on HTTP port first
+  await initApp();
+  initOrderWorker();
+
   server.listen(PORT, () => {
     logger.info(`==================================================`);
     logger.info(`  KIYO TOPUP Backend Server Running on Port ${PORT}`);
@@ -91,13 +134,13 @@ const startServer = async () => {
     logger.info(`  API Base URL: http://localhost:${PORT}${env.API_PREFIX}`);
     logger.info(`==================================================`);
   });
-
-  await initApp();
-  initOrderWorker();
 };
 
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
-  startServer();
+  startServer().catch((error: any) => {
+    logger.error(`Backend startup failed: ${error.message}`);
+    process.exitCode = 1;
+  });
 }
 
 export { app, server, io };

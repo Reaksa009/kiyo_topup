@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Order, Payment } from '../models/Order';
 import { ABAPayWayService } from '../services/payments/ABAPayWayService';
+import { BakongKHQRService } from '../services/payments/BakongKHQRService';
 import { orderQueue } from '../queues/orderQueue';
 import { TelegramService } from '../services/telegram.service';
 import { logger } from '../utils/logger';
@@ -100,6 +101,11 @@ export class WebhookController {
       }
 
       if (status === 'SUCCESS' || status === 'PAID') {
+        const verification = md5 ? await BakongKHQRService.verifyTransactionByMd5(md5) : { success: false };
+        if (!verification.success) {
+          return res.status(400).json({ success: false, message: 'Bakong transaction could not be verified.' });
+        }
+
         if (order.paymentStatus !== 'paid') {
           order.paymentStatus = 'paid';
           order.overallStatus = 'processing';

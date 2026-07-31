@@ -22,7 +22,13 @@ export const connectDatabase = async (): Promise<typeof mongoose> => {
     logger.info(`==================================================`);
     return conn;
   } catch (error: any) {
-    logger.info(`MongoDB notice: Atlas/Primary connection failed. Launching fast in-memory database fallback...`);
+    logger.error(`MongoDB connection failed: ${error.message}`);
+
+    if (!env.ALLOW_IN_MEMORY_DB || env.NODE_ENV === 'production') {
+      throw error;
+    }
+
+    logger.warn('Launching explicitly enabled in-memory database fallback for local development.');
     try {
       const { MongoMemoryServer } = await import('mongodb-memory-server');
       const mongoServer = await MongoMemoryServer.create();
@@ -41,8 +47,7 @@ export const connectDatabase = async (): Promise<typeof mongoose> => {
       return conn;
     } catch (inMemoryErr: any) {
       logger.error('Failed to launch in-memory MongoDB:', inMemoryErr.message);
-      // Return mongoose directly as last resort fallback
-      return mongoose;
+      throw inMemoryErr;
     }
   }
 };

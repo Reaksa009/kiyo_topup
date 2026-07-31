@@ -219,7 +219,7 @@ export const OrderTracking: React.FC = () => {
               <div className="flex justify-between text-gray-300">
                 <span>Player Credentials:</span>
                 <span className="font-mono font-bold text-cyan-400">
-                  {JSON.stringify(order.playerFields)}
+                  {order.playerFields ? JSON.stringify(order.playerFields) : 'Hidden for security'}
                 </span>
               </div>
               <div className="flex justify-between text-gray-300 pt-2 border-t border-gray-800">

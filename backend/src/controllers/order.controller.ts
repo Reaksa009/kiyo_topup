@@ -95,7 +95,7 @@ export class OrderController {
 
       const costPrice = pkg.costPrice;
       const profit = finalPrice - costPrice;
-      const orderNumber = `ORD-${Date.now().toString().substring(3)}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const orderNumber = `ORD-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
 
       const order = await Order.create({
         orderNumber,
@@ -219,11 +219,31 @@ export class OrderController {
 
       const payment = await Payment.findOne({ orderId: order._id });
 
+      const {
+        guestEmail: _guestEmail,
+        userId: _userId,
+        playerFields: _playerFields,
+        costPrice: _costPrice,
+        profit: _profit,
+        couponCode: _couponCode,
+        discountAmount: _discountAmount,
+        metadata: _metadata,
+        ...publicOrder
+      } = order.toObject();
+
       res.json({
         success: true,
         data: {
-          order,
-          payment
+          order: publicOrder,
+          payment: payment
+            ? {
+                paymentMethod: payment.paymentMethod,
+                amount: payment.amount,
+                currency: payment.currency,
+                status: payment.status,
+                paidAt: payment.paidAt
+              }
+            : null
         }
       });
     } catch (error: any) {
@@ -285,7 +305,7 @@ export class OrderController {
       const totalAmount = finalPricePerUnit * players.length;
       const totalProfit = totalAmount - totalCostPrice;
 
-      const parentOrderNumber = `BCH-${Date.now().toString().substring(3)}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const parentOrderNumber = `BCH-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
 
       // Create Parent Order representing the transaction
       const parentOrder = await Order.create({
@@ -332,7 +352,7 @@ export class OrderController {
           });
         }
 
-        const subOrderNo = `ORD-${Date.now().toString().substring(5)}-${Math.floor(100000 + Math.random() * 900000)}`;
+        const subOrderNo = `ORD-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
         await Order.create({
           orderNumber: subOrderNo,
           userId: req.user?.id || undefined,
