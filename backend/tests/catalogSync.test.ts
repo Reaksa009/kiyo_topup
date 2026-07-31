@@ -32,6 +32,28 @@ describe('G2Bulk catalog normalization and selection', () => {
     });
   });
 
+  test('normalizes the G2Bulk v2 services response used by order submission', () => {
+    const products = normalizeG2Products([{
+      service: 2794,
+      name: 'Mobile Legends - 86',
+      type: 'Package',
+      category: 'Mobile Legends',
+      rate: '1.20',
+      min: '1',
+      max: '1'
+    }]);
+
+    expect(products).toHaveLength(1);
+    expect(products[0]).toMatchObject({
+      id: 2794,
+      title: 'Mobile Legends - 86',
+      category_title: 'Mobile Legends',
+      unit_price: 1.2,
+      supplier_id: 'G2BULK',
+      description: 'Package'
+    });
+  });
+
   test('matches by game identity and never by generic currency alone', () => {
     const freeFire: G2Product = {
       id: 'ff-100', title: '100 Diamonds', category_title: 'Free Fire', unit_price: 0.78, supplier_id: 'ff-supplier', stock: -1
@@ -42,6 +64,23 @@ describe('G2Bulk catalog normalization and selection', () => {
 
     expect(productMatchesGame(freeFire, { slug: 'free-fire', keywords: ['free fire'], categoryAliases: ['free fire'] })).toBe(true);
     expect(productMatchesGame(mobileLegends, { slug: 'free-fire', keywords: ['free fire'], categoryAliases: ['free fire'] })).toBe(false);
+  });
+
+  test('does not import Mobile Legends Adventure into the MLBB catalog', () => {
+    const adventure: G2Product = {
+      id: 999,
+      title: 'Mobile Legends Adventure - 100 Diamonds',
+      category_title: 'Mobile Legends Adventure',
+      unit_price: 1,
+      supplier_id: 'G2BULK',
+      stock: -1
+    };
+
+    expect(productMatchesGame(adventure, {
+      slug: 'mobile-legends',
+      keywords: ['mobile legends'],
+      categoryAliases: ['mobile legends']
+    })).toBe(false);
   });
 
   test('selects the cheapest MLBB regular/global product and shares it across both regions', () => {
@@ -76,9 +115,19 @@ describe('G2Bulk catalog normalization and selection', () => {
   test('normalizes MLBB regional prefixes to diamond amount and package type only', () => {
     const regular = normalizePackage('Mobile Legends - 86 (78 + 8 Bonus) Diamonds', 'mobile-legends');
     const global = normalizePackage('Mobile Legends Global - 86 (78 + 8 Bonus) Diamonds', 'mobile-legends');
+    const brazilV2 = normalizePackage('Mobile Legends Brazil - 86', 'mobile-legends');
 
     expect(regular.uniqueKey).toBe('86-diamond');
     expect(global.uniqueKey).toBe(regular.uniqueKey);
+    expect(brazilV2.uniqueKey).toBe(regular.uniqueKey);
+  });
+
+  test('normalizes numeric-only v2 regional packages using the game currency', () => {
+    expect(normalizePackage('Freefire SG - 100', 'free-fire').uniqueKey).toBe('100-diamond');
+    expect(normalizePackage('Valorant Cambodia - 475', 'valorant').uniqueKey).toBe('475-vp');
+    expect(normalizePackage('Call of Duty Mobile Garena SGMY - 80', 'cod-mobile').uniqueKey).toBe('80-cp');
+    expect(normalizePackage('Blood Strike MENA - 100', 'blood-strike').uniqueKey).toBe('100-gold');
+    expect(normalizePackage('Garena Deltaforce Malaysia - 60', 'delta-force').uniqueKey).toBe('60-coin');
   });
 
   test('keeps one supplier per package key and selects the lowest wholesale cost', () => {

@@ -26,7 +26,7 @@ export interface GameCatalogMatchDefinition {
   categoryAliases?: string[];
 }
 
-const GAME_IDENTITY_ALIASES: Record<string, string[]> = {
+export const GAME_IDENTITY_ALIASES: Record<string, string[]> = {
   'mobile-legends': ['mobile legends', 'mobile legends global', 'mlbb'],
   'pubg-mobile': ['pubg mobile', 'pubg'],
   'free-fire': ['free fire', 'freefire', 'garena free fire'],
@@ -46,10 +46,10 @@ const normalizeText = (value: unknown): string =>
     .trim();
 
 export const normalizeG2Product = (raw: any): G2Product | null => {
-  const id = raw?.id ?? raw?.product_id ?? raw?.productId ?? raw?.service_id ?? raw?.serviceId;
+  const id = raw?.id ?? raw?.product_id ?? raw?.productId ?? raw?.service_id ?? raw?.serviceId ?? raw?.service;
   const title = raw?.title ?? raw?.name ?? raw?.product_name ?? raw?.service_name;
   const category = raw?.category_title ?? raw?.category ?? raw?.category_name ?? raw?.game ?? '';
-  const unitPrice = Number(raw?.unit_price ?? raw?.unitPrice ?? raw?.price ?? raw?.cost ?? raw?.wholesale_price);
+  const unitPrice = Number(raw?.unit_price ?? raw?.unitPrice ?? raw?.price ?? raw?.cost ?? raw?.wholesale_price ?? raw?.rate);
   const sellingPriceValue = raw?.selling_price ?? raw?.sellingPrice ?? raw?.retail_price ?? raw?.retailPrice;
   const sellingPrice = sellingPriceValue === undefined || sellingPriceValue === null ? undefined : Number(sellingPriceValue);
   const stockValue = Number(raw?.stock ?? raw?.quantity ?? -1);
@@ -67,7 +67,7 @@ export const normalizeG2Product = (raw: any): G2Product | null => {
     selling_price: sellingPrice !== undefined && Number.isFinite(sellingPrice) && sellingPrice >= 0 ? sellingPrice : undefined,
     supplier_id: String(raw?.supplier_id ?? raw?.supplierId ?? raw?.provider_id ?? raw?.providerId ?? raw?.vendor_id ?? raw?.vendorId ?? 'G2BULK'),
     stock: Number.isFinite(stockValue) ? stockValue : -1,
-    description: raw?.description ? String(raw.description) : undefined
+    description: raw?.description ? String(raw.description) : raw?.type ? String(raw.type) : undefined
   };
 };
 
@@ -82,9 +82,47 @@ export const normalizeG2Products = (payload: any): G2Product[] => {
   return source.map((item) => normalizeG2Product(item)).filter((product): product is G2Product => Boolean(product));
 };
 
+export const fetchLatestG2BulkServices = async (): Promise<G2Product[]> => {
+  let catalogUrl: string;
+  try {
+    catalogUrl = new URL('/api/v2', env.G2BULK_API_URL).toString();
+  } catch {
+    throw new ValidationError('G2Bulk API URL is invalid.');
+  }
+
+  const body = new URLSearchParams({
+    key: env.G2BULK_API_KEY,
+    action: 'services'
+  });
+  const response = await axios.post(catalogUrl, body.toString(), {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    timeout: 30000
+  });
+
+  if (!Array.isArray(response.data)) {
+    const providerMessage = response.data?.error || response.data?.message;
+    throw new ValidationError(
+      providerMessage
+        ? `G2Bulk services request failed: ${String(providerMessage)}`
+        : 'G2Bulk services response is not a catalog array.'
+    );
+  }
+
+  const products = normalizeG2Products(response.data);
+  if (products.length === 0) {
+    throw new ValidationError('Latest G2Bulk services catalog is empty.');
+  }
+  return products;
+};
+
 export const productMatchesGame = (product: G2Product, definition: GameCatalogMatchDefinition): boolean => {
   const title = normalizeText(product.title);
   const category = normalizeText(product.category_title);
+  if (definition.slug === 'mobile-legends' && `${category} ${title}`.includes('mobile legends adventure')) {
+    return false;
+  }
   const aliases = (definition.categoryAliases || definition.keywords).map(normalizeText).filter(Boolean);
   return aliases.some((alias) => category === alias || category.startsWith(`${alias} `) || title.includes(alias));
 };
@@ -167,21 +205,21 @@ const formatDate = (date: Date): string => {
 export const normalizePackage = (title: string, gameSlug: string) => {
   let clean = title.replace(/\s+/g, ' ').trim();
   if (gameSlug === 'mobile-legends') {
-    clean = clean.replace(/^(?:Mobile Legends(?::\s*Bang Bang)?(?:\s+(?:Global|Special))?|MLBB)\s*[-:|]\s*/i, '').trim();
+    clean = clean.replace(/^(?:Mobile Legends(?::\s*Bang Bang)?(?:\s+[A-Za-z]+)*|MLBB)\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'pubg-mobile') {
     clean = clean.replace(/^(PUBG Mobile|PUBG)\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'free-fire') {
-    clean = clean.replace(/^(Free Fire|FreeFire)\s*[-:|]\s*/i, '').trim();
+    clean = clean.replace(/^(?:Free\s*Fire|Freefire)(?:\s+[A-Za-z]+)*\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'valorant') {
-    clean = clean.replace(/^Valorant\s*[-:|]\s*/i, '').trim();
+    clean = clean.replace(/^Valorant(?:\s+[A-Za-z]+)*\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'honor-of-kings') {
-    clean = clean.replace(/^Honor of Kings\s*[-:|]\s*/i, '').trim();
+    clean = clean.replace(/^(?:Honor of Kings|HOK)(?:\s+[A-Za-z]+)*\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'cod-mobile') {
-    clean = clean.replace(/^(Call of Duty: Mobile|CODM)\s*[-:|]\s*/i, '').trim();
+    clean = clean.replace(/^(?:Call of Duty(?::)?\s*Mobile(?:\s+[A-Za-z]+)*|CODM)\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'blood-strike') {
-    clean = clean.replace(/^Blood\s*Strike\s*[-:|]\s*/i, '').trim();
+    clean = clean.replace(/^Blood\s*Strike(?:\s+[A-Za-z]+)*\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'delta-force') {
-    clean = clean.replace(/^Delta\s*Force\s*[-:|]\s*/i, '').trim();
+    clean = clean.replace(/^(?:Garena\s+)?Delta\s*Force(?:\s+[A-Za-z]+)*\s*[-:|]\s*/i, '').trim();
   }
   
   let amount = '';
@@ -214,6 +252,19 @@ export const normalizePackage = (title: string, gameSlug: string) => {
         coins: 'coin', coin: 'coin'
       };
       type = canonicalTypes[rawType] || rawType;
+    } else if (/^[\d][\d,]*(?:\s*\+\s*[\d,]+)*$/.test(clean)) {
+      amount = clean.replace(/[\s,]/g, '');
+      const defaultTypes: Record<string, string> = {
+        'mobile-legends': 'diamond',
+        'pubg-mobile': 'uc',
+        'free-fire': 'diamond',
+        valorant: 'vp',
+        'honor-of-kings': 'token',
+        'cod-mobile': 'cp',
+        'blood-strike': 'gold',
+        'delta-force': 'coin'
+      };
+      type = defaultTypes[gameSlug] || 'item';
     } else {
       amount = normalizeText(clean).replace(/\s+/g, '-');
       type = 'item';
@@ -360,20 +411,11 @@ export const syncG2BulkCatalog = async () => {
     lockAcquired = true;
     logger.info(`Sync lock enabled (token=${syncToken}). Package and checkout APIs are disabled.`);
 
-    // Fetch live G2Bulk catalog
-    logger.info('Fetching catalog from G2Bulk API...');
-    const catalogUrl = `${env.G2BULK_API_URL.replace(/\/$/, '')}/products`;
-    const res = await axios.get(catalogUrl, {
-      headers: {
-        'x-api-key': env.G2BULK_API_KEY,
-        'X-API-Key': env.G2BULK_API_KEY
-      },
-      timeout: 20000
-    });
-
-    const products = normalizeG2Products(res.data);
-
-    logger.info(`Fetched ${products.length} catalog items from G2Bulk API.`);
+    // The order adapter submits G2Bulk v2 service IDs, so synchronization must
+    // use that same service catalog rather than the unrelated v1 gift-card feed.
+    logger.info('Fetching latest service catalog from G2Bulk API v2...');
+    const products = await fetchLatestG2BulkServices();
+    logger.info(`Fetched ${products.length} service catalog items from G2Bulk API v2.`);
 
     const gameDefinitions = [
       {
