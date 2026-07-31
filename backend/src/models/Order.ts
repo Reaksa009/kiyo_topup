@@ -73,6 +73,10 @@ const OrderSchema = new Schema<IOrder>(
   { timestamps: true }
 );
 
+OrderSchema.index({ overallStatus: 1, createdAt: -1 });
+OrderSchema.index({ paymentStatus: 1, createdAt: -1 });
+OrderSchema.index({ providerStatus: 1, updatedAt: -1 });
+
 export const Order = model<IOrder>('Order', OrderSchema);
 
 export interface IPayment extends Document {

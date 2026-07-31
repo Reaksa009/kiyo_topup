@@ -17,13 +17,15 @@ const PromotionSchema = new Schema<IPromotion>(
     bannerUrl: { type: String, required: true },
     targetGameIds: [{ type: Schema.Types.ObjectId, ref: 'Game' }],
     discountType: { type: String, enum: ['percentage', 'fixed'], required: true },
-    discountValue: { type: Number, required: true },
+    discountValue: { type: Number, required: true, min: 0.01 },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     active: { type: Boolean, default: true }
   },
   { timestamps: true }
 );
+
+PromotionSchema.index({ active: 1, startDate: 1, endDate: 1 });
 
 export const Promotion = model<IPromotion>('Promotion', PromotionSchema);
 
@@ -42,15 +44,17 @@ const CouponSchema = new Schema<ICoupon>(
   {
     code: { type: String, required: true, unique: true, uppercase: true, trim: true },
     discountType: { type: String, enum: ['percentage', 'fixed'], required: true },
-    discountValue: { type: Number, required: true },
-    maxUses: { type: Number, default: 100 },
-    minOrderAmount: { type: Number, default: 0 },
-    usedCount: { type: Number, default: 0 },
+    discountValue: { type: Number, required: true, min: 0.01 },
+    maxUses: { type: Number, default: 100, min: 1 },
+    minOrderAmount: { type: Number, default: 0, min: 0 },
+    usedCount: { type: Number, default: 0, min: 0 },
     expiryDate: { type: Date, required: true },
     active: { type: Boolean, default: true }
   },
   { timestamps: true }
 );
+
+CouponSchema.index({ active: 1, expiryDate: 1 });
 
 export const Coupon = model<ICoupon>('Coupon', CouponSchema);
 

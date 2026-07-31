@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/AdminLayout';
 import { apiClient } from '../../api/client';
-import { Gamepad2, Layers, Search, Filter, ShieldCheck, Tag, TrendingUp, RefreshCw } from 'lucide-react';
+import { Gamepad2, Search, Tag, TrendingUp, RefreshCw } from 'lucide-react';
 
 export const AdminGames: React.FC = () => {
   const [games, setGames] = useState<any[]>([]);
@@ -13,6 +13,9 @@ export const AdminGames: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [packageLoading, setPackageLoading] = useState(false);
   const [packageError, setPackageError] = useState('');
+  const [packageQuery, setPackageQuery] = useState('');
+  const [packagePage, setPackagePage] = useState(1);
+  const packagesPerPage = 40;
   
   // Package control states
   const [editingPkgId, setEditingPkgId] = useState<string | null>(null);
@@ -82,6 +85,8 @@ export const AdminGames: React.FC = () => {
         setPackageError('');
         const res = await apiClient.get(`/packages/admin/game/${selectedGame._id}`);
         setPackages(res.data.data || []);
+        setPackagePage(1);
+        setPackageQuery('');
       } catch (err: any) {
         setPackages([]);
         setPackageError(err.response?.data?.message || 'Failed to load packages from MongoDB.');
@@ -98,6 +103,13 @@ export const AdminGames: React.FC = () => {
     const matchesCategory = selectedCategory === 'ALL' || (g.categoryId?.slug || g.categoryId) === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
+
+  const filteredPackages = packages.filter((pkg) => {
+    const query = packageQuery.trim().toLowerCase();
+    return !query || pkg.title.toLowerCase().includes(query) || String(pkg.providerProductId || '').toLowerCase().includes(query);
+  });
+  const totalPackagePages = Math.max(1, Math.ceil(filteredPackages.length / packagesPerPage));
+  const visiblePackages = filteredPackages.slice((packagePage - 1) * packagesPerPage, packagePage * packagesPerPage);
 
   return (
     <AdminLayout>
@@ -117,9 +129,10 @@ export const AdminGames: React.FC = () => {
 
           <button
             onClick={fetchGamesAndCategories}
+            disabled={loading}
             className="self-start md:self-auto flex items-center space-x-2 text-xs font-bold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-4 py-2 rounded-xl transition-all"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh Catalog</span>
           </button>
         </div>
@@ -228,12 +241,15 @@ export const AdminGames: React.FC = () => {
 
                 {/* Packages Grid */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h4 className="text-xs font-extrabold text-cyan-400 uppercase tracking-wider flex items-center space-x-2">
                       <Tag className="w-4 h-4" />
                       <span>Configured Store Packages</span>
                     </h4>
-                    <span className="text-[10px] font-semibold text-gray-500">MongoDB catalog</span>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-600" />
+                      <input value={packageQuery} onChange={(event) => { setPackageQuery(event.target.value); setPackagePage(1); }} placeholder="Search package or supplier ID" className="w-full rounded-xl border border-gray-800 bg-[#0d111b] py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-cyan-500" />
+                    </div>
                   </div>
 
                   {packageLoading ? (
@@ -242,9 +258,12 @@ export const AdminGames: React.FC = () => {
                     <div className="py-10 text-center text-xs text-red-400">{packageError}</div>
                   ) : packages.length === 0 ? (
                     <div className="py-10 text-center text-xs text-gray-400">No packages found for this game in MongoDB.</div>
+                  ) : filteredPackages.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-gray-400">No packages match this search.</div>
                   ) : (
+                    <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {packages.map((pkg) => {
+                    {visiblePackages.map((pkg) => {
                       const margin = pkg.price - pkg.costPrice;
                       const marginPercent = pkg.costPrice > 0 ? ((margin / pkg.costPrice) * 100).toFixed(1) : '18.0';
 
@@ -365,6 +384,13 @@ export const AdminGames: React.FC = () => {
                       );
                     })}
                     </div>
+                    {totalPackagePages > 1 && (
+                      <div className="flex items-center justify-between border-t border-gray-800 pt-4 text-xs text-gray-500">
+                        <span>Showing {(packagePage - 1) * packagesPerPage + 1}–{Math.min(packagePage * packagesPerPage, filteredPackages.length)} of {filteredPackages.length}</span>
+                        <div className="flex gap-2"><button disabled={packagePage === 1} onClick={() => setPackagePage((page) => Math.max(1, page - 1))} className="rounded-lg border border-gray-700 px-3 py-1.5 font-bold text-gray-300 disabled:opacity-30">Previous</button><button disabled={packagePage === totalPackagePages} onClick={() => setPackagePage((page) => Math.min(totalPackagePages, page + 1))} className="rounded-lg border border-gray-700 px-3 py-1.5 font-bold text-gray-300 disabled:opacity-30">Next</button></div>
+                      </div>
+                    )}
+                    </>
                   )}
                 </div>
               </>

@@ -7,6 +7,10 @@ export interface ISettings extends Document {
   isSyncing: boolean;
   catalogSyncToken?: string;
   catalogSyncStartedAt?: Date;
+  catalogSyncFinishedAt?: Date;
+  catalogSyncStatus: 'idle' | 'running' | 'success' | 'failed';
+  catalogSyncLastReport?: Record<string, any>;
+  catalogSyncLastError?: string;
   contactEmail: string;
   contactTelegram: string;
   abaPayWayMerchantId: string;
@@ -32,6 +36,14 @@ const SettingsSchema = new Schema<ISettings>(
     isSyncing: { type: Boolean, default: false },
     catalogSyncToken: { type: String, default: '', select: false },
     catalogSyncStartedAt: { type: Date },
+    catalogSyncFinishedAt: { type: Date },
+    catalogSyncStatus: {
+      type: String,
+      enum: ['idle', 'running', 'success', 'failed'],
+      default: 'idle'
+    },
+    catalogSyncLastReport: { type: Schema.Types.Mixed },
+    catalogSyncLastError: { type: String, default: '' },
     contactEmail: { type: String, default: 'support@kiyotopup.com' },
     contactTelegram: { type: String, default: '@kiyotopup_support' },
     abaPayWayMerchantId: { type: String, default: '' },

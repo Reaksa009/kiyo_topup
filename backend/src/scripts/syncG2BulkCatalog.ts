@@ -348,6 +348,23 @@ export const compareCatalogSnapshots = (
 export const hasCatalogValidationErrors = (result: CatalogValidationResult): boolean =>
   result.missing.length > 0 || result.extra.length > 0 || result.duplicates.length > 0 || result.mismatches.length > 0;
 
+export interface CatalogSyncReport {
+  syncStarted: string;
+  syncFinished: string;
+  status: 'SUCCESS' | 'FAILED';
+  oldPackagesDeleted: number;
+  newPackagesImported: number;
+  duplicatePackagesRemoved: number;
+  missingPackages: number;
+  extraPackages: number;
+  finalDatabaseCount: number;
+  latestCatalogCount: number;
+  validation: 'PASSED' | 'FAILED';
+  transaction: 'COMMITTED' | 'ROLLED BACK';
+  database?: 'UNCHANGED';
+  reason?: string;
+}
+
 const buildPackageTitle = (item: SelectedCatalogProduct, gameSlug: string): string => {
   if (gameSlug !== 'mobile-legends') return item.cleanName;
   const rawTitle = item.prod.title.toLowerCase();
@@ -358,7 +375,7 @@ const buildPackageTitle = (item: SelectedCatalogProduct, gameSlug: string): stri
   return item.cleanName;
 };
 
-export const syncG2BulkCatalog = async () => {
+export const syncG2BulkCatalog = async (): Promise<CatalogSyncReport> => {
   const syncStartTime = new Date();
   logger.info(`G2Bulk Sync Started: ${formatDate(syncStartTime)}`);
 
@@ -372,6 +389,7 @@ export const syncG2BulkCatalog = async () => {
   let session: mongoose.ClientSession | null = null;
   const syncToken = crypto.randomUUID();
   let lockAcquired = false;
+  let finalReport: CatalogSyncReport | null = null;
 
   try {
     await connectDatabase();
@@ -400,8 +418,10 @@ export const syncG2BulkCatalog = async () => {
         $set: {
           isSyncing: true,
           catalogSyncToken: syncToken,
-          catalogSyncStartedAt: syncStartTime
-        }
+          catalogSyncStartedAt: syncStartTime,
+          catalogSyncStatus: 'running'
+        },
+        $unset: { catalogSyncLastError: '' }
       },
       { new: true }
     );
@@ -769,6 +789,43 @@ SUCCESS
     logger.info(report);
     console.log(report);
 
+    const reportData: CatalogSyncReport = {
+      syncStarted: syncStartTime.toISOString(),
+      syncFinished: syncFinishedTime.toISOString(),
+      status: 'SUCCESS',
+      oldPackagesDeleted: totalOldDeleted,
+      newPackagesImported: totalNewImported,
+      duplicatePackagesRemoved: totalDuplicatesRemoved,
+      missingPackages: totalMissing,
+      extraPackages: totalExtra,
+      finalDatabaseCount: finalDbCount,
+      latestCatalogCount: totalNewImported,
+      validation: 'PASSED',
+      transaction: 'COMMITTED'
+    };
+    finalReport = reportData;
+
+    // The catalog is already safely committed at this point. Persisting the
+    // operator-facing report is best effort and must never turn a successful
+    // catalog transaction into a reported rollback.
+    try {
+      await Settings.updateOne(
+        { isSyncing: true, catalogSyncToken: syncToken },
+        {
+          $set: {
+            catalogSyncStatus: 'success',
+            catalogSyncFinishedAt: syncFinishedTime,
+            catalogSyncLastReport: reportData,
+            catalogSyncLastError: ''
+          }
+        }
+      );
+    } catch (reportError: any) {
+      logger.error(`Catalog committed, but the sync report could not be persisted: ${reportError.message}`);
+    }
+
+    return reportData;
+
   } catch (error: any) {
     // Rollback Transaction
     if (session) {
@@ -802,6 +859,41 @@ UNCHANGED
 ========================================`;
     logger.error(report);
     console.log(report);
+
+    if (lockAcquired) {
+      const reportData: CatalogSyncReport = {
+        syncStarted: syncStartTime.toISOString(),
+        syncFinished: syncFinishedTime.toISOString(),
+        status: 'FAILED',
+        oldPackagesDeleted: totalOldDeleted,
+        newPackagesImported: totalNewImported,
+        duplicatePackagesRemoved: totalDuplicatesRemoved,
+        missingPackages: totalMissing,
+        extraPackages: totalExtra,
+        finalDatabaseCount: 0,
+        latestCatalogCount: totalNewImported,
+        validation: 'FAILED',
+        transaction: 'ROLLED BACK',
+        database: 'UNCHANGED',
+        reason: error.message
+      };
+      finalReport = reportData;
+      try {
+        await Settings.updateOne(
+          { isSyncing: true, catalogSyncToken: syncToken },
+          {
+            $set: {
+              catalogSyncStatus: 'failed',
+              catalogSyncFinishedAt: syncFinishedTime,
+              catalogSyncLastReport: reportData,
+              catalogSyncLastError: error.message
+            }
+          }
+        );
+      } catch (reportError: any) {
+        logger.error(`Failed to persist the rolled-back sync report: ${reportError.message}`);
+      }
+    }
     throw error;
   } finally {
     // Only the process that owns the lock may release it. Retry transient
@@ -810,10 +902,17 @@ UNCHANGED
       let unlocked = false;
       for (let attempt = 1; attempt <= 3 && !unlocked; attempt++) {
         try {
+          const completionUpdate: Record<string, any> = { isSyncing: false };
+          if (finalReport) {
+            completionUpdate.catalogSyncStatus = finalReport.status === 'SUCCESS' ? 'success' : 'failed';
+            completionUpdate.catalogSyncFinishedAt = new Date(finalReport.syncFinished);
+            completionUpdate.catalogSyncLastReport = finalReport;
+            completionUpdate.catalogSyncLastError = finalReport.reason || '';
+          }
           const result = await Settings.findOneAndUpdate(
             { isSyncing: true, catalogSyncToken: syncToken },
             {
-              $set: { isSyncing: false },
+              $set: completionUpdate,
               $unset: { catalogSyncToken: '', catalogSyncStartedAt: '' }
             },
             { new: true }

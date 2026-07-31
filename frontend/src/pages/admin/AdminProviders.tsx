@@ -1,22 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/AdminLayout';
 import { apiClient } from '../../api/client';
-import { Cpu, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Cpu, RefreshCw } from 'lucide-react';
 
 export const AdminProviders: React.FC = () => {
   const [balance, setBalance] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [providerError, setProviderError] = useState('');
 
   const fetchProviderData = async () => {
     setLoading(true);
     try {
-      const [balRes, logsRes] = await Promise.all([
+      const [balanceResult, logsResult] = await Promise.allSettled([
         apiClient.get('/providers/balance/G2BULK'),
         apiClient.get('/providers/logs')
       ]);
-      setBalance(balRes.data.data);
-      setLogs(logsRes.data.data || []);
+      if (balanceResult.status === 'fulfilled') {
+        setBalance(balanceResult.value.data.data);
+        setProviderError('');
+      } else {
+        setBalance(null);
+        setProviderError(balanceResult.reason?.response?.data?.message || 'G2Bulk balance is currently unavailable.');
+      }
+      if (logsResult.status === 'fulfilled') setLogs(logsResult.value.data.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -31,9 +38,10 @@ export const AdminProviders: React.FC = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {providerError && <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{providerError}</div>}
         
         {/* Provider Status Header */}
-        <div className="glass-panel p-6 rounded-3xl border border-cyan-500/30 flex items-center justify-between">
+        <div className="glass-panel p-6 rounded-3xl border border-cyan-500/30 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-4">
             <div className="p-3 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 glow-cyan">
               <Cpu className="w-8 h-8" />
@@ -41,18 +49,19 @@ export const AdminProviders: React.FC = () => {
             <div>
               <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Primary Top-Up Provider</span>
               <h2 className="text-2xl font-black text-white">G2Bulk Automated API</h2>
-              <p className="text-xs text-gray-400">Endpoint: https://api.g2bulk.com/v1</p>
+              <p className="text-xs text-gray-400">Service catalog and fulfillment API v2</p>
             </div>
           </div>
 
           <div className="text-right">
             <span className="text-xs text-gray-400">Current Balance</span>
-            <p className="text-3xl font-black text-amber-400">${balance?.balance?.toFixed(2) || '1,250.75'} {balance?.currency || 'USD'}</p>
+            <p className={`text-3xl font-black ${balance ? 'text-amber-400' : 'text-red-400'}`}>{balance ? `$${Number(balance.balance).toFixed(2)} ${balance.currency || 'USD'}` : 'Unavailable'}</p>
             <button
               onClick={fetchProviderData}
-              className="mt-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 justify-end"
+              disabled={loading}
+              className="mt-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 justify-end disabled:opacity-50"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh Balance</span>
             </button>
           </div>

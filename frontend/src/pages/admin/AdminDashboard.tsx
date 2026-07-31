@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AdminLayout } from '../../components/AdminLayout';
 import { apiClient } from '../../api/client';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { DollarSign, ShoppingBag, Users, Cpu, ArrowUpRight, Clock, AlertCircle } from 'lucide-react';
+import { Activity, Cpu, DollarSign, ShoppingBag, Users } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<any>(null);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [revenueChart, setRevenueChart] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -22,6 +24,7 @@ export const AdminDashboard: React.FC = () => {
         setRevenueChart(reportRes.data.data.chartData || []);
       } catch (err) {
         console.error(err);
+        setError('Dashboard metrics could not be loaded. Open Operations Center for live diagnostics.');
       } finally {
         setLoading(false);
       }
@@ -40,6 +43,12 @@ export const AdminDashboard: React.FC = () => {
   return (
     <AdminLayout>
       <div className="space-y-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><h1 className="text-2xl font-black text-white">Business overview</h1><p className="mt-1 text-sm text-gray-500">Revenue, customers, and the latest top-up activity.</p></div>
+          <Link to="/admin/operations" className="inline-flex items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-2.5 text-xs font-black text-purple-300 hover:bg-purple-500/20"><Activity className="h-4 w-4" /> Operations Center</Link>
+        </div>
+
+        {error && <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
         
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -78,8 +87,8 @@ export const AdminDashboard: React.FC = () => {
               <span>G2Bulk API Balance</span>
               <Cpu className="w-5 h-5 text-amber-400" />
             </div>
-            <p className="text-3xl font-black text-amber-400">${metrics?.providerBalance?.toFixed(2) || '0.00'}</p>
-            <p className="text-[11px] text-amber-400 font-semibold">Automated Provider Status: Online</p>
+            <p className={`text-3xl font-black ${metrics?.providerOnline ? 'text-amber-400' : 'text-red-400'}`}>{metrics?.providerBalance == null ? 'Unavailable' : `$${metrics.providerBalance.toFixed(2)}`}</p>
+            <p className={`text-[11px] font-semibold ${metrics?.providerOnline ? 'text-emerald-400' : 'text-red-400'}`}>Automated Provider Status: {metrics?.providerOnline ? 'Online' : 'Unavailable'}</p>
           </div>
 
         </div>

@@ -23,6 +23,8 @@ const AdminProviders = lazy(() => import('./pages/admin/AdminProviders').then((m
 const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers').then((module) => ({ default: module.AdminCustomers })));
 const AdminRBAC = lazy(() => import('./pages/admin/AdminRBAC').then((module) => ({ default: module.AdminRBAC })));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then((module) => ({ default: module.AdminSettings })));
+const AdminOperations = lazy(() => import('./pages/admin/AdminOperations').then((module) => ({ default: module.AdminOperations })));
+const AdminPromotions = lazy(() => import('./pages/admin/AdminPromotions').then((module) => ({ default: module.AdminPromotions })));
 
 const RouteLoading = () => (
   <div className="flex min-h-screen items-center justify-center bg-[#070a12]" role="status" aria-label="Loading page">
@@ -90,6 +92,14 @@ export const App: React.FC = () => {
             }
           />
           <Route
+            path="/admin/operations"
+            element={
+              <ProtectedAdminRoute>
+                <AdminOperations />
+              </ProtectedAdminRoute>
+            }
+          />
+          <Route
             path="/admin/orders"
             element={
               <ProtectedAdminRoute>
@@ -126,6 +136,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedAdminRoute>
                 <AdminRBAC />
+              </ProtectedAdminRoute>
+            }
+          />
+          <Route
+            path="/admin/promotions"
+            element={
+              <ProtectedAdminRoute>
+                <AdminPromotions />
               </ProtectedAdminRoute>
             }
           />

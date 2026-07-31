@@ -11,26 +11,38 @@ export class AdminController {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const totalRevenueAgg = await Order.aggregate([
-        { $match: { paymentStatus: 'paid' } },
-        { $group: { _id: null, total: { $sum: '$amount' }, profit: { $sum: '$profit' } } }
+      const providerBalancePromise = ProviderFactory.getProvider('G2BULK')
+        .getBalance()
+        .then((result) => ({ balance: Number(result.balance) || 0, online: true, error: '' }))
+        .catch((error: any) => ({ balance: null, online: false, error: error.message || 'Provider unavailable' }));
+
+      const [
+        totalRevenueAgg,
+        todayRevenueAgg,
+        totalOrders,
+        totalUsers,
+        pendingOrders,
+        providerHealth,
+        recentOrders
+      ] = await Promise.all([
+        Order.aggregate([
+          { $match: { paymentStatus: 'paid' } },
+          { $group: { _id: null, total: { $sum: '$amount' }, profit: { $sum: '$profit' } } }
+        ]),
+        Order.aggregate([
+          { $match: { paymentStatus: 'paid', createdAt: { $gte: today } } },
+          { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+        ]),
+        Order.countDocuments(),
+        User.countDocuments(),
+        Order.countDocuments({ overallStatus: 'pending' }),
+        providerBalancePromise,
+        Order.find()
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .select('orderNumber gameTitle packageTitle amount profit overallStatus createdAt')
+          .lean()
       ]);
-
-      const todayRevenueAgg = await Order.aggregate([
-        { $match: { paymentStatus: 'paid', createdAt: { $gte: today } } },
-        { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
-      ]);
-
-      const totalOrders = await Order.countDocuments();
-      const totalUsers = await User.countDocuments();
-      const pendingOrders = await Order.countDocuments({ overallStatus: 'pending' });
-
-      // Fetch G2Bulk provider balance
-      const provider = ProviderFactory.getProvider('G2BULK');
-      const providerBalance = await provider.getBalance();
-
-      // Recent 10 orders
-      const recentOrders = await Order.find().sort({ createdAt: -1 }).limit(10);
 
       res.json({
         success: true,
@@ -43,7 +55,9 @@ export class AdminController {
             totalOrders,
             totalUsers,
             pendingOrders,
-            providerBalance: providerBalance.balance
+            providerBalance: providerHealth.balance,
+            providerOnline: providerHealth.online,
+            providerError: providerHealth.error
           },
           recentOrders
         }

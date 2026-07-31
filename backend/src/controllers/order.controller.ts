@@ -457,10 +457,11 @@ export class OrderController {
       if (status) query.overallStatus = status;
       if (paymentStatus) query.paymentStatus = paymentStatus;
       if (search) {
+        const safeSearch = String(search).slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         query.$or = [
-          { orderNumber: { $regex: search as string, $options: 'i' } },
-          { gameTitle: { $regex: search as string, $options: 'i' } },
-          { guestEmail: { $regex: search as string, $options: 'i' } }
+          { orderNumber: { $regex: safeSearch, $options: 'i' } },
+          { gameTitle: { $regex: safeSearch, $options: 'i' } },
+          { guestEmail: { $regex: safeSearch, $options: 'i' } }
         ];
       }
 
@@ -477,7 +478,17 @@ export class OrderController {
       const order = await Order.findById(orderId);
       if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
-      order.paymentStatus = 'paid';
+      if (order.paymentStatus !== 'paid') {
+        return res.status(409).json({
+          success: false,
+          message: 'Only verified paid orders can be re-sent to the provider. Confirm payment first.'
+        });
+      }
+
+      if (order.overallStatus === 'completed' || order.providerStatus === 'success') {
+        return res.status(409).json({ success: false, message: 'Completed orders cannot be re-sent.' });
+      }
+
       order.providerStatus = 'processing';
       order.overallStatus = 'processing';
       await order.save();
