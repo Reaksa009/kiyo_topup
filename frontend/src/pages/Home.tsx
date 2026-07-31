@@ -8,15 +8,35 @@ import { Footer } from '../components/Footer';
 import { apiClient } from '../api/client';
 
 const curatedGames = [
-  { slug: 'mobile-legends', title: 'Mobile Legends', publisher: 'Moonton', thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=900&q=85', categoryId: { name: 'MOBA', slug: 'moba' }, discount: 'Up to 15% off' },
-  { slug: 'free-fire', title: 'Free Fire', publisher: 'Garena', thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=900&q=85', categoryId: { name: 'Battle Royale', slug: 'battle-royale' }, discount: 'Bonus diamonds' },
-  { slug: 'pubg-mobile', title: 'PUBG Mobile', publisher: 'Tencent Games', thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=85', categoryId: { name: 'Battle Royale', slug: 'battle-royale' }, discount: 'Best value' },
-  { slug: 'honor-of-kings', title: 'Honor of Kings', publisher: 'Level Infinite', thumbnail: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?auto=format&fit=crop&w=900&q=85', categoryId: { name: 'MOBA', slug: 'moba' }, discount: 'New' },
-  { slug: 'genshin-impact', title: 'Genshin Impact', publisher: 'HoYoverse', thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=900&q=85', categoryId: { name: 'RPG', slug: 'rpg' }, discount: 'Coming soon', comingSoon: true },
-  { slug: 'valorant', title: 'Valorant', publisher: 'Riot Games', thumbnail: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=900&q=85', categoryId: { name: 'Shooter', slug: 'shooter' }, discount: 'Popular' },
-  { slug: 'roblox', title: 'Roblox', publisher: 'Roblox Corporation', thumbnail: 'https://images.unsplash.com/photo-1605870445919-838d190e8e1b?auto=format&fit=crop&w=900&q=85', categoryId: { name: 'Entertainment', slug: 'entertainment' }, discount: 'Coming soon', comingSoon: true },
-  { slug: 'steam-wallet', title: 'Steam Wallet', publisher: 'Steam', thumbnail: 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?auto=format&fit=crop&w=900&q=85', categoryId: { name: 'Gift Cards', slug: 'gift-cards' }, discount: 'Coming soon', comingSoon: true }
+  { slug: 'mobile-legends', title: 'Mobile Legends', publisher: 'Moonton', thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=640&q=76', categoryId: { name: 'MOBA', slug: 'moba' }, discount: 'Up to 15% off' },
+  { slug: 'free-fire', title: 'Free Fire', publisher: 'Garena', thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=640&q=76', categoryId: { name: 'Battle Royale', slug: 'battle-royale' }, discount: 'Bonus diamonds' },
+  { slug: 'pubg-mobile', title: 'PUBG Mobile', publisher: 'Tencent Games', thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=640&q=76', categoryId: { name: 'Battle Royale', slug: 'battle-royale' }, discount: 'Best value' },
+  { slug: 'honor-of-kings', title: 'Honor of Kings', publisher: 'Level Infinite', thumbnail: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?auto=format&fit=crop&w=640&q=76', categoryId: { name: 'MOBA', slug: 'moba' }, discount: 'New' },
+  { slug: 'genshin-impact', title: 'Genshin Impact', publisher: 'HoYoverse', thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=640&q=76', categoryId: { name: 'RPG', slug: 'rpg' }, discount: 'Coming soon', comingSoon: true },
+  { slug: 'valorant', title: 'Valorant', publisher: 'Riot Games', thumbnail: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=640&q=76', categoryId: { name: 'Shooter', slug: 'shooter' }, discount: 'Popular' },
+  { slug: 'roblox', title: 'Roblox', publisher: 'Roblox Corporation', thumbnail: 'https://images.unsplash.com/photo-1605870445919-838d190e8e1b?auto=format&fit=crop&w=640&q=76', categoryId: { name: 'Entertainment', slug: 'entertainment' }, discount: 'Coming soon', comingSoon: true },
+  { slug: 'steam-wallet', title: 'Steam Wallet', publisher: 'Steam', thumbnail: 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?auto=format&fit=crop&w=640&q=76', categoryId: { name: 'Gift Cards', slug: 'gift-cards' }, discount: 'Coming soon', comingSoon: true }
 ];
+
+const HOME_GAMES_CACHE_KEY = 'kiyo-home-games-v1';
+
+const readCachedGames = (): any[] => {
+  try {
+    const cached = sessionStorage.getItem(HOME_GAMES_CACHE_KEY);
+    return cached ? JSON.parse(cached) : [];
+  } catch {
+    return [];
+  }
+};
+
+const getCategoriesFromGames = (games: any[]) => Array.from(
+  new Map(
+    games
+      .map((game) => game.categoryId)
+      .filter((category) => category && typeof category === 'object' && category.slug)
+      .map((category) => [category.slug, category])
+  ).values()
+);
 
 const processSteps = [
   { number: '01', title: 'Select your game', text: 'Choose from our growing catalog of popular games.', icon: Filter },
@@ -27,25 +47,29 @@ const processSteps = [
 
 export const Home: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [games, setGames] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [games, setGames] = useState<any[]>(readCachedGames);
+  const [categories, setCategories] = useState<any[]>(() => getCategoriesFromGames(readCachedGames()));
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => readCachedGames().length === 0);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
-        const [gamesRes, catRes] = await Promise.all([apiClient.get('/games'), apiClient.get('/games/categories')]);
-        setGames(gamesRes.data.data || []);
-        setCategories(catRes.data.data || []);
-      } catch (err) {
-        console.error('Error loading games:', err);
+        const gamesRes = await apiClient.get('/games', { signal: controller.signal });
+        const freshGames = gamesRes.data.data || [];
+        setGames(freshGames);
+        setCategories(getCategoriesFromGames(freshGames));
+        sessionStorage.setItem(HOME_GAMES_CACHE_KEY, JSON.stringify(freshGames));
+      } catch (err: any) {
+        if (err?.name !== 'CanceledError') console.error('Error loading games:', err);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     fetchData();
+    return () => controller.abort();
   }, []);
 
   const catalog = useMemo(() => curatedGames.map((curated) => ({ ...curated, ...(games.find((game) => game.slug === curated.slug) || {}), comingSoon: curated.comingSoon && !games.some((game) => game.slug === curated.slug) })), [games]);

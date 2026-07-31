@@ -25,6 +25,12 @@ redisClient.on('error', (err) => {
 });
 
 export const connectRedis = async () => {
+  const isLocalRedis = /^redis:\/\/(?:localhost|127\.0\.0\.1)(?::|\/|$)/i.test(env.REDIS_URI);
+  if (process.env.VERCEL === '1' && isLocalRedis) {
+    logger.info('Skipping unavailable local Redis connection in Vercel runtime.');
+    return;
+  }
+
   try {
     if (redisClient.status === 'ready' || redisClient.status === 'connecting') return;
     await redisClient.connect();

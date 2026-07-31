@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2, ChevronRight, Search, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const banners = [
-  { id: 1, eyebrow: 'WELCOME TO KIYO TOPUP', title: 'Power your next win.', subtitle: 'Fast, secure top-ups for the games you love. Delivered in seconds, priced for every player.', bg: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1600&q=85', link: '/game/mobile-legends' },
-  { id: 2, eyebrow: 'LIMITED-TIME DROP', title: 'More credits. More play.', subtitle: 'Unlock bonus diamonds, UC, VP and more with weekly offers made for Cambodia gamers.', bg: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=1600&q=85', link: '/promotions' }
+  { id: 1, eyebrow: 'WELCOME TO KIYO TOPUP', title: 'Power your next win.', subtitle: 'Fast, secure top-ups for the games you love. Delivered in seconds, priced for every player.', bg: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1400&q=76', link: '/game/mobile-legends' },
+  { id: 2, eyebrow: 'LIMITED-TIME DROP', title: 'More credits. More play.', subtitle: 'Unlock bonus diamonds, UC, VP and more with weekly offers made for Cambodia gamers.', bg: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=1400&q=76', link: '/promotions' }
 ];
 
 export const HeroBanner: React.FC = () => {
@@ -16,11 +15,10 @@ export const HeroBanner: React.FC = () => {
   return (
     <section className="relative mt-5 overflow-hidden rounded-[28px] border border-white/[0.1] bg-[#0b1020] shadow-[0_30px_90px_rgba(0,0,0,0.38)] lg:mt-7">
       <div className="hero-grid pointer-events-none absolute inset-0 opacity-60" />
-      <AnimatePresence mode="wait">
-        <motion.div key={banner.id} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7 }} className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${banner.bg})` }}>
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,#070a12_0%,rgba(7,10,18,.93)_36%,rgba(7,10,18,.48)_70%,rgba(7,10,18,.7)_100%)]" />
-        </motion.div>
-      </AnimatePresence>
+      <div key={banner.id} className="hero-fade absolute inset-0">
+        <img src={banner.bg} alt="" aria-hidden="true" fetchPriority={current === 0 ? 'high' : 'auto'} decoding="async" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,#070a12_0%,rgba(7,10,18,.93)_36%,rgba(7,10,18,.48)_70%,rgba(7,10,18,.7)_100%)]" />
+      </div>
 
       <div className="relative grid min-h-[510px] items-center gap-8 px-6 py-10 sm:px-10 lg:grid-cols-[1.15fr_.85fr] lg:px-16 lg:py-14">
         <div className="max-w-2xl">

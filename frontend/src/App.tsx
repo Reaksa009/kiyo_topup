@@ -1,30 +1,34 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Customer Pages
 import { Home } from './pages/Home';
-import { GameDetail } from './pages/GameDetail';
-import { OrderTracking } from './pages/OrderTracking';
-import { CustomerProfile } from './pages/CustomerProfile';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { BlogList } from './pages/BlogList';
-import { BlogDetail } from './pages/BlogDetail';
-import { SupportFAQ } from './pages/SupportFAQ';
-import { BulkTopup } from './pages/BulkTopup';
-import { Contact } from './pages/Contact';
-import { Promotions } from './pages/Promotions';
 
-// Admin Pages
-import { AdminLogin } from './pages/AdminLogin';
-import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { AdminOrders } from './pages/admin/AdminOrders';
-import { AdminGames } from './pages/admin/AdminGames';
-import { AdminProviders } from './pages/admin/AdminProviders';
-import { AdminCustomers } from './pages/admin/AdminCustomers';
-import { AdminRBAC } from './pages/admin/AdminRBAC';
-import { AdminSettings } from './pages/admin/AdminSettings';
+const GameDetail = lazy(() => import('./pages/GameDetail').then((module) => ({ default: module.GameDetail })));
+const OrderTracking = lazy(() => import('./pages/OrderTracking').then((module) => ({ default: module.OrderTracking })));
+const CustomerProfile = lazy(() => import('./pages/CustomerProfile').then((module) => ({ default: module.CustomerProfile })));
+const Login = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })));
+const Register = lazy(() => import('./pages/Register').then((module) => ({ default: module.Register })));
+const BlogList = lazy(() => import('./pages/BlogList').then((module) => ({ default: module.BlogList })));
+const BlogDetail = lazy(() => import('./pages/BlogDetail').then((module) => ({ default: module.BlogDetail })));
+const SupportFAQ = lazy(() => import('./pages/SupportFAQ').then((module) => ({ default: module.SupportFAQ })));
+const BulkTopup = lazy(() => import('./pages/BulkTopup').then((module) => ({ default: module.BulkTopup })));
+const Contact = lazy(() => import('./pages/Contact').then((module) => ({ default: module.Contact })));
+const Promotions = lazy(() => import('./pages/Promotions').then((module) => ({ default: module.Promotions })));
+const AdminLogin = lazy(() => import('./pages/AdminLogin').then((module) => ({ default: module.AdminLogin })));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders').then((module) => ({ default: module.AdminOrders })));
+const AdminGames = lazy(() => import('./pages/admin/AdminGames').then((module) => ({ default: module.AdminGames })));
+const AdminProviders = lazy(() => import('./pages/admin/AdminProviders').then((module) => ({ default: module.AdminProviders })));
+const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers').then((module) => ({ default: module.AdminCustomers })));
+const AdminRBAC = lazy(() => import('./pages/admin/AdminRBAC').then((module) => ({ default: module.AdminRBAC })));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then((module) => ({ default: module.AdminSettings })));
+
+const RouteLoading = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#070a12]" role="status" aria-label="Loading page">
+    <span className="h-9 w-9 animate-spin rounded-full border-2 border-cyan-300/25 border-t-cyan-300" />
+  </div>
+);
 
 const ProtectedUserRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
@@ -44,7 +48,8 @@ export const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
+        <Suspense fallback={<RouteLoading />}>
+          <Routes>
           {/* Customer Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/game/:slug" element={<GameDetail />} />
@@ -134,7 +139,8 @@ export const App: React.FC = () => {
           />
 
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   );

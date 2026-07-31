@@ -4,7 +4,6 @@ import { Game, Category, Package } from '../models/Game';
 import { AuditService } from '../services/audit.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { ProviderFactory } from '../services/providers/ProviderFactory';
-import { Settings } from '../models/System';
 
 // Fallback Game Dataset for Instant Sub-5ms Responses
 const fallbackGames = [
@@ -167,15 +166,6 @@ export class GameController {
     }
 
     try {
-      // Check if catalog synchronization lock is enabled
-      const settings = await Settings.findOne();
-      if (settings?.isSyncing) {
-        return res.status(503).json({
-          success: false,
-          message: "Catalog is updating. Please try again in a few minutes."
-        });
-      }
-
       const { category, search, popular, flashSale } = req.query;
       const query: any = { status: 'active' };
 
@@ -226,15 +216,6 @@ export class GameController {
     }
 
     try {
-      // Check if catalog synchronization lock is enabled
-      const settings = await Settings.findOne();
-      if (settings?.isSyncing) {
-        return res.status(503).json({
-          success: false,
-          message: "Catalog is updating. Please try again in a few minutes."
-        });
-      }
-
       let game = await Game.findOne({ slug: targetSlug }).populate('categoryId').lean();
       let packages: any[] = [];
 

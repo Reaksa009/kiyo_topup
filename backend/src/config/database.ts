@@ -11,6 +11,9 @@ export const connectDatabase = async (): Promise<typeof mongoose> => {
     const conn = await mongoose.connect(env.MONGODB_URI, {
       serverSelectionTimeoutMS: timeoutMs,
       connectTimeoutMS: timeoutMs,
+      maxPoolSize: 10,
+      minPoolSize: 0,
+      maxIdleTimeMS: 60000,
       dbName: 'kiyo_topup'
     });
     (conn.connection as any).isInMemory = false;

@@ -161,7 +161,7 @@ export const processOrderFulfillment = async (orderId: string) => {
 // Mock queue interface with identical signature to prevent controller refactoring
 export const orderQueue = {
   add: async (jobName: string, data: { orderId: string }) => {
-    const queue = getOrderQueue();
+    const queue = process.env.VERCEL === '1' ? null : getOrderQueue();
     // Use BullMQ if Redis is ready/connecting and not in Vercel, otherwise execute synchronously in background
     const useQueue = queue && 
                      (redisClient.status === 'ready' || redisClient.status === 'connecting') &&

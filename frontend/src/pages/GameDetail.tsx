@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { PaymentModal } from '../components/PaymentModal';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle2, ShieldCheck, AlertCircle, Sparkles, Tag, ArrowRight } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, AlertCircle, Sparkles, Tag, ArrowRight, Search } from 'lucide-react';
 
 interface GamePackage {
   _id: string;
@@ -29,6 +29,8 @@ export function GameDetail() {
   const [selectedPackage, setSelectedPackage] = useState<GamePackage | null>(null);
   const [playerFields, setPlayerFields] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'best_selling' | 'normal'>('best_selling');
+  const [packageSearch, setPackageSearch] = useState('');
+  const [visiblePackageCount, setVisiblePackageCount] = useState(48);
   
   // Account Validation State
   const [verifyingPlayer, setVerifyingPlayer] = useState(false);
@@ -65,6 +67,23 @@ export function GameDetail() {
     };
     fetchGame();
   }, [slug]);
+
+  useEffect(() => {
+    setVisiblePackageCount(48);
+  }, [activeTab, packageSearch, slug]);
+
+  const filteredPackages = useMemo(() => {
+    const matchingTab = packages.filter((pkg) => {
+      const badgeLower = (pkg.badge || '').toLowerCase();
+      const isBest = badgeLower.includes('seller') || badgeLower.includes('pass') || badgeLower.includes('value') || badgeLower.includes('sale') || badgeLower.includes('deal');
+      return activeTab === 'best_selling' ? isBest : !isBest;
+    });
+    const tabPackages = matchingTab.length > 0 ? matchingTab : packages;
+    const query = packageSearch.trim().toLowerCase();
+    return query ? tabPackages.filter((pkg) => pkg.title.toLowerCase().includes(query)) : tabPackages;
+  }, [activeTab, packageSearch, packages]);
+
+  const visiblePackages = filteredPackages.slice(0, visiblePackageCount);
 
   const handleFieldChange = (fieldName: string, value: string) => {
     setPlayerFields((prev) => ({ ...prev, [fieldName]: value }));
@@ -189,10 +208,10 @@ export function GameDetail() {
         
         {/* Game Banner Header */}
         <div className="relative h-64 md:h-80 rounded-3xl overflow-hidden glass-panel border border-cyan-500/20">
-          <img src={game.bannerUrl} alt={game.title} className="w-full h-full object-cover" />
+          <img src={game.bannerUrl} alt={game.title} fetchPriority="high" decoding="async" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#080B11] via-[#080B11]/60 to-transparent flex items-end p-8">
             <div className="flex items-center space-x-6">
-              <img src={game.thumbnail} alt={game.title} className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 border-cyan-400 shadow-2xl glow-cyan" />
+              <img src={game.thumbnail} alt={game.title} decoding="async" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 border-cyan-400 shadow-2xl glow-cyan" />
               <div>
                 <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">{game.publisher}</span>
                 <h1 className="text-2xl md:text-4xl font-black text-white">{game.title}</h1>
@@ -299,15 +318,19 @@ export function GameDetail() {
                 </button>
               </div>
 
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-gray-500" />
+                <input
+                  type="search"
+                  value={packageSearch}
+                  onChange={(event) => setPackageSearch(event.target.value)}
+                  placeholder="Search diamonds, UC, passes or packages"
+                  className="w-full rounded-xl border border-gray-800 bg-[#111625] py-3 pl-10 pr-4 text-xs text-white outline-none transition focus:border-cyan-400"
+                />
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {(() => {
-                  const filtered = packages.filter(pkg => {
-                    const badgeLower = (pkg.badge || '').toLowerCase();
-                    const isBest = badgeLower.includes('seller') || badgeLower.includes('pass') || badgeLower.includes('value') || badgeLower.includes('sale') || badgeLower.includes('deal');
-                    return activeTab === 'best_selling' ? isBest : !isBest;
-                  });
-                  const toDisplay = filtered.length > 0 ? filtered : packages;
-                  return toDisplay.map((pkg) => {
+                {visiblePackages.map((pkg) => {
                     const isSelected = selectedPackage?._id === pkg._id;
                     return (
                       <button
@@ -344,9 +367,20 @@ export function GameDetail() {
                         </div>
                       </button>
                     );
-                  });
-                })()}
+                  })}
               </div>
+              {visiblePackages.length < filteredPackages.length && (
+                <button
+                  type="button"
+                  onClick={() => setVisiblePackageCount((count) => count + 48)}
+                  className="w-full rounded-xl border border-cyan-400/20 bg-cyan-400/[0.06] py-3 text-xs font-bold text-cyan-300 transition hover:bg-cyan-400/[0.12]"
+                >
+                  Show 48 more packages ({filteredPackages.length - visiblePackages.length} remaining)
+                </button>
+              )}
+              {filteredPackages.length === 0 && (
+                <p className="rounded-xl border border-gray-800 bg-[#111625] py-8 text-center text-xs text-gray-400">No packages match your search.</p>
+              )}
             </div>
 
             {/* Step 3: Payment Method */}
