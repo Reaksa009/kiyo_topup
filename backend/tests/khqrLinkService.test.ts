@@ -35,7 +35,7 @@ describe('KHQR Link payment provider', () => {
       status: 200,
       data: {
         status: 'success',
-        qr: 'https://api.khqr.link/v1/qr/abc123',
+        qr: 'http://api.khqr.link/v1/qr/abc123',
         md5: '531458185fd39028cfd8f64fdd5022d3',
         tran: 'abc123',
         amount: 1.25,
@@ -66,6 +66,25 @@ describe('KHQR Link payment provider', () => {
         },
         headers: expect.objectContaining({ Authorization: 'Bearer test-private-khqr-token' })
       })
+    );
+  });
+
+  it('rejects a QR image URL outside the trusted KHQR API transaction path', async () => {
+    jest.spyOn(axios, 'get').mockResolvedValue({
+      status: 200,
+      data: {
+        status: 'success',
+        qr: 'https://example.com/v1/qr/abc123',
+        md5: '531458185fd39028cfd8f64fdd5022d3',
+        tran: 'abc123',
+        amount: 1.25,
+        currency: 'USD',
+        merchantname: 'KIYO TOPUP'
+      }
+    });
+
+    await expect(BakongKHQRService.createPayment('ORD-123', 1.25)).rejects.toThrow(
+      'Unable to create KHQR payment'
     );
   });
 

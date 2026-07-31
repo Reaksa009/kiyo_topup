@@ -148,6 +148,7 @@ export class BakongKHQRService {
         !md5 ||
         !/^[a-f0-9]{32}$/i.test(md5) ||
         !transactionId ||
+        !/^[a-z0-9_-]{4,128}$/i.test(transactionId) ||
         !qrImageUrl ||
         !this.moneyMatches(payload.amount, amount) ||
         currency !== env.KHQR_CURRENCY
@@ -155,11 +156,26 @@ export class BakongKHQRService {
         throw new Error('KHQR Link returned an invalid payment response');
       }
 
-      const expectedOrigin = new URL(env.KHQR_API_BASE_URL).origin;
+      const expectedApiUrl = new URL(env.KHQR_API_BASE_URL);
       const qrUrl = new URL(qrImageUrl, env.KHQR_API_BASE_URL);
-      if (qrUrl.protocol !== 'https:' || qrUrl.origin !== expectedOrigin) {
+      const expectedQrPath = `/v1/qr/${transactionId}`;
+      if (
+        !['http:', 'https:'].includes(qrUrl.protocol) ||
+        qrUrl.hostname !== expectedApiUrl.hostname ||
+        qrUrl.username ||
+        qrUrl.password ||
+        !['', '80', '443'].includes(qrUrl.port) ||
+        qrUrl.pathname !== expectedQrPath ||
+        qrUrl.search ||
+        qrUrl.hash
+      ) {
         throw new Error('KHQR Link returned an untrusted QR image URL');
       }
+
+      // KHQR Link currently returns an http:// URL even though the same QR
+      // image is available over HTTPS. Never send mixed-content URLs to clients.
+      qrUrl.protocol = 'https:';
+      qrUrl.port = '';
 
       return {
         provider: 'khqr_link',
