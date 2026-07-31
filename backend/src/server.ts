@@ -4,7 +4,7 @@ import { Server as SocketServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { env } from './config/env';
+import { env, shouldAutoSeedDatabase } from './config/env';
 import { connectDatabase } from './config/database';
 import { connectRedis } from './config/redis';
 import { logger } from './utils/logger';
@@ -86,8 +86,10 @@ export const initApp = async () => {
     initializationPromise = (async () => {
       await connectDatabase();
       await connectRedis();
-      if (env.AUTO_SEED_DATABASE) {
+      if (shouldAutoSeedDatabase(env.AUTO_SEED_DATABASE)) {
         await seedDatabase();
+      } else if (env.AUTO_SEED_DATABASE) {
+        logger.warn('AUTO_SEED_DATABASE was ignored in a production/serverless runtime.');
       }
       isInitialized = true;
     })().catch((error) => {

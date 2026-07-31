@@ -89,3 +89,15 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
+
+export const shouldAutoSeedDatabase = (
+  autoSeedDatabase: boolean,
+  runtime: NodeJS.ProcessEnv = process.env
+): boolean => {
+  const isProductionRuntime =
+    runtime.NODE_ENV === 'production' ||
+    runtime.VERCEL === '1' ||
+    runtime.VERCEL_ENV === 'production';
+
+  return autoSeedDatabase && !isProductionRuntime;
+};
