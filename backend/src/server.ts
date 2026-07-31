@@ -41,21 +41,25 @@ const corsOrigin = (origin: string | undefined, callback: (error: Error | null, 
 };
 
 // Initialize Socket.IO with CORS
-const io = new SocketServer(server, {
-  cors: {
-    origin: corsOrigin,
-    methods: ['GET', 'POST']
-  }
-});
+const io = process.env.VERCEL
+  ? null
+  : new SocketServer(server, {
+      cors: {
+        origin: corsOrigin,
+        methods: ['GET', 'POST']
+      }
+    });
 
-setSocketInstance(io);
+if (io) {
+  setSocketInstance(io);
 
-io.on('connection', (socket) => {
-  logger.info(`Socket client connected: ${socket.id}`);
-  socket.on('disconnect', () => {
-    logger.info(`Socket client disconnected: ${socket.id}`);
+  io.on('connection', (socket) => {
+    logger.info(`Socket client connected: ${socket.id}`);
+    socket.on('disconnect', () => {
+      logger.info(`Socket client disconnected: ${socket.id}`);
+    });
   });
-});
+}
 
 // Middleware
 if (env.NODE_ENV === 'production') {

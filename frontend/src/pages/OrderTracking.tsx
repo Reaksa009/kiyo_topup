@@ -47,8 +47,13 @@ export const OrderTracking: React.FC = () => {
   // Socket.IO live updates
   useEffect(() => {
     if (!order?.orderNumber) return;
-    const socket = io();
-    socket.on(`order_update_${order.orderNumber}`, (data: any) => {
+    const trackedOrderNumber = order.orderNumber;
+    const socketUrl = import.meta.env.VITE_SOCKET_URL?.trim();
+    const socket = import.meta.env.DEV || socketUrl
+      ? io(socketUrl || undefined)
+      : null;
+
+    socket?.on(`order_update_${trackedOrderNumber}`, (data: any) => {
       setOrder((prev: any) => ({
         ...prev,
         overallStatus: data.overallStatus,
@@ -61,8 +66,21 @@ export const OrderTracking: React.FC = () => {
       }
     });
 
+    // Vercel serverless cannot host a persistent Socket.IO server, so polling
+    // is the production real-time path and also a fallback for local sockets.
+    const pollTimer = window.setInterval(async () => {
+      try {
+        const res = await apiClient.get(`/orders/${trackedOrderNumber}`);
+        setOrder(res.data.data.order);
+        setPayment(res.data.data.payment);
+      } catch {
+        // Keep the last known state during a transient refresh failure.
+      }
+    }, 5000);
+
     return () => {
-      socket.disconnect();
+      socket?.disconnect();
+      window.clearInterval(pollTimer);
     };
   }, [order?.orderNumber]);
 

@@ -80,10 +80,6 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/socket.io/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -39,8 +39,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   // Listen to Socket.IO for real-time payment confirmation
   useEffect(() => {
-    const socket = io();
-    socket.on(`order_update_${orderNumber}`, (data: any) => {
+    const socketUrl = import.meta.env.VITE_SOCKET_URL?.trim();
+    const socket = import.meta.env.DEV || socketUrl
+      ? io(socketUrl || undefined)
+      : null;
+
+    socket?.on(`order_update_${orderNumber}`, (data: any) => {
       if (data.overallStatus === 'completed' || data.overallStatus === 'processing') {
         setIsPaid(true);
         setTimeout(() => {
@@ -66,7 +70,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }, 4000);
 
     return () => {
-      socket.disconnect();
+      socket?.disconnect();
       clearInterval(pollTimer);
     };
   }, [orderNumber, onSuccess]);
