@@ -3,19 +3,79 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+    --kiyo-bg: #070a12;
+    --kiyo-surface: rgba(18, 24, 43, 0.78);
+    --kiyo-surface-strong: #11182c;
+    --kiyo-line: rgba(148, 163, 184, 0.16);
+    --kiyo-muted: #8b98b5;
+    --kiyo-cyan: #62e6ff;
+    --kiyo-blue: #3b82f6;
+    --kiyo-purple: #8b5cf6;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    background-color: #080B11;
-    color: #F3F4F6;
+    background:
+      radial-gradient(circle at 10% -10%, rgba(59, 130, 246, 0.16), transparent 34rem),
+      radial-gradient(circle at 90% 0%, rgba(139, 92, 246, 0.13), transparent 30rem),
+      var(--kiyo-bg);
+    color: #f3f6ff;
     font-family: 'Inter', sans-serif;
+    min-width: 320px;
+  }
+
+  * {
+    border-color: var(--kiyo-line);
+  }
+
+  ::selection {
+    background: rgba(98, 230, 255, 0.28);
+    color: #ffffff;
   }
 }
 
-/* Glassmorphism & Cyber Glow utilities */
+@layer components {
+  .section-shell {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .eyebrow {
+    @apply text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300;
+  }
+
+  .display-title {
+    @apply text-3xl font-black tracking-[-0.035em] text-white sm:text-4xl lg:text-5xl;
+  }
+
+  .surface-card {
+    @apply rounded-3xl border bg-white/[0.035] shadow-[0_18px_60px_rgba(0,0,0,0.2)] backdrop-blur-xl;
+    border-color: var(--kiyo-line);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 px-5 py-3 text-xs font-black uppercase tracking-[0.08em] text-slate-950 shadow-[0_12px_30px_rgba(59,130,246,0.26)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(98,230,255,0.32)] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border bg-white/[0.04] px-5 py-3 text-xs font-black uppercase tracking-[0.08em] text-slate-200 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-cyan-300/[0.08] hover:text-white;
+  }
+
+  .soft-divider {
+    @apply border-t border-white/[0.08];
+  }
+}
+
+/* Glassmorphism & restrained gaming glow utilities */
 .glass-panel {
-  background: rgba(24, 32, 51, 0.7);
+  background: var(--kiyo-surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--kiyo-line);
 }
 
 .glass-panel-hover {
@@ -23,9 +83,9 @@
 }
 
 .glass-panel-hover:hover {
-  background: rgba(30, 41, 66, 0.85);
-  border-color: rgba(0, 240, 255, 0.4);
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
+  background: rgba(29, 39, 67, 0.86);
+  border-color: rgba(98, 230, 255, 0.38);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.18);
   transform: translateY(-2px);
 }
 
@@ -39,6 +99,23 @@
 
 .glow-gold {
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.text-gradient {
+  background: linear-gradient(110deg, #d7fbff 10%, #62e6ff 45%, #a78bfa 90%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.hero-grid {
+  background-image: linear-gradient(rgba(98, 230, 255, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(98, 230, 255, 0.045) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom, black, transparent 90%);
+}
+
+.floating-support {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34), 0 0 24px rgba(59, 130, 246, 0.22);
 }
 
 /* Custom Scrollbar */

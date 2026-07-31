@@ -14,6 +14,7 @@ import { BlogDetail } from './pages/BlogDetail';
 import { SupportFAQ } from './pages/SupportFAQ';
 import { BulkTopup } from './pages/BulkTopup';
 import { Contact } from './pages/Contact';
+import { Promotions } from './pages/Promotions';
 
 // Admin Pages
 import { AdminLogin } from './pages/AdminLogin';
@@ -49,6 +50,7 @@ export const App: React.FC = () => {
           <Route path="/game/:slug" element={<GameDetail />} />
           <Route path="/bulk-topup" element={<BulkTopup />} />
           <Route path="/tracking" element={<OrderTracking />} />
+          <Route path="/promotions" element={<Promotions />} />
           <Route path="/blogs" element={<BlogList />} />
           <Route path="/blogs/:slug" element={<BlogDetail />} />
           <Route path="/support" element={<SupportFAQ />} />
@@ -57,6 +59,14 @@ export const App: React.FC = () => {
           <Route path="/register" element={<Register />} />
           <Route
             path="/profile"
+            element={
+              <ProtectedUserRoute>
+                <CustomerProfile />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="/history"
             element={
               <ProtectedUserRoute>
                 <CustomerProfile />

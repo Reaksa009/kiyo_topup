@@ -14,7 +14,10 @@ interface GamePackage {
   badge?: string;
   providerProductId: string;
   supportsBoth?: boolean;
+  discountPercent?: number;
 }
+
+const formatKhr = (usd: number) => Math.round(usd * 4100 / 100) * 100;
 
 export function GameDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -331,7 +334,13 @@ export function GameDetail() {
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-gray-800/60 w-full">
                           <span className="text-xs text-gray-400">Price</span>
-                          <span className="text-base font-black text-cyan-400">${pkg.price.toFixed(2)}</span>
+                          <div className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {pkg.discountPercent && pkg.discountPercent > 0 && <span className="text-[10px] text-gray-500 line-through">${(pkg.price / (1 - pkg.discountPercent / 100)).toFixed(2)}</span>}
+                              <span className="text-base font-black text-cyan-400">${pkg.price.toFixed(2)}</span>
+                            </div>
+                            <p className="text-[10px] font-semibold text-gray-500">≈ ៛{formatKhr(pkg.price).toLocaleString('en-US')}</p>
+                          </div>
                         </div>
                       </button>
                     );
