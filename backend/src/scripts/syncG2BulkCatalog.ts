@@ -29,7 +29,7 @@ export interface GameCatalogMatchDefinition {
 export const GAME_IDENTITY_ALIASES: Record<string, string[]> = {
   'mobile-legends': ['mobile legends', 'mobile legends global', 'mlbb'],
   'pubg-mobile': ['pubg mobile', 'pubg'],
-  'free-fire': ['free fire', 'freefire', 'garena free fire'],
+  'free-fire': ['freefire global'],
   valorant: ['valorant'],
   'honor-of-kings': ['honor of kings', 'hok'],
   'cod-mobile': ['call of duty mobile', 'call of duty: mobile', 'cod mobile', 'codm'],
@@ -181,7 +181,7 @@ export const classifyPackage = (product: G2Product, index: number, gameSlug: str
   const bestsellerAmounts: Record<string, string[]> = {
     'mobile-legends': ['86', '257', '706', '2195'],
     'pubg-mobile': ['60 uc', '325 uc'],
-    'free-fire': ['100 diamonds', '530 diamonds'],
+    'free-fire': ['110', '572'],
     valorant: ['1000 vp', '2050 vp']
   };
   const known = bestsellerAmounts[gameSlug] || [];
@@ -227,16 +227,16 @@ export const normalizePackage = (title: string, gameSlug: string) => {
   const cleanLower = clean.toLowerCase();
   
   if (cleanLower.includes('weekly')) {
-    amount = 'weekly';
+    amount = normalizeText(clean).replace(/\s+/g, '-');
     type = 'pass';
   } else if (cleanLower.includes('twilight')) {
-    amount = 'twilight';
+    amount = normalizeText(clean).replace(/\s+/g, '-');
     type = 'pass';
   } else if (cleanLower.includes('monthly')) {
-    amount = 'monthly';
+    amount = normalizeText(clean).replace(/\s+/g, '-');
     type = 'pass';
   } else if (cleanLower.includes('starlight')) {
-    amount = 'starlight';
+    amount = normalizeText(clean).replace(/\s+/g, '-');
     type = 'pass';
   } else {
     const match = clean.match(/([\d][\d,]*(?:\s*\+\s*[\d,]+)*)\s*(?:\([^)]*\)\s*)?(?:delta\s+)?(diamonds?|uc|vp|points?|tokens?|gems?|gold|credits?|coins?|cp)\b/i);
@@ -366,6 +366,9 @@ export interface CatalogSyncReport {
 }
 
 const buildPackageTitle = (item: SelectedCatalogProduct, gameSlug: string): string => {
+  if (gameSlug === 'free-fire' && /^\d+(?:\+\d+)?$/.test(item.cleanName)) {
+    return `${item.cleanName} Diamonds`;
+  }
   if (gameSlug !== 'mobile-legends') return item.cleanName;
   const rawTitle = item.prod.title.toLowerCase();
   if (rawTitle.includes('weekly') && !rawTitle.includes('elite')) return 'Weekly Diamond Pass';
@@ -375,7 +378,11 @@ const buildPackageTitle = (item: SelectedCatalogProduct, gameSlug: string): stri
   return item.cleanName;
 };
 
-export const syncG2BulkCatalog = async (): Promise<CatalogSyncReport> => {
+export interface CatalogSyncOptions {
+  gameSlugs?: string[];
+}
+
+export const syncG2BulkCatalog = async (options: CatalogSyncOptions = {}): Promise<CatalogSyncReport> => {
   const syncStartTime = new Date();
   logger.info(`G2Bulk Sync Started: ${formatDate(syncStartTime)}`);
 
@@ -469,7 +476,7 @@ export const syncG2BulkCatalog = async (): Promise<CatalogSyncReport> => {
       },
       {
         slug: 'free-fire',
-        title: 'Free Fire',
+        title: 'Free Fire Global',
         publisher: 'Garena',
         categoryName: 'Battle Royale',
         categorySlug: 'battle-royale',
@@ -478,7 +485,7 @@ export const syncG2BulkCatalog = async (): Promise<CatalogSyncReport> => {
         bannerUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=800&q=75',
         keywords: ['free fire', 'diamond', 'garena'],
         inputFields: [
-          { name: 'playerId', label: 'Player ID (UID)', placeholder: 'e.g. 987654321', type: 'text', required: true, helpText: 'Numeric Character UID' }
+          { name: 'playerId', label: 'Player ID (UID)', placeholder: 'e.g. 987654321', type: 'text', required: true, helpText: 'Global-region numeric UID. No server ID is required.' }
         ]
       },
       {
@@ -553,11 +560,26 @@ export const syncG2BulkCatalog = async (): Promise<CatalogSyncReport> => {
       }
     ];
 
+    const requestedGameSlugs = [...new Set((options.gameSlugs || []).map((slug) => slug.trim().toLowerCase()).filter(Boolean))];
+    const selectedGameDefinitions = requestedGameSlugs.length > 0
+      ? gameDefinitions.filter((definition) => requestedGameSlugs.includes(definition.slug))
+      : gameDefinitions;
+    const unknownGameSlugs = requestedGameSlugs.filter(
+      (slug) => !gameDefinitions.some((definition) => definition.slug === slug)
+    );
+    if (unknownGameSlugs.length > 0) {
+      throw new ValidationError(`Unknown catalog sync game slug(s): ${unknownGameSlugs.join(', ')}.`);
+    }
+    if (selectedGameDefinitions.length === 0) {
+      throw new ValidationError('Catalog synchronization scope contains no games.');
+    }
+    logger.info(`Catalog synchronization scope: ${selectedGameDefinitions.map((definition) => definition.slug).join(', ')}.`);
+
     // Preflight the entire provider response before opening the transaction.
     // A missing game catalog is a hard failure: old data is never preserved or
     // merged as a fallback.
     const preparedCatalogs = new Map<string, SelectedCatalogProduct[]>();
-    for (const gameMeta of gameDefinitions) {
+    for (const gameMeta of selectedGameDefinitions) {
       const matchedProducts = products.filter((product) => productMatchesGame(product, {
         slug: gameMeta.slug,
         keywords: gameMeta.keywords,
@@ -582,59 +604,125 @@ export const syncG2BulkCatalog = async (): Promise<CatalogSyncReport> => {
     });
     logger.info('MongoDB replacement transaction started.');
 
-    const affectedGameIds: mongoose.Types.ObjectId[] = [];
     const bulkBatchSize = 500;
+    const categoryDefinitions = Array.from(
+      new Map(selectedGameDefinitions.map((definition) => [definition.categorySlug, definition])).values()
+    );
+    await Category.bulkWrite(
+      categoryDefinitions.map((definition) => ({
+        updateOne: {
+          filter: { slug: definition.categorySlug },
+          update: {
+            $set: {
+              name: definition.categoryName,
+              slug: definition.categorySlug,
+              icon: definition.categoryIcon,
+              status: 'active'
+            }
+          },
+          upsert: true
+        }
+      })),
+      { session, ordered: true }
+    );
+    const categoryDocs = await Category.find({
+      slug: { $in: categoryDefinitions.map((definition) => definition.categorySlug) }
+    }).session(session).lean();
+    const categoryBySlug = new Map(categoryDocs.map((category) => [category.slug, category]));
+    if (categoryBySlug.size !== categoryDefinitions.length) {
+      throw new ValidationError('Category upsert verification failed during catalog synchronization.');
+    }
 
-    for (const gameMeta of gameDefinitions) {
-      // Create/Update Category
-      const categoryDoc = await Category.findOneAndUpdate(
-        { slug: gameMeta.categorySlug },
-        {
-          name: gameMeta.categoryName,
-          slug: gameMeta.categorySlug,
-          icon: gameMeta.categoryIcon,
-          status: 'active'
-        },
-        { upsert: true, new: true, session }
-      );
+    await Game.bulkWrite(
+      selectedGameDefinitions.map((definition) => ({
+        updateOne: {
+          filter: { slug: definition.slug },
+          update: {
+            $set: {
+              title: definition.title,
+              slug: definition.slug,
+              publisher: definition.publisher,
+              thumbnail: definition.thumbnail,
+              bannerUrl: definition.bannerUrl,
+              categoryId: categoryBySlug.get(definition.categorySlug)!._id as any,
+              inputFields: definition.inputFields,
+              status: 'active',
+              isPopular: true
+            }
+          },
+          upsert: true
+        }
+      })) as any,
+      { session, ordered: true }
+    );
+    const gameDocs = await Game.find({
+      slug: { $in: selectedGameDefinitions.map((definition) => definition.slug) }
+    }).session(session).lean();
+    const gameBySlug = new Map(gameDocs.map((game) => [game.slug, game]));
+    if (gameBySlug.size !== selectedGameDefinitions.length) {
+      throw new ValidationError('Game upsert verification failed during catalog synchronization.');
+    }
 
-      // Create/Update Game
-      const gameDoc = await Game.findOneAndUpdate(
-        { slug: gameMeta.slug },
-        {
-          title: gameMeta.title,
-          slug: gameMeta.slug,
-          publisher: gameMeta.publisher,
-          thumbnail: gameMeta.thumbnail,
-          bannerUrl: gameMeta.bannerUrl,
-          categoryId: categoryDoc._id,
-          inputFields: gameMeta.inputFields,
-          status: 'active',
-          isPopular: true
-        },
-        { upsert: true, new: true, session }
-      );
+    const legacyGlobalGameIds: mongoose.Types.ObjectId[] = [];
+    if (selectedGameDefinitions.some((definition) => definition.slug === 'mobile-legends')) {
+      const legacyGlobalGames = await Game.find({
+        $or: [
+          { slug: { $in: ['mobile-legends-global', 'mobile_legends_global', 'mlbb-global'] } },
+          { title: /^Mobile Legends Global/i }
+        ]
+      }).session(session).select('_id').lean();
+      legacyGlobalGameIds.push(...legacyGlobalGames.map((game) => game._id as mongoose.Types.ObjectId));
+    }
 
+    const syncPlans = selectedGameDefinitions.map((gameMeta) => {
+      const gameDoc = gameBySlug.get(gameMeta.slug)!;
       const deduplicatedProducts = preparedCatalogs.get(gameMeta.slug)!;
       const replacementGameIds: mongoose.Types.ObjectId[] = [gameDoc._id as mongoose.Types.ObjectId];
-      if (gameMeta.slug === 'mobile-legends') {
-        const legacyGlobalGames = await Game.find({
-          $or: [
-            { slug: { $in: ['mobile-legends-global', 'mobile_legends_global', 'mlbb-global'] } },
-            { title: /^Mobile Legends Global/i }
-          ]
-        }).session(session).select('_id').lean();
-        replacementGameIds.push(...legacyGlobalGames.map((legacyGame) => legacyGame._id as mongoose.Types.ObjectId));
-      }
-      affectedGameIds.push(...replacementGameIds);
+      if (gameMeta.slug === 'mobile-legends') replacementGameIds.push(...legacyGlobalGameIds);
+      const expectedDocuments = deduplicatedProducts.map((item, idx) => {
+        const prod = item.prod;
+        const packageTitle = buildPackageTitle(item, gameMeta.slug);
+        return {
+          gameId: gameDoc._id,
+          title: packageTitle,
+          description: prod.description || `${packageTitle} (Automated Instant Top-up | Source: G2Bulk ${prod.category_title}${item.supportsBoth ? ' | Supports Global & Regular Servers' : ''})`,
+          price: item.sellingPrice,
+          costPrice: prod.unit_price,
+          providerType: 'G2BULK' as const,
+          providerProductId: prod.id.toString(),
+          supplierId: prod.supplier_id || 'G2BULK',
+          catalogKey: item.uniqueKey,
+          packageAmount: item.amount,
+          packageType: item.type,
+          badge: classifyPackage(prod, idx, gameMeta.slug),
+          stock: prod.stock >= 0 ? prod.stock : -1,
+          status: 'active' as const,
+          sortOrder: idx,
+          supportsBoth: item.supportsBoth
+        };
+      });
+      return { gameMeta, gameDoc, replacementGameIds, expectedDocuments };
+    });
+    const affectedGameIds = syncPlans.flatMap((plan) => plan.replacementGameIds);
 
-      // Preserve the provider product chosen at checkout for any historical or
-      // in-flight order before its package document is removed.
-      const existingPackages = await Package.find({ gameId: { $in: replacementGameIds } })
-        .session(session)
-        .select('_id providerType providerProductId supplierId')
-        .lean();
-      const orderSnapshotOps = existingPackages.map((existingPackage) => ({
+    // Preserve provider data on every historical or in-flight order in one
+    // batched phase before retiring any package document.
+    const existingPackages = await Package.find({ gameId: { $in: affectedGameIds } })
+      .session(session)
+      .select('_id gameId providerType providerProductId supplierId')
+      .lean();
+    const referencedPackageIds = await Order.distinct('packageId', {
+      packageId: { $in: existingPackages.map((pkg) => pkg._id) },
+      $or: [
+        { providerProductId: { $exists: false } },
+        { providerProductId: '' },
+        { providerProductId: null }
+      ]
+    }).session(session);
+    const referencedPackageIdSet = new Set(referencedPackageIds.map((id) => String(id)));
+    const orderSnapshotOps = existingPackages
+      .filter((existingPackage) => referencedPackageIdSet.has(String(existingPackage._id)))
+      .map((existingPackage) => ({
         updateMany: {
           filter: {
             packageId: existingPackage._id,
@@ -653,52 +741,30 @@ export const syncG2BulkCatalog = async (): Promise<CatalogSyncReport> => {
           }
         }
       }));
-      for (let start = 0; start < orderSnapshotOps.length; start += bulkBatchSize) {
-        await Order.bulkWrite(orderSnapshotOps.slice(start, start + bulkBatchSize), { session, ordered: true });
-      }
-      if (orderSnapshotOps.length > 0) logger.info(`Snapshotted provider data for orders referencing ${orderSnapshotOps.length} retiring ${gameMeta.title} packages.`);
+    for (let start = 0; start < orderSnapshotOps.length; start += bulkBatchSize) {
+      await Order.bulkWrite(orderSnapshotOps.slice(start, start + bulkBatchSize), { session, ordered: true });
+    }
+    logger.info(`Snapshotted provider data for orders referencing ${orderSnapshotOps.length} retiring packages.`);
 
-      // Full catalog replacement: Delete ALL existing packages for this game in the session
-      const deleteResult = await Package.deleteMany({ gameId: { $in: replacementGameIds } }, { session });
-      totalOldDeleted += deleteResult.deletedCount || 0;
-      logger.info(`Deleted ${deleteResult.deletedCount || 0} existing packages for game: ${gameMeta.title}.`);
+    const deleteResult = await Package.deleteMany({ gameId: { $in: affectedGameIds } }, { session });
+    totalOldDeleted = deleteResult.deletedCount || 0;
+    logger.info(`Deleted ${totalOldDeleted} existing packages across ${syncPlans.length} game(s).`);
 
-      const expectedDocuments = deduplicatedProducts.map((item, idx) => {
-          const prod = item.prod;
-          const costPrice = prod.unit_price;
-          const badge = classifyPackage(prod, idx, gameMeta.slug);
-          const packageTitle = buildPackageTitle(item, gameMeta.slug);
-          return {
-            gameId: gameDoc._id,
-            title: packageTitle,
-            description: prod.description || `${packageTitle} (Automated Instant Top-up | Source: G2Bulk ${prod.category_title}${item.supportsBoth ? ' | Supports Global & Regular Servers' : ''})`,
-            price: item.sellingPrice,
-            costPrice,
-            providerType: 'G2BULK' as const,
-            providerProductId: prod.id.toString(),
-            supplierId: prod.supplier_id || 'G2BULK',
-            catalogKey: item.uniqueKey,
-            packageAmount: item.amount,
-            packageType: item.type,
-            badge,
-            stock: prod.stock >= 0 ? prod.stock : -1,
-            status: 'active' as const,
-            sortOrder: idx,
-            supportsBoth: item.supportsBoth
-          };
-        });
+    const allExpectedDocuments = syncPlans.flatMap((plan) => plan.expectedDocuments);
+    const packageInsertOps = allExpectedDocuments.map((document) => ({ insertOne: { document } }));
+    for (let start = 0; start < packageInsertOps.length; start += bulkBatchSize) {
+      const batch = packageInsertOps.slice(start, start + bulkBatchSize);
+      await Package.bulkWrite(batch, { session, ordered: true });
+      logger.info(`Imported catalog batch ${Math.floor(start / bulkBatchSize) + 1}: ${batch.length} packages.`);
+    }
+    totalNewImported = allExpectedDocuments.length;
 
-      const bulkOps = expectedDocuments.map((document) => ({ insertOne: { document } }));
-      for (let start = 0; start < bulkOps.length; start += bulkBatchSize) {
-        const batch = bulkOps.slice(start, start + bulkBatchSize);
-        await Package.bulkWrite(batch, { session, ordered: true });
-        logger.info(`Imported batch ${Math.floor(start / bulkBatchSize) + 1} for ${gameMeta.title}: ${batch.length} packages.`);
-      }
-      totalNewImported += expectedDocuments.length;
-      logger.info(`Imported ${expectedDocuments.length} latest packages for game: ${gameMeta.title}.`);
-
-      const dbPackages = await Package.find({ gameId: gameDoc._id }).session(session).lean();
-      const expectedSnapshot: CatalogPackageSnapshot[] = expectedDocuments.map((pkg) => ({
+    const dbPackages = await Package.find({ gameId: { $in: affectedGameIds } })
+      .session(session)
+      .select('gameId title catalogKey packageAmount packageType price costPrice supplierId providerType providerProductId status')
+      .lean();
+    for (const plan of syncPlans) {
+      const expectedSnapshot: CatalogPackageSnapshot[] = plan.expectedDocuments.map((pkg) => ({
         title: pkg.title,
         catalogKey: pkg.catalogKey,
         packageAmount: pkg.packageAmount,
@@ -710,32 +776,33 @@ export const syncG2BulkCatalog = async (): Promise<CatalogSyncReport> => {
         providerProductId: pkg.providerProductId,
         status: pkg.status
       }));
-      const actualSnapshot: CatalogPackageSnapshot[] = dbPackages.map((pkg) => ({
-        title: pkg.title,
-        catalogKey: pkg.catalogKey || '',
-        packageAmount: pkg.packageAmount || '',
-        packageType: pkg.packageType || '',
-        price: pkg.price,
-        costPrice: pkg.costPrice,
-        supplierId: pkg.supplierId || '',
-        providerType: pkg.providerType,
-        providerProductId: pkg.providerProductId,
-        status: pkg.status
-      }));
+      const actualSnapshot: CatalogPackageSnapshot[] = dbPackages
+        .filter((pkg) => String(pkg.gameId) === String(plan.gameDoc._id))
+        .map((pkg) => ({
+          title: pkg.title,
+          catalogKey: pkg.catalogKey || '',
+          packageAmount: pkg.packageAmount || '',
+          packageType: pkg.packageType || '',
+          price: pkg.price,
+          costPrice: pkg.costPrice,
+          supplierId: pkg.supplierId || '',
+          providerType: pkg.providerType,
+          providerProductId: pkg.providerProductId,
+          status: pkg.status
+        }));
       const validation = compareCatalogSnapshots(expectedSnapshot, actualSnapshot);
       totalMissing += validation.missing.length;
       totalExtra += validation.extra.length;
-
       if (hasCatalogValidationErrors(validation)) {
         throw new ValidationError(
-          `Sync validation failed for ${gameMeta.title}.\n` +
+          `Sync validation failed for ${plan.gameMeta.title}.\n` +
           `Missing Packages: ${validation.missing.join(', ') || 'None'}\n` +
           `Extra Packages: ${validation.extra.join(', ') || 'None'}\n` +
           `Duplicate Packages: ${validation.duplicates.join(', ') || 'None'}\n` +
           `Mismatched Packages: ${validation.mismatches.join(', ') || 'None'}`
         );
       }
-      logger.info(`Exact package validation PASSED for game: ${gameMeta.title}.`);
+      logger.info(`Exact package validation PASSED for game: ${plan.gameMeta.title}.`);
     }
 
     // Commit Transaction
@@ -935,7 +1002,11 @@ UNCHANGED
 };
 
 if (require.main === module) {
-  syncG2BulkCatalog()
+  const gameSlugs = process.argv
+    .slice(2)
+    .filter((argument) => argument.startsWith('--game='))
+    .map((argument) => argument.slice('--game='.length));
+  syncG2BulkCatalog({ gameSlugs })
     .then(() => process.exit(0))
     .catch(() => process.exit(1));
 }

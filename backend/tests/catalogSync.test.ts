@@ -56,14 +56,19 @@ describe('G2Bulk catalog normalization and selection', () => {
 
   test('matches by game identity and never by generic currency alone', () => {
     const freeFire: G2Product = {
-      id: 'ff-100', title: '100 Diamonds', category_title: 'Free Fire', unit_price: 0.78, supplier_id: 'ff-supplier', stock: -1
+      id: 'ff-110', title: 'Freefire Global - 110', category_title: 'Freefire Global', unit_price: 0.81, supplier_id: 'ff-supplier', stock: -1
+    };
+    const freeFireSg: G2Product = {
+      id: 'ff-sg-110', title: 'Freefire SG - 110', category_title: 'Freefire SG', unit_price: 0.72, supplier_id: 'ff-supplier', stock: -1
     };
     const mobileLegends: G2Product = {
       id: 'ml-100', title: '100 Diamonds', category_title: 'Mobile Legends', unit_price: 0.78, supplier_id: 'ml-supplier', stock: -1
     };
 
-    expect(productMatchesGame(freeFire, { slug: 'free-fire', keywords: ['free fire'], categoryAliases: ['free fire'] })).toBe(true);
-    expect(productMatchesGame(mobileLegends, { slug: 'free-fire', keywords: ['free fire'], categoryAliases: ['free fire'] })).toBe(false);
+    const globalDefinition = { slug: 'free-fire', keywords: ['free fire'], categoryAliases: ['freefire global'] };
+    expect(productMatchesGame(freeFire, globalDefinition)).toBe(true);
+    expect(productMatchesGame(freeFireSg, globalDefinition)).toBe(false);
+    expect(productMatchesGame(mobileLegends, globalDefinition)).toBe(false);
   });
 
   test('does not import Mobile Legends Adventure into the MLBB catalog', () => {
@@ -100,10 +105,10 @@ describe('G2Bulk catalog normalization and selection', () => {
       id: 'ff-weekly', title: 'Free Fire Weekly Membership', category_title: 'Free Fire', unit_price: 1.2, supplier_id: 'g2', stock: -1
     };
     const bestseller: G2Product = {
-      id: 'ff-100', title: 'Free Fire - 100 Diamonds', category_title: 'Free Fire', unit_price: 0.78, supplier_id: 'g2', stock: -1
+      id: 'ff-110', title: 'Freefire Global - 110 Diamonds', category_title: 'Freefire Global', unit_price: 0.81, supplier_id: 'g2', stock: -1
     };
     const normal: G2Product = {
-      id: 'ff-210', title: 'Free Fire - 210 Diamonds', category_title: 'Free Fire', unit_price: 1.5, supplier_id: 'g2', stock: -1
+      id: 'ff-341', title: 'Freefire Global - 341 Diamonds', category_title: 'Freefire Global', unit_price: 2.45, supplier_id: 'g2', stock: -1
     };
 
     expect(classifyPackage(event, 0, 'free-fire')).toBe('EVENT / PASS');
@@ -128,6 +133,15 @@ describe('G2Bulk catalog normalization and selection', () => {
     expect(normalizePackage('Call of Duty Mobile Garena SGMY - 80', 'cod-mobile').uniqueKey).toBe('80-cp');
     expect(normalizePackage('Blood Strike MENA - 100', 'blood-strike').uniqueKey).toBe('100-gold');
     expect(normalizePackage('Garena Deltaforce Malaysia - 60', 'delta-force').uniqueKey).toBe('60-coin');
+  });
+
+  test('keeps distinct event pass types instead of collapsing them as duplicates', () => {
+    const weeklyLite = normalizePackage('Freefire Global - Weekly Lite', 'free-fire');
+    const weeklyMembership = normalizePackage('Freefire Global - Weekly Membership', 'free-fire');
+
+    expect(weeklyLite.uniqueKey).toBe('weekly-lite-pass');
+    expect(weeklyMembership.uniqueKey).toBe('weekly-membership-pass');
+    expect(weeklyLite.uniqueKey).not.toBe(weeklyMembership.uniqueKey);
   });
 
   test('keeps one supplier per package key and selects the lowest wholesale cost', () => {

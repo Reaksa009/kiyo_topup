@@ -25,7 +25,7 @@ const fallbackGames = [
   },
   {
     _id: '507f1f77bcf86cd799439012',
-    title: 'Free Fire',
+    title: 'Free Fire Global',
     slug: 'free-fire',
     publisher: 'Garena',
     thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=400&q=75',
@@ -34,7 +34,7 @@ const fallbackGames = [
     isFlashSale: false,
     status: 'active',
     inputFields: [
-      { name: 'playerId', label: 'Player ID (UID)', placeholder: 'e.g. 987654321', type: 'text', required: true, helpText: 'Your numeric Garena Free Fire account UID' }
+      { name: 'playerId', label: 'Player ID (UID)', placeholder: 'e.g. 987654321', type: 'text', required: true, helpText: 'Global-region numeric UID. No server ID is required.' }
     ],
     instructions: 'Copy your numeric Player ID from the top left profile card in Free Fire.'
   },
@@ -140,10 +140,15 @@ const fallbackPackages: Record<string, any[]> = {
     { _id: 'p6', title: '2195 Diamonds (1860 + 335 Bonus)', price: 29.50, costPrice: 23.80, badge: 'BEST VALUE', providerProductId: 'G2B-MLBB-2195D' }
   ],
   'free-fire': [
-    { _id: 'ff1', title: 'Weekly Membership Pass', price: 2.10, costPrice: 1.65, badge: 'EVENT / PASS', providerProductId: 'G2B-FF-WEEKLY' },
-    { _id: 'ff2', title: '100 Diamonds (+10 Bonus)', price: 0.99, costPrice: 0.78, badge: 'BEST SELLER', providerProductId: 'G2B-FF-100D' },
-    { _id: 'ff3', title: '530 Diamonds (+53 Bonus)', price: 4.80, costPrice: 3.85, badge: 'BEST SELLER', providerProductId: 'G2B-FF-530D' },
-    { _id: 'ff4', title: '1080 Diamonds (+108 Bonus)', price: 9.50, costPrice: 7.60, badge: 'BEST VALUE', providerProductId: 'G2B-FF-1080D' }
+    { _id: 'ff1', title: 'Weekly Lite', price: 0.46, costPrice: 0.39, badge: 'EVENT / PASS', providerProductId: '2068' },
+    { _id: 'ff2', title: '110 Diamonds', price: 0.96, costPrice: 0.81, badge: 'BEST SELLER', providerProductId: '2055' },
+    { _id: 'ff3', title: 'Weekly Membership', price: 1.89, costPrice: 1.60, badge: 'EVENT / PASS', providerProductId: '2067' },
+    { _id: 'ff4', title: '341 Diamonds', price: 2.89, costPrice: 2.45, badge: 'NORMAL', providerProductId: '2056' },
+    { _id: 'ff5', title: '572 Diamonds', price: 4.70, costPrice: 3.98, badge: 'BEST SELLER', providerProductId: '2057' },
+    { _id: 'ff6', title: 'Monthly Membership', price: 6.77, costPrice: 5.74, badge: 'EVENT / PASS', providerProductId: '2065' },
+    { _id: 'ff7', title: '1166 Diamonds', price: 9.42, costPrice: 7.98, badge: 'NORMAL', providerProductId: '2063' },
+    { _id: 'ff8', title: '2398 Diamonds', price: 18.83, costPrice: 15.96, badge: 'NORMAL', providerProductId: '2050' },
+    { _id: 'ff9', title: '6160 Diamonds', price: 47.72, costPrice: 40.44, badge: 'NORMAL', providerProductId: '2058' }
   ],
   'pubg-mobile': [
     { _id: 'pub1', title: '60 UC', price: 0.99, costPrice: 0.82, badge: 'BEST SELLER', providerProductId: 'G2B-PUBG-60UC' },

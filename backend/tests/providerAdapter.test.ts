@@ -1,10 +1,15 @@
 import { ProviderFactory } from '../src/services/providers/ProviderFactory';
+import { G2BULK_GAME_CODE_MAP } from '../src/services/providers/G2BulkAdapter';
 
 describe('Top-Up Provider Adapter Pattern & G2Bulk Integration', () => {
   it('should instantiate G2BulkAdapter via ProviderFactory', () => {
     const provider = ProviderFactory.getProvider('G2BULK');
     expect(provider).toBeDefined();
     expect(provider.providerName).toBe('G2BULK');
+  });
+
+  it('uses only the G2Bulk Global route for Free Fire player verification', () => {
+    expect(G2BULK_GAME_CODE_MAP['free-fire']).toEqual(['freefire_global']);
   });
 
   it('should submit top-up order and return processing status', async () => {

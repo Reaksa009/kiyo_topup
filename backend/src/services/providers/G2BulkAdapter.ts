@@ -9,6 +9,16 @@ import { env } from '../../config/env';
 import { ProviderLog } from '../../models/Provider';
 import { logger } from '../../utils/logger';
 
+export const G2BULK_GAME_CODE_MAP: Record<string, string[]> = {
+  'mobile-legends': ['mlbb', 'mlbb_global', 'mlbb_special', 'mlbb_exclusive', 'mlbb_ru', 'mlbb_tr', 'mlbb_br'],
+  'free-fire': ['freefire_global'],
+  'pubg-mobile': ['pubg'],
+  'valorant': ['valorant_ph'],
+  'honor-of-kings': ['hok'],
+  'cod-mobile': ['garena_undawn', 'codm'],
+  'genshin-impact': ['genshin']
+};
+
 export class G2BulkAdapter extends BaseProviderAdapter {
   readonly providerName = 'G2BULK';
 
@@ -241,17 +251,7 @@ export class G2BulkAdapter extends BaseProviderAdapter {
     const zoneId = fields.zoneId || fields.serverId || '';
 
     // Map platform game slugs to G2Bulk official game codes
-    const gameCodeMap: Record<string, string[]> = {
-      'mobile-legends': ['mlbb', 'mlbb_global', 'mlbb_special', 'mlbb_exclusive', 'mlbb_ru', 'mlbb_tr', 'mlbb_br'],
-      'free-fire': ['freefire_sg', 'freefire_me', 'freefire_cis'],
-      'pubg-mobile': ['pubg'],
-      'valorant': ['valorant_ph'],
-      'honor-of-kings': ['hok'],
-      'cod-mobile': ['garena_undawn', 'codm'],
-      'genshin-impact': ['genshin']
-    };
-
-    const targetGameCodes = gameCodeMap[gameSlug] || [gameSlug.replace(/-/g, '_'), gameSlug.replace(/-/g, '')];
+    const targetGameCodes = G2BULK_GAME_CODE_MAP[gameSlug] || [gameSlug.replace(/-/g, '_'), gameSlug.replace(/-/g, '')];
 
     for (const gCode of targetGameCodes) {
       const payload = {
