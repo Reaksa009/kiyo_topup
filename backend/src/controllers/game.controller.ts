@@ -158,6 +158,26 @@ const fallbackPackages: Record<string, any[]> = {
   ]
 };
 
+const PUBLIC_CATALOG_CACHE_TTL_MS = 30000;
+const publicCatalogCache = new Map<string, { version: string; expiresAt: number; data: any }>();
+
+const getPublicCatalogCache = (key: string, version: string) => {
+  const cached = publicCatalogCache.get(key);
+  if (!cached || cached.version !== version || cached.expiresAt <= Date.now()) {
+    if (cached) publicCatalogCache.delete(key);
+    return null;
+  }
+  return cached.data;
+};
+
+const setPublicCatalogCache = (key: string, version: string, data: any) => {
+  publicCatalogCache.set(key, {
+    version,
+    expiresAt: Date.now() + PUBLIC_CATALOG_CACHE_TTL_MS,
+    data
+  });
+};
+
 export class GameController {
   static async getGames(req: Request, res: Response) {
     // Instant fast return if MongoDB is not connected
@@ -166,6 +186,13 @@ export class GameController {
     }
 
     try {
+      const catalogVersion = String(res.locals.catalogVersion || 'unknown');
+      const cacheKey = Object.keys(req.query).length === 0 ? 'games:all' : '';
+      const cachedGames = cacheKey ? getPublicCatalogCache(cacheKey, catalogVersion) : null;
+      if (cachedGames) {
+        return res.json({ success: true, count: cachedGames.length, data: cachedGames });
+      }
+
       const { category, search, popular, flashSale } = req.query;
       const query: any = { status: 'active' };
 
@@ -192,6 +219,8 @@ export class GameController {
         games = fallbackGames as any[];
       }
 
+      if (cacheKey) setPublicCatalogCache(cacheKey, catalogVersion, games);
+
       res.json({ success: true, count: games.length, data: games });
     } catch (error: any) {
       res.json({ success: true, count: fallbackGames.length, data: fallbackGames });
@@ -216,6 +245,13 @@ export class GameController {
     }
 
     try {
+      const catalogVersion = String(res.locals.catalogVersion || 'unknown');
+      const cacheKey = `game:${targetSlug}`;
+      const cachedDetail = getPublicCatalogCache(cacheKey, catalogVersion);
+      if (cachedDetail) {
+        return res.json({ success: true, data: cachedDetail });
+      }
+
       let game = await Game.findOne({ slug: targetSlug }).populate('categoryId').lean();
       let packages: any[] = [];
 
@@ -236,12 +272,12 @@ export class GameController {
         return res.status(404).json({ success: false, message: 'Game not found.' });
       }
 
+      const detail = { game, packages };
+      setPublicCatalogCache(cacheKey, catalogVersion, detail);
+
       res.json({
         success: true,
-        data: {
-          game,
-          packages
-        }
+        data: detail
       });
     } catch (error: any) {
       const foundFallback = fallbackGames.find((g) => g.slug === targetSlug) || fallbackGames[0];
