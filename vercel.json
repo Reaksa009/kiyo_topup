@@ -1,4 +1,5 @@
 {
+  "installCommand": "cd frontend && npm install --workspaces=false && cd ../backend && npm install --workspaces=false",
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.ts": {
