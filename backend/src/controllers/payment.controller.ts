@@ -74,19 +74,29 @@ export class PaymentController {
 
       // Check Bakong status
       if (order.paymentMethod === 'BAKONG_KHQR' && payment?.transactionId) {
-        const check = await BakongKHQRService.verifyTransactionByMd5(payment.transactionId);
+        const check = await BakongKHQRService.verifyTransactionByMd5(payment.transactionId, {
+          amount: payment.amount,
+          currency: payment.currency
+        });
         if (check.success) {
-          order.paymentStatus = 'paid';
-          order.overallStatus = 'processing';
-          await order.save();
+          const paidOrder = await Order.findOneAndUpdate(
+            { _id: order._id, paymentStatus: { $ne: 'paid' } },
+            { $set: { paymentStatus: 'paid', overallStatus: 'processing' } },
+            { new: true }
+          );
+
+          if (!paidOrder) {
+            return res.json({ success: true, status: 'paid', overallStatus: order.overallStatus });
+          }
 
           payment.status = 'success';
           payment.paidAt = new Date();
+          payment.rawPayload = check.data;
           await payment.save();
 
-          await fulfillBatchIfApplicable(order.orderNumber);
-          await orderQueue.add('fulfill', { orderId: order._id.toString() });
-          await TelegramService.notifyPaymentSuccess(order.orderNumber, order.amount, 'Bakong KHQR');
+          await fulfillBatchIfApplicable(paidOrder.orderNumber);
+          await orderQueue.add('fulfill', { orderId: paidOrder._id.toString() });
+          await TelegramService.notifyPaymentSuccess(paidOrder.orderNumber, paidOrder.amount, 'Bakong KHQR');
 
           return res.json({ success: true, status: 'paid', overallStatus: 'processing' });
         }

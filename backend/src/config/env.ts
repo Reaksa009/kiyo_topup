@@ -36,6 +36,14 @@ const envSchema = z.object({
   BAKONG_API_TOKEN: z.string().default('bakong_api_token_sample'),
   BAKONG_API_URL: z.string().default('https://api-bakong.nbc.gov.kh/v1/check_transaction_by_md5'),
 
+  KHQR_PROVIDER: z.enum(['bakong_open_api', 'khqr_link']).default('bakong_open_api'),
+  KHQR_API_BASE_URL: z.string().url().default('https://api.khqr.link'),
+  KHQR_API_TOKEN: z.string().default(''),
+  KHQR_BAKONG_ACCOUNT_ID: z.string().default(''),
+  KHQR_ACCOUNT_NAME: z.string().default('KIYO TOPUP'),
+  KHQR_MERCHANT_CITY: z.string().default('PHNOM PENH'),
+  KHQR_CURRENCY: z.enum(['USD', 'KHR']).default('USD'),
+
   G2BULK_API_URL: z.string().default('https://api.g2bulk.com/v1'),
   G2BULK_API_KEY: z.string().default('g2bulk_api_key_sample'),
   G2BULK_API_SECRET: z.string().default('g2bulk_secret_sample'),
@@ -64,7 +72,36 @@ const envSchema = z.object({
   rejectSecret('JWT_SECRET', config.JWT_SECRET);
   rejectSecret('JWT_REFRESH_SECRET', config.JWT_REFRESH_SECRET);
   rejectSecret('ABA_PAYWAY_API_KEY', config.ABA_PAYWAY_API_KEY, 16);
-  rejectSecret('BAKONG_API_TOKEN', config.BAKONG_API_TOKEN, 16);
+  if (config.KHQR_PROVIDER === 'khqr_link') {
+    rejectSecret('KHQR_API_TOKEN', config.KHQR_API_TOKEN, 16);
+
+    if (!/^[a-z0-9._-]+@[a-z0-9._-]+$/i.test(config.KHQR_BAKONG_ACCOUNT_ID)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['KHQR_BAKONG_ACCOUNT_ID'],
+        message: 'KHQR_BAKONG_ACCOUNT_ID must be a valid Bakong account ID'
+      });
+    }
+
+    const khqrApiUrl = new URL(config.KHQR_API_BASE_URL);
+    if (khqrApiUrl.protocol !== 'https:' || khqrApiUrl.hostname !== 'api.khqr.link') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['KHQR_API_BASE_URL'],
+        message: 'KHQR_API_BASE_URL must use the official https://api.khqr.link endpoint'
+      });
+    }
+
+    if (config.KHQR_CURRENCY !== 'USD') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['KHQR_CURRENCY'],
+        message: 'KHQR Link currently supports USD payments in this integration'
+      });
+    }
+  } else {
+    rejectSecret('BAKONG_API_TOKEN', config.BAKONG_API_TOKEN, 16);
+  }
   rejectSecret('G2BULK_API_KEY', config.G2BULK_API_KEY, 16);
   rejectSecret('G2BULK_API_SECRET', config.G2BULK_API_SECRET, 16);
   rejectSecret('BAKONG_WEBHOOK_SECRET', config.BAKONG_WEBHOOK_SECRET);

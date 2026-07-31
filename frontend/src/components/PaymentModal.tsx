@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { io } from 'socket.io-client';
-import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2 } from 'lucide-react';
+import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 interface PaymentModalProps {
@@ -21,10 +21,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onSuccess,
   onClose
 }) => {
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes countdown
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const expiresAt = paymentDetails?.expiresAt ? new Date(paymentDetails.expiresAt).getTime() : 0;
+    return expiresAt > Date.now() ? Math.ceil((expiresAt - Date.now()) / 1000) : 600;
+  });
   const [copied, setCopied] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
+  const [qrImageError, setQrImageError] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -90,6 +94,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
+  const qrImageUrl = paymentDetails?.qrImageUrl || paymentDetails?.qr;
+  const rawQrPayload = paymentDetails?.qrString;
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -129,12 +136,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
             {/* QR Display Card */}
             <div className="bg-white p-6 rounded-2xl flex flex-col items-center justify-center shadow-inner space-y-3">
-              <QRCodeSVG
-                value={paymentDetails?.qrString || orderNumber}
-                size={220}
-                level="H"
-                includeMargin={true}
-              />
+              {qrImageUrl && !qrImageError ? (
+                <img
+                  src={qrImageUrl}
+                  alt="Bakong KHQR payment code"
+                  width={220}
+                  height={220}
+                  className="h-[220px] w-[220px] object-contain"
+                  referrerPolicy="no-referrer"
+                  draggable={false}
+                  onError={() => setQrImageError(true)}
+                />
+              ) : rawQrPayload ? (
+                <QRCodeSVG
+                  value={rawQrPayload}
+                  size={220}
+                  level="H"
+                  includeMargin={true}
+                />
+              ) : (
+                <div className="flex h-[220px] w-[220px] flex-col items-center justify-center gap-3 rounded-xl bg-red-50 px-5 text-center text-red-700">
+                  <ImageOff className="h-9 w-9" />
+                  <p className="text-sm font-bold">QR code could not be loaded. Please close this window and try again.</p>
+                </div>
+              )}
               <div className="text-center">
                 <span className="text-xs font-bold text-gray-600 uppercase">Total Amount</span>
                 <p className="text-2xl font-black text-gray-900">${amount.toFixed(2)} USD</p>
@@ -147,13 +172,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <Clock className="w-4 h-4" />
                 <span>Expires in: {formatTime(timeLeft)}</span>
               </div>
-              <button
-                onClick={copyQrText}
-                className="flex items-center space-x-1 text-cyan-400 hover:text-cyan-300 font-semibold"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>{copied ? 'Copied QR Payload!' : 'Copy Payload'}</span>
-              </button>
+              {rawQrPayload && (
+                <button
+                  onClick={copyQrText}
+                  className="flex items-center space-x-1 text-cyan-400 hover:text-cyan-300 font-semibold"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{copied ? 'Copied QR Payload!' : 'Copy Payload'}</span>
+                </button>
+              )}
             </div>
 
             {/* Instant Test Payment Simulator Button (development only) */}

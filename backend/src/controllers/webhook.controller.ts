@@ -101,24 +101,36 @@ export class WebhookController {
       }
 
       if (status === 'SUCCESS' || status === 'PAID') {
-        const verification = md5 ? await BakongKHQRService.verifyTransactionByMd5(md5) : { success: false };
+        const payment = await Payment.findOne({ orderId: order._id });
+        const verification = md5 && payment && md5.toLowerCase() === payment.transactionId.toLowerCase()
+          ? await BakongKHQRService.verifyTransactionByMd5(md5, {
+              amount: payment.amount,
+              currency: payment.currency
+            })
+          : { success: false };
         if (!verification.success) {
           return res.status(400).json({ success: false, message: 'Bakong transaction could not be verified.' });
         }
 
         if (order.paymentStatus !== 'paid') {
-          order.paymentStatus = 'paid';
-          order.overallStatus = 'processing';
-          await order.save();
+          const paidOrder = await Order.findOneAndUpdate(
+            { _id: order._id, paymentStatus: { $ne: 'paid' } },
+            { $set: { paymentStatus: 'paid', overallStatus: 'processing' } },
+            { new: true }
+          );
+
+          if (!paidOrder) {
+            return res.json({ success: true });
+          }
 
           await Payment.findOneAndUpdate(
             { orderId: order._id },
-            { status: 'success', rawPayload: payload, paidAt: new Date() }
+            { status: 'success', rawPayload: verification.data, paidAt: new Date() }
           );
 
-          await fulfillBatchIfApplicable(order.orderNumber);
-          await orderQueue.add('fulfill', { orderId: order._id.toString() });
-          await TelegramService.notifyPaymentSuccess(order.orderNumber, order.amount, 'Bakong KHQR Webhook');
+          await fulfillBatchIfApplicable(paidOrder.orderNumber);
+          await orderQueue.add('fulfill', { orderId: paidOrder._id.toString() });
+          await TelegramService.notifyPaymentSuccess(paidOrder.orderNumber, paidOrder.amount, 'Bakong KHQR Webhook');
         }
       }
 

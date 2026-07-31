@@ -191,7 +191,7 @@ export class OrderController {
 
       // Bakong KHQR Gateway
       if (paymentMethod === 'BAKONG_KHQR') {
-        paymentDetails = BakongKHQRService.generateKHQR(orderNumber, finalPrice);
+        paymentDetails = await BakongKHQRService.createPayment(orderNumber, finalPrice);
       }
 
       // Create pending Payment record
@@ -404,7 +404,7 @@ export class OrderController {
           guestEmail || 'customer@kiyotopup.com'
         );
       } else if (paymentMethod === 'BAKONG_KHQR') {
-        const check = BakongKHQRService.generateKHQR(parentOrderNumber, totalAmount);
+        const check = await BakongKHQRService.createPayment(parentOrderNumber, totalAmount);
         
         // Create Parent Payment Record
         await Payment.create({
@@ -416,12 +416,7 @@ export class OrderController {
           status: 'pending'
         });
 
-        paymentDetails = {
-          qrString: check.qrString,
-          md5: check.md5,
-          amount: totalAmount,
-          deepLink: check.deepLink
-        };
+        paymentDetails = check;
       }
 
       res.json({
