@@ -24,7 +24,7 @@ interface AuthContextType {
   admin: AdminProfile | null;
   token: string | null;
   loginUser: (userData: UserProfile, token: string) => void;
-  loginAdmin: (adminData: AdminProfile, token: string) => void;
+  loginAdmin: (adminData: AdminProfile) => void;
   logout: () => void;
   refetchUser: () => Promise<void>;
   isLoading: boolean;
@@ -39,10 +39,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchProfile = async () => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
     try {
       const res = await apiClient.get('/auth/me');
       if (res.data.data.admin) {
@@ -51,7 +47,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(res.data.data.user);
       }
     } catch (err) {
-      logout();
+      setUser(null);
+      setAdmin(null);
+      if (token) {
+        setToken(null);
+        localStorage.removeItem('kiyo_token');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +62,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchProfile();
   }, [token]);
 
+  useEffect(() => {
+    const clearExpiredSession = () => {
+      setUser(null);
+      setAdmin(null);
+      setToken(null);
+      localStorage.removeItem('kiyo_token');
+    };
+    window.addEventListener('kiyo:unauthorized', clearExpiredSession);
+    return () => window.removeEventListener('kiyo:unauthorized', clearExpiredSession);
+  }, []);
+
   const loginUser = (userData: UserProfile, authToken: string) => {
     setUser(userData);
     setAdmin(null);
@@ -68,14 +80,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('kiyo_token', authToken);
   };
 
-  const loginAdmin = (adminData: AdminProfile, authToken: string) => {
+  const loginAdmin = (adminData: AdminProfile) => {
     setAdmin(adminData);
     setUser(null);
-    setToken(authToken);
-    localStorage.setItem('kiyo_token', authToken);
+    setToken(null);
+    localStorage.removeItem('kiyo_token');
   };
 
   const logout = () => {
+    apiClient.post('/auth/logout').catch(() => undefined);
     setUser(null);
     setAdmin(null);
     setToken(null);

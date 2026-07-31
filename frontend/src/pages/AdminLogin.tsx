@@ -18,7 +18,7 @@ export const AdminLogin: React.FC = () => {
     setLoading(true);
     try {
       const res = await apiClient.post('/auth/admin/login', { email, password });
-      loginAdmin(res.data.data.admin, res.data.data.tokens.accessToken);
+      loginAdmin(res.data.data.admin);
       navigate('/admin');
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Invalid admin credentials');
@@ -37,6 +37,7 @@ export const AdminLogin: React.FC = () => {
           </div>
           <h1 className="text-2xl font-black text-white">ADMIN PORTAL LOGIN</h1>
           <p className="text-xs text-purple-400 font-semibold uppercase tracking-wider">KIYO TOPUP Architecture</p>
+          <p className="text-[10px] text-gray-500">Protected 15-minute administrator session</p>
         </div>
 
         {errorMsg && (

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/AdminLayout';
 import { apiClient } from '../../api/client';
-import { Settings, Save, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Save, ShieldCheck } from 'lucide-react';
 
 export const AdminSettings: React.FC = () => {
   const [form, setForm] = useState<any>({
@@ -23,12 +23,14 @@ export const AdminSettings: React.FC = () => {
   });
 
   const [saving, setSaving] = useState(false);
+  const [configuredSecrets, setConfiguredSecrets] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const res = await apiClient.get('/settings');
         if (res.data.data) {
+          setConfiguredSecrets(res.data.data.configuredSecrets || {});
           setForm((prev: any) => ({ ...prev, ...res.data.data }));
         }
       } catch (err) {
@@ -57,6 +59,11 @@ export const AdminSettings: React.FC = () => {
         
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black text-white">Platform Configurations & Gateways</h2>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-xs leading-5 text-emerald-100">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+          <p>Secret values are never returned to the browser. A blank secret field keeps the current value; enter a new value only when rotating that credential.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -120,6 +127,7 @@ export const AdminSettings: React.FC = () => {
                   type="password"
                   value={form.abaPayWayApiKey}
                   onChange={(e) => setForm({ ...form, abaPayWayApiKey: e.target.value })}
+                  placeholder={configuredSecrets.abaPayWayApiKey ? 'Configured — leave blank to keep' : 'Not configured'}
                   className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
                 />
               </div>
@@ -141,6 +149,7 @@ export const AdminSettings: React.FC = () => {
                   type="password"
                   value={form.bakongApiToken}
                   onChange={(e) => setForm({ ...form, bakongApiToken: e.target.value })}
+                  placeholder={configuredSecrets.bakongApiToken ? 'Configured — leave blank to keep' : 'Not configured'}
                   className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
                 />
               </div>
@@ -156,9 +165,10 @@ export const AdminSettings: React.FC = () => {
               <div className="space-y-1">
                 <label className="block text-gray-300 font-bold">G2Bulk API Key</label>
                 <input
-                  type="text"
+                  type="password"
                   value={form.g2bulkApiKey}
                   onChange={(e) => setForm({ ...form, g2bulkApiKey: e.target.value })}
+                  placeholder={configuredSecrets.g2bulkApiKey ? 'Configured — leave blank to keep' : 'Not configured'}
                   className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
                 />
               </div>
@@ -169,6 +179,7 @@ export const AdminSettings: React.FC = () => {
                   type="password"
                   value={form.g2bulkApiSecret}
                   onChange={(e) => setForm({ ...form, g2bulkApiSecret: e.target.value })}
+                  placeholder={configuredSecrets.g2bulkApiSecret ? 'Configured — leave blank to keep' : 'Not configured'}
                   className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
                 />
               </div>
@@ -183,10 +194,10 @@ export const AdminSettings: React.FC = () => {
               <div className="space-y-1">
                 <label className="block text-gray-300 font-bold">Telegram Bot Token</label>
                 <input
-                  type="text"
+                  type="password"
                   value={form.telegramBotToken}
                   onChange={(e) => setForm({ ...form, telegramBotToken: e.target.value })}
-                  placeholder="123456:ABC-DEF..."
+                  placeholder={configuredSecrets.telegramBotToken ? 'Configured — leave blank to keep' : 'Not configured'}
                   className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
                 />
               </div>

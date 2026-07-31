@@ -45,6 +45,9 @@ export interface IAdmin extends Document {
   roleId: Schema.Types.ObjectId;
   status: 'active' | 'inactive';
   lastLoginAt?: Date;
+  failedLoginAttempts: number;
+  lockedUntil?: Date;
+  sessionVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,7 +59,10 @@ const AdminSchema = new Schema<IAdmin>(
     passwordHash: { type: String, required: true },
     roleId: { type: Schema.Types.ObjectId, ref: 'Role', required: true },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
-    lastLoginAt: { type: Date }
+    lastLoginAt: { type: Date },
+    failedLoginAttempts: { type: Number, default: 0, min: 0, select: false },
+    lockedUntil: { type: Date, select: false },
+    sessionVersion: { type: Number, default: 0, min: 0, select: false }
   },
   { timestamps: true }
 );

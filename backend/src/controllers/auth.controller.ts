@@ -7,6 +7,19 @@ import { Admin, Role } from '../models/Admin';
 import { env } from '../config/env';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { AuditService } from '../services/audit.service';
+import {
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_TTL_MS,
+  adminSessionClearOptions,
+  adminSessionCookieOptions
+} from '../utils/adminSession';
+
+const ADMIN_ACCESS_TOKEN_TTL = '15m';
+const ADMIN_MAX_FAILED_ATTEMPTS = 5;
+const ADMIN_LOCK_DURATION_MS = 15 * 60 * 1000;
+// This hash is intentionally unrelated to any real account. Comparing against
+// it keeps unknown-account and wrong-password response timing similar.
+const DUMMY_ADMIN_PASSWORD_HASH = '$2a$12$50YUEtMHDMHQDy3Obpgw0uXW/RZ4qxhXRZq53AXP8kM7MquukPcjG';
 
 const generateTokens = (payload: object) => {
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {
@@ -17,6 +30,12 @@ const generateTokens = (payload: object) => {
   });
   return { accessToken, refreshToken };
 };
+
+const generateAdminSession = (payload: object) => jwt.sign(payload, env.JWT_SECRET, {
+  expiresIn: ADMIN_ACCESS_TOKEN_TTL,
+  issuer: 'kiyo-topup',
+  audience: 'kiyo-admin'
+});
 
 const databaseUnavailable = (res: Response) =>
   res.status(503).json({
@@ -129,17 +148,40 @@ export class AuthController {
         return databaseUnavailable(res);
       }
 
-      const admin = await Admin.findOne({ email: targetEmail });
+      const admin = await Admin.findOne({ email: targetEmail })
+        .select('+failedLoginAttempts +lockedUntil +sessionVersion');
       if (!admin) {
+        await bcrypt.compare(password, DUMMY_ADMIN_PASSWORD_HASH);
+        await AuditService.log('ADMIN_LOGIN_FAILED', 'admin', undefined, req.ip, req.headers['user-agent'], {
+          reason: 'invalid_credentials'
+        });
         return res.status(401).json({ success: false, message: 'Invalid admin credentials.' });
       }
 
-      if (admin.status !== 'active') {
-        return res.status(403).json({ success: false, message: 'Admin account is inactive.' });
+      const now = new Date();
+      if (admin.lockedUntil && admin.lockedUntil > now) {
+        const retryAfterSeconds = Math.max(1, Math.ceil((admin.lockedUntil.getTime() - now.getTime()) / 1000));
+        res.setHeader('Retry-After', retryAfterSeconds.toString());
+        await AuditService.log('ADMIN_LOGIN_BLOCKED', 'admin', admin._id.toString(), req.ip, req.headers['user-agent'], {
+          reason: 'account_temporarily_locked'
+        });
+        return res.status(429).json({
+          success: false,
+          message: 'Too many failed admin login attempts. Please try again later.'
+        });
       }
 
       const isMatch = await bcrypt.compare(password, admin.passwordHash);
-      if (!isMatch) {
+      if (!isMatch || admin.status !== 'active') {
+        const failedAttempts = (admin.failedLoginAttempts || 0) + 1;
+        const shouldLock = failedAttempts >= ADMIN_MAX_FAILED_ATTEMPTS;
+        admin.failedLoginAttempts = shouldLock ? 0 : failedAttempts;
+        admin.lockedUntil = shouldLock ? new Date(Date.now() + ADMIN_LOCK_DURATION_MS) : undefined;
+        await admin.save();
+        await AuditService.log('ADMIN_LOGIN_FAILED', 'admin', admin._id.toString(), req.ip, req.headers['user-agent'], {
+          reason: admin.status === 'active' ? 'invalid_credentials' : 'inactive_account',
+          accountLocked: shouldLock
+        });
         return res.status(401).json({ success: false, message: 'Invalid admin credentials.' });
       }
 
@@ -150,15 +192,21 @@ export class AuthController {
       const permissions = role.permissions;
 
       admin.lastLoginAt = new Date();
+      admin.failedLoginAttempts = 0;
+      admin.lockedUntil = undefined;
+      admin.sessionVersion = (admin.sessionVersion || 0) + 1;
       await admin.save();
 
-      const tokens = generateTokens({
+      const accessToken = generateAdminSession({
         id: admin._id,
         email: admin.email,
         type: 'admin',
+        tokenUse: 'admin-session',
         roleId: admin.roleId,
-        permissions
+        sessionVersion: admin.sessionVersion
       });
+
+      res.cookie(ADMIN_SESSION_COOKIE, accessToken, adminSessionCookieOptions());
 
       await AuditService.log('ADMIN_LOGIN', 'admin', admin._id.toString(), req.ip, req.headers['user-agent']);
 
@@ -173,11 +221,25 @@ export class AuthController {
             roleName: role.name,
             permissions
           },
-          tokens
+          sessionExpiresAt: new Date(Date.now() + ADMIN_SESSION_TTL_MS).toISOString()
         }
       });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message || 'Authentication error.' });
+    }
+  }
+
+  static async logout(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (req.user?.type === 'admin') {
+        await Admin.findByIdAndUpdate(req.user.id, { $inc: { sessionVersion: 1 } });
+        await AuditService.log('ADMIN_LOGOUT', 'admin', req.user.id, req.ip, req.headers['user-agent']);
+      }
+      res.clearCookie(ADMIN_SESSION_COOKIE, adminSessionClearOptions());
+      res.json({ success: true, message: 'Signed out successfully.' });
+    } catch (error: any) {
+      res.clearCookie(ADMIN_SESSION_COOKIE, adminSessionClearOptions());
+      res.status(500).json({ success: false, message: 'Unable to complete server-side logout.' });
     }
   }
 

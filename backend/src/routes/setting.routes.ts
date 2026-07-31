@@ -4,7 +4,8 @@ import { authenticateJwt, requirePermission } from '../middleware/auth.middlewar
 
 const router = Router();
 
-router.get('/', SettingController.getSettings);
+router.get('/public', SettingController.getPublicSettings);
+router.get('/', authenticateJwt, requirePermission('settings:read'), SettingController.getSettings);
 router.put('/', authenticateJwt, requirePermission('settings:write'), SettingController.updateSettings);
 
 export default router;
