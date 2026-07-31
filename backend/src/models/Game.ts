@@ -93,6 +93,10 @@ export interface IPackage extends Document {
   costPrice: number; // Provider cost in USD
   providerType: 'G2BULK' | 'SMILEONE' | 'CODASHOP' | 'MOOGOLD' | 'CUSTOM';
   providerProductId: string; // e.g. G2Bulk product ID
+  supplierId: string;
+  catalogKey?: string;
+  packageAmount?: string;
+  packageType?: string;
   discountPercent: number;
   badge?: string; // e.g. "POPULAR", "BEST VALUE", "+10% EXTRA"
   stock: number; // -1 for unlimited
@@ -115,6 +119,10 @@ const PackageSchema = new Schema<IPackage>(
       default: 'G2BULK'
     },
     providerProductId: { type: String, required: true },
+    supplierId: { type: String, default: 'G2BULK' },
+    catalogKey: { type: String, trim: true },
+    packageAmount: { type: String, trim: true },
+    packageType: { type: String, trim: true },
     discountPercent: { type: Number, default: 0 },
     badge: { type: String, default: '' },
     stock: { type: Number, default: -1 },
@@ -127,5 +135,10 @@ const PackageSchema = new Schema<IPackage>(
 
 PackageSchema.index({ gameId: 1, status: 1 });
 PackageSchema.index({ providerProductId: 1 });
+PackageSchema.index({ providerType: 1, supplierId: 1, providerProductId: 1 });
+PackageSchema.index(
+  { gameId: 1, catalogKey: 1 },
+  { unique: true, partialFilterExpression: { catalogKey: { $type: 'string' } } }
+);
 
 export const Package = model<IPackage>('Package', PackageSchema);

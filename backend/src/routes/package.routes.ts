@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { PackageController } from '../controllers/package.controller';
 import { authenticateJwt, requirePermission } from '../middleware/auth.middleware';
+import { catalogSyncGuard } from '../middleware/catalogSync.middleware';
 
 const router = Router();
+
+router.use(catalogSyncGuard);
 
 router.get('/game/:gameId', PackageController.getPackagesByGame);
 router.get('/admin/game/:gameId', authenticateJwt, requirePermission('games:write'), PackageController.getAllPackagesByGame);

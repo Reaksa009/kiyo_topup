@@ -5,6 +5,8 @@ export interface ISettings extends Document {
   logoUrl: string;
   maintenanceMode: boolean;
   isSyncing: boolean;
+  catalogSyncToken?: string;
+  catalogSyncStartedAt?: Date;
   contactEmail: string;
   contactTelegram: string;
   abaPayWayMerchantId: string;
@@ -28,6 +30,8 @@ const SettingsSchema = new Schema<ISettings>(
     logoUrl: { type: String, default: '/logo.png' },
     maintenanceMode: { type: Boolean, default: false },
     isSyncing: { type: Boolean, default: false },
+    catalogSyncToken: { type: String, default: '', select: false },
+    catalogSyncStartedAt: { type: Date },
     contactEmail: { type: String, default: 'support@kiyotopup.com' },
     contactTelegram: { type: String, default: '@kiyotopup_support' },
     abaPayWayMerchantId: { type: String, default: '' },

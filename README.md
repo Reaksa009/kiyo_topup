@@ -54,4 +54,4 @@ KIYO TOPUP is a complete, enterprise-grade, secure, and scalable online game top
    cd backend
    npm run sync-catalog
    ```
-   The sync imports PUBG Mobile, Valorant, Free Fire, Mobile Legends, Mobile Legends Global, and the other configured games. It keeps event/pass products, labels bestseller and normal packages, and selects the cheapest product for duplicate denominations. Mobile Legends packages are shared across regular and Global servers when only one regional product exists.
+   This command performs a transaction-protected full replacement for every configured game. It visibly locks package and checkout APIs, removes all old/manual/hidden packages, imports the latest provider catalog in batches, chooses the lowest-cost supplier for each normalized package key, validates every stored field, and commits only when the database exactly matches the prepared catalog. Any error rolls the transaction back and releases the lock. Mobile Legends and Mobile Legends Global are normalized into one cheapest shared catalog.

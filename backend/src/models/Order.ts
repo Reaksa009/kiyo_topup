@@ -9,6 +9,9 @@ export interface IOrder extends Document {
   playerFields: Record<string, string>; // e.g. { playerId: "12345678", zoneId: "1234" }
   gameTitle: string;
   packageTitle: string;
+  providerType?: 'G2BULK' | 'SMILEONE' | 'CODASHOP' | 'MOOGOLD' | 'CUSTOM';
+  providerProductId?: string;
+  supplierId?: string;
   amount: number; // Final selling price in USD
   costPrice: number; // Cost price in USD
   profit: number; // amount - costPrice
@@ -35,6 +38,9 @@ const OrderSchema = new Schema<IOrder>(
     playerFields: { type: Map, of: String, required: true },
     gameTitle: { type: String, required: true },
     packageTitle: { type: String, required: true },
+    providerType: { type: String, enum: ['G2BULK', 'SMILEONE', 'CODASHOP', 'MOOGOLD', 'CUSTOM'], default: 'G2BULK' },
+    providerProductId: { type: String, default: '' },
+    supplierId: { type: String, default: '' },
     amount: { type: Number, required: true, min: 0 },
     costPrice: { type: Number, required: true, min: 0 },
     profit: { type: Number, required: true },

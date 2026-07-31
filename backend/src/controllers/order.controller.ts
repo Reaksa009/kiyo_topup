@@ -13,6 +13,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { AuditService } from '../services/audit.service';
 import { G2BulkAdapter } from '../services/providers/G2BulkAdapter';
 import { Settings } from '../models/System';
+import { CATALOG_SYNC_MESSAGE } from '../middleware/catalogSync.middleware';
 
 export class OrderController {
   /**
@@ -25,7 +26,7 @@ export class OrderController {
       if (settings?.isSyncing) {
         return res.status(503).json({
           success: false,
-          message: "Catalog is updating. Please try again in a few minutes."
+          message: CATALOG_SYNC_MESSAGE
         });
       }
 
@@ -73,6 +74,12 @@ export class OrderController {
         });
       }
 
+      // Close the window between the route-level guard and the slower provider
+      // validation call. Never create an order from a pre-sync package snapshot.
+      if (await Settings.exists({ isSyncing: true })) {
+        return res.status(503).json({ success: false, message: CATALOG_SYNC_MESSAGE });
+      }
+
       let finalPrice = pkg.price;
       let discountAmount = 0;
 
@@ -106,6 +113,9 @@ export class OrderController {
         playerFields,
         gameTitle: game.title,
         packageTitle: pkg.title,
+        providerType: pkg.providerType,
+        providerProductId: pkg.providerProductId,
+        supplierId: pkg.supplierId,
         amount: finalPrice,
         costPrice,
         profit,
@@ -261,7 +271,7 @@ export class OrderController {
       if (settings?.isSyncing) {
         return res.status(503).json({
           success: false,
-          message: "Catalog is updating. Please try again in a few minutes."
+          message: CATALOG_SYNC_MESSAGE
         });
       }
 
@@ -279,6 +289,10 @@ export class OrderController {
       const pkg = await Package.findById(packageId);
       if (!pkg || pkg.status !== 'active') {
         return res.status(400).json({ success: false, message: 'Selected package is out of stock or unavailable.' });
+      }
+
+      if (await Settings.exists({ isSyncing: true })) {
+        return res.status(503).json({ success: false, message: CATALOG_SYNC_MESSAGE });
       }
 
       let finalPricePerUnit = pkg.price;
@@ -317,6 +331,9 @@ export class OrderController {
         playerFields: { count: players.length.toString() }, // simple stats
         gameTitle: game.title,
         packageTitle: `${pkg.title} (Bulk x${players.length})`,
+        providerType: pkg.providerType,
+        providerProductId: pkg.providerProductId,
+        supplierId: pkg.supplierId,
         amount: totalAmount,
         costPrice: totalCostPrice,
         profit: totalProfit,
@@ -362,6 +379,9 @@ export class OrderController {
           playerFields: pFields,
           gameTitle: game.title,
           packageTitle: pkg.title,
+          providerType: pkg.providerType,
+          providerProductId: pkg.providerProductId,
+          supplierId: pkg.supplierId,
           amount: finalPricePerUnit,
           costPrice: pkg.costPrice,
           profit: finalPricePerUnit - pkg.costPrice,

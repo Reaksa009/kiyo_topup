@@ -1,7 +1,9 @@
 import axios from 'axios';
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { connectDatabase } from '../config/database';
 import { Game, Package, Category } from '../models/Game';
+import { Order } from '../models/Order';
 import { Settings } from '../models/System';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
@@ -12,6 +14,8 @@ export interface G2Product {
   category_id?: number | string;
   category_title: string;
   unit_price: number;
+  selling_price?: number;
+  supplier_id: string;
   stock: number;
   description?: string;
 }
@@ -46,6 +50,8 @@ export const normalizeG2Product = (raw: any): G2Product | null => {
   const title = raw?.title ?? raw?.name ?? raw?.product_name ?? raw?.service_name;
   const category = raw?.category_title ?? raw?.category ?? raw?.category_name ?? raw?.game ?? '';
   const unitPrice = Number(raw?.unit_price ?? raw?.unitPrice ?? raw?.price ?? raw?.cost ?? raw?.wholesale_price);
+  const sellingPriceValue = raw?.selling_price ?? raw?.sellingPrice ?? raw?.retail_price ?? raw?.retailPrice;
+  const sellingPrice = sellingPriceValue === undefined || sellingPriceValue === null ? undefined : Number(sellingPriceValue);
   const stockValue = Number(raw?.stock ?? raw?.quantity ?? -1);
 
   if (id === undefined || id === null || !String(title || '').trim() || !Number.isFinite(unitPrice) || unitPrice < 0) {
@@ -58,6 +64,8 @@ export const normalizeG2Product = (raw: any): G2Product | null => {
     category_id: raw?.category_id ?? raw?.categoryId,
     category_title: String(category?.title ?? category?.name ?? category).trim(),
     unit_price: unitPrice,
+    selling_price: sellingPrice !== undefined && Number.isFinite(sellingPrice) && sellingPrice >= 0 ? sellingPrice : undefined,
+    supplier_id: String(raw?.supplier_id ?? raw?.supplierId ?? raw?.provider_id ?? raw?.providerId ?? raw?.vendor_id ?? raw?.vendorId ?? 'G2BULK'),
     stock: Number.isFinite(stockValue) ? stockValue : -1,
     description: raw?.description ? String(raw.description) : undefined
   };
@@ -85,8 +93,16 @@ export interface SelectedCatalogProduct {
   prod: G2Product;
   uniqueKey: string;
   cleanName: string;
+  amount: string;
+  type: string;
+  sellingPrice: number;
   supportsBoth: boolean;
 }
+
+export const calculateSellingPrice = (product: G2Product): number => {
+  const price = product.selling_price ?? product.unit_price * 1.18;
+  return Math.max(0.25, Number(price.toFixed(2)));
+};
 
 export const selectCheapestProducts = (products: G2Product[], gameSlug: string): SelectedCatalogProduct[] => {
   const grouped = new Map<string, G2Product[]>();
@@ -98,17 +114,24 @@ export const selectCheapestProducts = (products: G2Product[], gameSlug: string):
   }
 
   return Array.from(grouped.entries()).map(([uniqueKey, variants]) => {
-    const best = variants.reduce((current, candidate) =>
-      candidate.unit_price < current.unit_price ? candidate : current
-    );
+    const best = [...variants].sort((a, b) =>
+      a.unit_price - b.unit_price ||
+      calculateSellingPrice(a) - calculateSellingPrice(b) ||
+      a.supplier_id.localeCompare(b.supplier_id) ||
+      String(a.id).localeCompare(String(b.id))
+    )[0];
+    const normalized = normalizePackage(best.title, gameSlug);
     const supportsBoth = gameSlug === 'mobile-legends' && variants.length > 0;
     return {
       prod: best,
       uniqueKey,
-      cleanName: normalizePackage(best.title, gameSlug).cleanName,
+      cleanName: normalized.cleanName,
+      amount: normalized.amount,
+      type: normalized.type,
+      sellingPrice: calculateSellingPrice(best),
       supportsBoth
     };
-  });
+  }).sort((a, b) => a.sellingPrice - b.sellingPrice || a.uniqueKey.localeCompare(b.uniqueKey));
 };
 
 const EVENT_PATTERN = /weekly|monthly|twilight|starlight|membership|battle\s*pass|event|season|limited|royale|pass/i;
@@ -130,7 +153,7 @@ export const classifyPackage = (product: G2Product, index: number, gameSlug: str
   return index === 0 ? 'BEST SELLER' : 'NORMAL';
 };
 
-class ValidationError extends Error {
+export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ValidationError';
@@ -144,7 +167,7 @@ const formatDate = (date: Date): string => {
 export const normalizePackage = (title: string, gameSlug: string) => {
   let clean = title.replace(/\s+/g, ' ').trim();
   if (gameSlug === 'mobile-legends') {
-    clean = clean.replace(/^(Mobile Legends(?:\s+(?:Global|Special))?)\s*[-:|]\s*/i, '').trim();
+    clean = clean.replace(/^(?:Mobile Legends(?::\s*Bang Bang)?(?:\s+(?:Global|Special))?|MLBB)\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'pubg-mobile') {
     clean = clean.replace(/^(PUBG Mobile|PUBG)\s*[-:|]\s*/i, '').trim();
   } else if (gameSlug === 'free-fire') {
@@ -178,10 +201,19 @@ export const normalizePackage = (title: string, gameSlug: string) => {
     amount = 'starlight';
     type = 'pass';
   } else {
-    const match = clean.match(/^(?:[^\d]*)([\d][\d\s,().+]*?)\s*(?:delta\s+)?(diamonds?|uc|vp|points?|tokens?|gems?|gold|credits?|coins?|cp)\b/i);
+    const match = clean.match(/([\d][\d,]*(?:\s*\+\s*[\d,]+)*)\s*(?:\([^)]*\)\s*)?(?:delta\s+)?(diamonds?|uc|vp|points?|tokens?|gems?|gold|credits?|coins?|cp)\b/i);
     if (match) {
-      amount = match[1].replace(/[\s,().+]/g, '');
-      type = match[2].toLowerCase();
+      amount = match[1].replace(/[\s,]/g, '');
+      const rawType = match[2].toLowerCase();
+      const canonicalTypes: Record<string, string> = {
+        diamonds: 'diamond', diamond: 'diamond',
+        points: 'point', point: 'point',
+        tokens: 'token', token: 'token',
+        gems: 'gem', gem: 'gem',
+        credits: 'credit', credit: 'credit',
+        coins: 'coin', coin: 'coin'
+      };
+      type = canonicalTypes[rawType] || rawType;
     } else {
       amount = normalizeText(clean).replace(/\s+/g, '-');
       type = 'item';
@@ -196,6 +228,85 @@ export const normalizePackage = (title: string, gameSlug: string) => {
   };
 };
 
+export interface CatalogPackageSnapshot {
+  title: string;
+  catalogKey: string;
+  packageAmount: string;
+  packageType: string;
+  price: number;
+  costPrice: number;
+  supplierId: string;
+  providerType: string;
+  providerProductId: string;
+  status: string;
+}
+
+export interface CatalogValidationResult {
+  missing: string[];
+  extra: string[];
+  duplicates: string[];
+  mismatches: string[];
+}
+
+export const compareCatalogSnapshots = (
+  expected: CatalogPackageSnapshot[],
+  actual: CatalogPackageSnapshot[]
+): CatalogValidationResult => {
+  const result: CatalogValidationResult = { missing: [], extra: [], duplicates: [], mismatches: [] };
+  const expectedByKey = new Map<string, CatalogPackageSnapshot>();
+  const actualByKey = new Map<string, CatalogPackageSnapshot[]>();
+
+  for (const pkg of expected) {
+    if (expectedByKey.has(pkg.catalogKey)) result.duplicates.push(`expected:${pkg.catalogKey}`);
+    expectedByKey.set(pkg.catalogKey, pkg);
+  }
+  for (const pkg of actual) {
+    const list = actualByKey.get(pkg.catalogKey) || [];
+    list.push(pkg);
+    actualByKey.set(pkg.catalogKey, list);
+  }
+
+  for (const [catalogKey, expectedPkg] of expectedByKey) {
+    const matches = actualByKey.get(catalogKey) || [];
+    if (matches.length === 0) {
+      result.missing.push(catalogKey);
+      continue;
+    }
+    if (matches.length > 1) result.duplicates.push(`${catalogKey}:${matches.length}`);
+
+    const actualPkg = matches[0];
+    const mismatchedFields: string[] = [];
+    const exactFields: Array<keyof CatalogPackageSnapshot> = [
+      'title', 'packageAmount', 'packageType', 'supplierId',
+      'providerType', 'providerProductId', 'status'
+    ];
+    for (const field of exactFields) {
+      if (actualPkg[field] !== expectedPkg[field]) mismatchedFields.push(field);
+    }
+    if (Number(actualPkg.price.toFixed(2)) !== Number(expectedPkg.price.toFixed(2))) mismatchedFields.push('price');
+    if (Number(actualPkg.costPrice.toFixed(6)) !== Number(expectedPkg.costPrice.toFixed(6))) mismatchedFields.push('costPrice');
+    if (mismatchedFields.length > 0) result.mismatches.push(`${catalogKey}:${mismatchedFields.join(',')}`);
+  }
+
+  for (const catalogKey of actualByKey.keys()) {
+    if (!expectedByKey.has(catalogKey)) result.extra.push(catalogKey);
+  }
+  return result;
+};
+
+export const hasCatalogValidationErrors = (result: CatalogValidationResult): boolean =>
+  result.missing.length > 0 || result.extra.length > 0 || result.duplicates.length > 0 || result.mismatches.length > 0;
+
+const buildPackageTitle = (item: SelectedCatalogProduct, gameSlug: string): string => {
+  if (gameSlug !== 'mobile-legends') return item.cleanName;
+  const rawTitle = item.prod.title.toLowerCase();
+  if (rawTitle.includes('weekly') && !rawTitle.includes('elite')) return 'Weekly Diamond Pass';
+  if (rawTitle.includes('twilight')) return 'Twilight Pass';
+  if (rawTitle.includes('monthly') && !rawTitle.includes('elite')) return 'Monthly Pass';
+  if (/^\d+(?:\+\d+)?$/.test(item.cleanName)) return `${item.cleanName} Diamonds`;
+  return item.cleanName;
+};
+
 export const syncG2BulkCatalog = async () => {
   const syncStartTime = new Date();
   logger.info(`G2Bulk Sync Started: ${formatDate(syncStartTime)}`);
@@ -208,6 +319,8 @@ export const syncG2BulkCatalog = async () => {
   let totalExtra = 0;
 
   let session: mongoose.ClientSession | null = null;
+  const syncToken = crypto.randomUUID();
+  let lockAcquired = false;
 
   try {
     await connectDatabase();
@@ -221,18 +334,31 @@ export const syncG2BulkCatalog = async () => {
       Settings.ensureIndexes()
     ]);
 
-    // Start MongoDB session and transaction
+    // Acquire a visible lock outside the catalog transaction. A lock written
+    // inside the transaction would be invisible to customer APIs until commit.
     session = await mongoose.startSession();
-    session.startTransaction();
-    logger.info('MongoDB transaction started.');
-
-    // Enable sync lock
-    await Settings.findOneAndUpdate(
+    const settingsDoc = await Settings.findOneAndUpdate(
       {},
-      { isSyncing: true },
-      { upsert: true, session }
+      { $setOnInsert: { isSyncing: false } },
+      { upsert: true, new: true }
     );
-    logger.info('Sync lock enabled (isSyncing = true). Package/checkout APIs disabled.');
+    if (!settingsDoc) throw new ValidationError('Unable to initialize catalog synchronization settings.');
+    const acquiredLock = await Settings.findOneAndUpdate(
+      { _id: settingsDoc._id, isSyncing: { $ne: true } },
+      {
+        $set: {
+          isSyncing: true,
+          catalogSyncToken: syncToken,
+          catalogSyncStartedAt: syncStartTime
+        }
+      },
+      { new: true }
+    );
+    if (!acquiredLock) {
+      throw new ValidationError('Another G2Bulk catalog synchronization is already running.');
+    }
+    lockAcquired = true;
+    logger.info(`Sync lock enabled (token=${syncToken}). Package and checkout APIs are disabled.`);
 
     // Fetch live G2Bulk catalog
     logger.info('Fetching catalog from G2Bulk API...');
@@ -365,6 +491,38 @@ export const syncG2BulkCatalog = async () => {
       }
     ];
 
+    // Preflight the entire provider response before opening the transaction.
+    // A missing game catalog is a hard failure: old data is never preserved or
+    // merged as a fallback.
+    const preparedCatalogs = new Map<string, SelectedCatalogProduct[]>();
+    for (const gameMeta of gameDefinitions) {
+      const matchedProducts = products.filter((product) => productMatchesGame(product, {
+        slug: gameMeta.slug,
+        keywords: gameMeta.keywords,
+        categoryAliases: GAME_IDENTITY_ALIASES[gameMeta.slug] || gameMeta.keywords
+      }));
+      if (matchedProducts.length === 0) {
+        throw new ValidationError(`Latest G2Bulk catalog contains no products for ${gameMeta.title}.`);
+      }
+      const selectedProducts = selectCheapestProducts(matchedProducts, gameMeta.slug);
+      if (selectedProducts.length === 0) {
+        throw new ValidationError(`Latest G2Bulk catalog produced no valid packages for ${gameMeta.title}.`);
+      }
+      preparedCatalogs.set(gameMeta.slug, selectedProducts);
+      totalDuplicatesRemoved += matchedProducts.length - selectedProducts.length;
+      logger.info(`Prepared ${selectedProducts.length} latest packages for ${gameMeta.title}; removed ${matchedProducts.length - selectedProducts.length} supplier duplicates.`);
+    }
+
+    session.startTransaction({
+      readConcern: { level: 'snapshot' },
+      writeConcern: { w: 'majority' },
+      readPreference: 'primary'
+    });
+    logger.info('MongoDB replacement transaction started.');
+
+    const affectedGameIds: mongoose.Types.ObjectId[] = [];
+    const bulkBatchSize = 500;
+
     for (const gameMeta of gameDefinitions) {
       // Create/Update Category
       const categoryDoc = await Category.findOneAndUpdate(
@@ -395,172 +553,138 @@ export const syncG2BulkCatalog = async () => {
         { upsert: true, new: true, session }
       );
 
-      // Filter products for this game
-      const matchedProducts = products.filter((product) => productMatchesGame(product, {
-        slug: gameMeta.slug,
-        keywords: gameMeta.keywords,
-        categoryAliases: GAME_IDENTITY_ALIASES[gameMeta.slug] || gameMeta.keywords
-      }));
+      const deduplicatedProducts = preparedCatalogs.get(gameMeta.slug)!;
+      const replacementGameIds: mongoose.Types.ObjectId[] = [gameDoc._id as mongoose.Types.ObjectId];
+      if (gameMeta.slug === 'mobile-legends') {
+        const legacyGlobalGames = await Game.find({
+          $or: [
+            { slug: { $in: ['mobile-legends-global', 'mobile_legends_global', 'mlbb-global'] } },
+            { title: /^Mobile Legends Global/i }
+          ]
+        }).session(session).select('_id').lean();
+        replacementGameIds.push(...legacyGlobalGames.map((legacyGame) => legacyGame._id as mongoose.Types.ObjectId));
+      }
+      affectedGameIds.push(...replacementGameIds);
 
-      // Sandbox Fallback
-      let finalProducts = matchedProducts;
-      if (gameMeta.slug === 'mobile-legends' && matchedProducts.length === 0) {
-        const jsonPath = 'C:\\Users\\ASUS\\.gemini\\antigravity-ide\\brain\\57bc3757-cde8-4cee-a608-3e66d7230189\\scratch\\mlbb_denominations.json';
-        const fs = require('fs');
-        if (fs.existsSync(jsonPath)) {
-          const rawData = fs.readFileSync(jsonPath, 'utf8');
-          const { mobile_legends_global, mobile_legends } = JSON.parse(rawData);
-          const mappedStandard = mobile_legends.map((item: any) => ({
-            id: item.denomId,
-            title: `Mobile Legends - ${item.diamonds}`,
-            category_title: 'Mobile Legends',
-            unit_price: item.price,
-            stock: -1
-          }));
-          const mappedGlobal = mobile_legends_global.map((item: any) => ({
-            id: item.denomId,
-            title: `Mobile Legends Global - ${item.diamonds}`,
-            category_title: 'Mobile Legends Global',
-            unit_price: item.price,
-            stock: -1
-          }));
-          finalProducts = [...mappedStandard, ...mappedGlobal];
+      // Preserve the provider product chosen at checkout for any historical or
+      // in-flight order before its package document is removed.
+      const existingPackages = await Package.find({ gameId: { $in: replacementGameIds } })
+        .session(session)
+        .select('_id providerType providerProductId supplierId')
+        .lean();
+      const orderSnapshotOps = existingPackages.map((existingPackage) => ({
+        updateMany: {
+          filter: {
+            packageId: existingPackage._id,
+            $or: [
+              { providerProductId: { $exists: false } },
+              { providerProductId: '' },
+              { providerProductId: null }
+            ]
+          },
+          update: {
+            $set: {
+              providerType: existingPackage.providerType,
+              providerProductId: existingPackage.providerProductId,
+              supplierId: existingPackage.supplierId || 'G2BULK'
+            }
+          }
         }
+      }));
+      for (let start = 0; start < orderSnapshotOps.length; start += bulkBatchSize) {
+        await Order.bulkWrite(orderSnapshotOps.slice(start, start + bulkBatchSize), { session, ordered: true });
       }
-
-      if (finalProducts.length === 0) {
-        logger.warn(`No G2Bulk products matched ${gameMeta.title}; existing packages were preserved.`);
-        continue;
-      }
-
-      // Group by denomination/event and keep exactly one cheapest provider product.
-      // For MLBB, one selected product is intentionally shared by regular and Global servers.
-      const deduplicatedProducts = selectCheapestProducts(finalProducts, gameMeta.slug);
-
-      totalDuplicatesRemoved += (finalProducts.length - deduplicatedProducts.length);
+      if (orderSnapshotOps.length > 0) logger.info(`Snapshotted provider data for orders referencing ${orderSnapshotOps.length} retiring ${gameMeta.title} packages.`);
 
       // Full catalog replacement: Delete ALL existing packages for this game in the session
-      const deleteResult = await Package.deleteMany({ gameId: gameDoc._id }, { session });
+      const deleteResult = await Package.deleteMany({ gameId: { $in: replacementGameIds } }, { session });
       totalOldDeleted += deleteResult.deletedCount || 0;
       logger.info(`Deleted ${deleteResult.deletedCount || 0} existing packages for game: ${gameMeta.title}.`);
 
-      if (deduplicatedProducts.length > 0) {
-        // Write new packages via bulkWrite performance insert
-        const orderedProducts = [...deduplicatedProducts].sort((a, b) => a.prod.unit_price - b.prod.unit_price);
-        const bulkOps = orderedProducts.map((item, idx) => {
+      const expectedDocuments = deduplicatedProducts.map((item, idx) => {
           const prod = item.prod;
           const costPrice = prod.unit_price;
-          const retailPrice = parseFloat((costPrice * 1.18).toFixed(2));
-
           const badge = classifyPackage(prod, idx, gameMeta.slug);
-
-          let packageTitle = item.cleanName;
-          if (gameMeta.slug === 'mobile-legends') {
-            const rawTitleLower = prod.title.toLowerCase();
-            if (rawTitleLower.includes('weekly') && !rawTitleLower.includes('elite')) {
-              packageTitle = 'Weekly Diamond Pass';
-            } else if (rawTitleLower.includes('twilight')) {
-              packageTitle = 'Twilight Pass';
-            } else if (rawTitleLower.includes('monthly') && !rawTitleLower.includes('elite')) {
-              packageTitle = 'Monthly Pass';
-            } else {
-              if (!isNaN(Number(item.cleanName))) {
-                packageTitle = `${item.cleanName} Diamonds`;
-              }
-            }
-          }
-
+          const packageTitle = buildPackageTitle(item, gameMeta.slug);
           return {
-            insertOne: {
-              document: {
-                gameId: gameDoc._id,
-                title: packageTitle,
-                description: prod.description || `${packageTitle} (Automated Instant Top-up | Source: G2Bulk ${prod.category_title}${item.supportsBoth ? ' | Supports Global & Regular Servers' : ''})`,
-                price: Math.max(0.25, retailPrice),
-                costPrice,
-                providerType: 'G2BULK',
-                providerProductId: prod.id.toString(),
-                badge,
-                stock: prod.stock >= 0 ? prod.stock : -1,
-                status: 'active',
-                sortOrder: idx,
-                supportsBoth: item.supportsBoth
-              }
-            }
+            gameId: gameDoc._id,
+            title: packageTitle,
+            description: prod.description || `${packageTitle} (Automated Instant Top-up | Source: G2Bulk ${prod.category_title}${item.supportsBoth ? ' | Supports Global & Regular Servers' : ''})`,
+            price: item.sellingPrice,
+            costPrice,
+            providerType: 'G2BULK' as const,
+            providerProductId: prod.id.toString(),
+            supplierId: prod.supplier_id || 'G2BULK',
+            catalogKey: item.uniqueKey,
+            packageAmount: item.amount,
+            packageType: item.type,
+            badge,
+            stock: prod.stock >= 0 ? prod.stock : -1,
+            status: 'active' as const,
+            sortOrder: idx,
+            supportsBoth: item.supportsBoth
           };
         });
 
-        await Package.bulkWrite(bulkOps, { session });
-        totalNewImported += deduplicatedProducts.length;
-        logger.info(`Imported ${deduplicatedProducts.length} packages for game: ${gameMeta.title}.`);
-
-        // Strict verification: Verify every single package matches exactly
-        const dbPackages = await Package.find({ gameId: gameDoc._id }).session(session).lean();
-        
-        let localMissing = 0;
-        let localExtra = 0;
-        let localDuplicates = 0;
-        
-        const missingList: string[] = [];
-        const extraList: string[] = [];
-        const duplicateList: string[] = [];
-
-        for (const item of deduplicatedProducts) {
-          const prod = item.prod;
-          const expectedPrice = Math.max(0.25, parseFloat((prod.unit_price * 1.18).toFixed(2)));
-          
-          const matches = dbPackages.filter(p => p.providerProductId === prod.id.toString());
-          if (matches.length === 0) {
-            localMissing++;
-            missingList.push(`${item.cleanName} (ID: ${prod.id})`);
-          } else {
-            if (matches.length > 1) {
-              localDuplicates += (matches.length - 1);
-              duplicateList.push(`${item.cleanName} (ID: ${prod.id})`);
-            }
-            
-            const dbPkg = matches[0];
-            const priceDiff = Math.abs(dbPkg.price - expectedPrice);
-            const costDiff = Math.abs(dbPkg.costPrice - prod.unit_price);
-            
-            // Check Package Name, Diamond Amount, Selling Price, Supplier ID (providerType), Supplier Product ID
-            if (priceDiff > 0.01 || costDiff > 0.01 || dbPkg.providerType !== 'G2BULK' || dbPkg.providerProductId !== prod.id.toString()) {
-              throw new ValidationError(`Validation values mismatch for product ${item.cleanName} (ID: ${prod.id})`);
-            }
-          }
-        }
-
-        for (const dbPkg of dbPackages) {
-          const matchedCatalog = deduplicatedProducts.find(item => item.prod.id.toString() === dbPkg.providerProductId);
-          if (!matchedCatalog) {
-            localExtra++;
-            extraList.push(`${dbPkg.title} (ID: ${dbPkg.providerProductId})`);
-          }
-        }
-
-        totalMissing += localMissing;
-        totalExtra += localExtra;
-        totalDuplicatesRemoved += localDuplicates;
-
-        if (localMissing > 0 || localExtra > 0 || localDuplicates > 0) {
-          throw new ValidationError(
-            `Sync validation failed for game ${gameMeta.title}.\n` +
-            `Missing: ${missingList.join(', ') || 'None'}\n` +
-            `Extra: ${extraList.join(', ') || 'None'}\n` +
-            `Duplicates: ${duplicateList.join(', ') || 'None'}`
-          );
-        }
-        
-        logger.info(`Validation PASSED for game: ${gameMeta.title}.`);
+      const bulkOps = expectedDocuments.map((document) => ({ insertOne: { document } }));
+      for (let start = 0; start < bulkOps.length; start += bulkBatchSize) {
+        const batch = bulkOps.slice(start, start + bulkBatchSize);
+        await Package.bulkWrite(batch, { session, ordered: true });
+        logger.info(`Imported batch ${Math.floor(start / bulkBatchSize) + 1} for ${gameMeta.title}: ${batch.length} packages.`);
       }
+      totalNewImported += expectedDocuments.length;
+      logger.info(`Imported ${expectedDocuments.length} latest packages for game: ${gameMeta.title}.`);
+
+      const dbPackages = await Package.find({ gameId: gameDoc._id }).session(session).lean();
+      const expectedSnapshot: CatalogPackageSnapshot[] = expectedDocuments.map((pkg) => ({
+        title: pkg.title,
+        catalogKey: pkg.catalogKey,
+        packageAmount: pkg.packageAmount,
+        packageType: pkg.packageType,
+        price: pkg.price,
+        costPrice: pkg.costPrice,
+        supplierId: pkg.supplierId,
+        providerType: pkg.providerType,
+        providerProductId: pkg.providerProductId,
+        status: pkg.status
+      }));
+      const actualSnapshot: CatalogPackageSnapshot[] = dbPackages.map((pkg) => ({
+        title: pkg.title,
+        catalogKey: pkg.catalogKey || '',
+        packageAmount: pkg.packageAmount || '',
+        packageType: pkg.packageType || '',
+        price: pkg.price,
+        costPrice: pkg.costPrice,
+        supplierId: pkg.supplierId || '',
+        providerType: pkg.providerType,
+        providerProductId: pkg.providerProductId,
+        status: pkg.status
+      }));
+      const validation = compareCatalogSnapshots(expectedSnapshot, actualSnapshot);
+      totalMissing += validation.missing.length;
+      totalExtra += validation.extra.length;
+
+      if (hasCatalogValidationErrors(validation)) {
+        throw new ValidationError(
+          `Sync validation failed for ${gameMeta.title}.\n` +
+          `Missing Packages: ${validation.missing.join(', ') || 'None'}\n` +
+          `Extra Packages: ${validation.extra.join(', ') || 'None'}\n` +
+          `Duplicate Packages: ${validation.duplicates.join(', ') || 'None'}\n` +
+          `Mismatched Packages: ${validation.mismatches.join(', ') || 'None'}`
+        );
+      }
+      logger.info(`Exact package validation PASSED for game: ${gameMeta.title}.`);
     }
 
     // Commit Transaction
     const syncFinishedTime = new Date();
-    const finalDbCount = await Package.countDocuments({}).session(session);
+    const finalDbCount = await Package.countDocuments({ gameId: { $in: affectedGameIds } }).session(session);
+    if (finalDbCount !== totalNewImported) {
+      throw new ValidationError(`Final database count (${finalDbCount}) does not match latest catalog count (${totalNewImported}).`);
+    }
 
     await session.commitTransaction();
-    session.endSession();
+    await session.endSession();
     session = null;
     logger.info('MongoDB transaction committed successfully.');
 
@@ -600,14 +724,15 @@ COMMITTED
 Status:
 SUCCESS
 ========================================`;
+    logger.info(report);
     console.log(report);
 
   } catch (error: any) {
     // Rollback Transaction
     if (session) {
       try {
-        await session.abortTransaction();
-        session.endSession();
+        if (session.inTransaction()) await session.abortTransaction();
+        await session.endSession();
       } catch (abortErr) {
         logger.error('Failed to abort transaction:', abortErr);
       }
@@ -615,8 +740,12 @@ SUCCESS
       logger.error('MongoDB transaction rolled back due to synchronization error. Database UNCHANGED.');
     }
 
+    const syncFinishedTime = new Date();
     const report = `
 ========== G2Bulk Sync Report ==========
+Sync Started: ${formatDate(syncStartTime)}
+Sync Finished: ${formatDate(syncFinishedTime)}
+
 Status:
 FAILED
 
@@ -629,16 +758,38 @@ ROLLED BACK
 Database:
 UNCHANGED
 ========================================`;
+    logger.error(report);
     console.log(report);
     throw error;
   } finally {
-    // Unlock sync lock outside the transaction
-    try {
-      await Settings.findOneAndUpdate({}, { isSyncing: false }, { upsert: true });
-      logger.info('Platform synchronization lock disabled (isSyncing = false). APIs unlocked.');
-    } catch (unlockErr: any) {
-      logger.error('Failed to disable isSyncing lock in finally block:', unlockErr.message);
+    // Only the process that owns the lock may release it. Retry transient
+    // failures so the storefront is not left locked after commit or rollback.
+    if (lockAcquired) {
+      let unlocked = false;
+      for (let attempt = 1; attempt <= 3 && !unlocked; attempt++) {
+        try {
+          const result = await Settings.findOneAndUpdate(
+            { isSyncing: true, catalogSyncToken: syncToken },
+            {
+              $set: { isSyncing: false },
+              $unset: { catalogSyncToken: '', catalogSyncStartedAt: '' }
+            },
+            { new: true }
+          );
+          unlocked = Boolean(result);
+          if (!unlocked) logger.error(`Catalog lock release attempt ${attempt} did not match the owning token.`);
+        } catch (unlockErr: any) {
+          logger.error(`Catalog lock release attempt ${attempt} failed: ${unlockErr.message}`);
+        }
+        if (!unlocked && attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+      }
+      if (unlocked) {
+        logger.info('Platform synchronization lock disabled (isSyncing = false). APIs unlocked.');
+      } else {
+        logger.error(`CRITICAL: Catalog lock owned by token ${syncToken} could not be released automatically.`);
+      }
     }
+    logger.info(`G2Bulk Sync Finished: ${formatDate(new Date())}`);
   }
 };
 

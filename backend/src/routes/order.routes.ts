@@ -3,12 +3,13 @@ import { OrderController } from '../controllers/order.controller';
 import { authenticateJwt, requirePermission } from '../middleware/auth.middleware';
 import { checkIdempotency } from '../middleware/idempotency.middleware';
 import { orderRateLimiter } from '../middleware/rateLimiter.middleware';
+import { catalogSyncGuard } from '../middleware/catalogSync.middleware';
 
 const router = Router();
 
 // Public / Customer
-router.post('/', orderRateLimiter, checkIdempotency, OrderController.createOrder);
-router.post('/bulk', checkIdempotency, OrderController.createBulkOrder);
+router.post('/', catalogSyncGuard, orderRateLimiter, checkIdempotency, OrderController.createOrder);
+router.post('/bulk', catalogSyncGuard, checkIdempotency, OrderController.createBulkOrder);
 router.get('/my-orders', authenticateJwt, OrderController.getUserOrders);
 router.get('/:orderNumber', OrderController.getOrderDetails);
 

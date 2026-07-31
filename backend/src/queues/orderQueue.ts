@@ -75,8 +75,11 @@ export const processOrderFulfillment = async (orderId: string) => {
   }
 
   const pkg = await Package.findById(order.packageId);
-  const providerType = pkg?.providerType || 'G2BULK';
-  const providerProductId = pkg?.providerProductId || 'MOCK-PROD-01';
+  const providerType = order.providerType || pkg?.providerType || 'G2BULK';
+  const providerProductId = order.providerProductId || pkg?.providerProductId;
+  if (!providerProductId) {
+    throw new Error(`Order ${order.orderNumber} has no provider product snapshot and its package no longer exists.`);
+  }
 
   const provider = ProviderFactory.getProvider(providerType);
 
