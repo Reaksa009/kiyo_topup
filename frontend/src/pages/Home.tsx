@@ -77,7 +77,7 @@ export const Home: React.FC = () => {
         </div>
 
         {/* Popular & Featured Games Grid */}
-        <section className="space-y-6">
+          <section id="games" className="scroll-mt-24 space-y-6">
           <div className="flex items-center justify-between border-b border-gray-800 pb-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">

@@ -1,127 +1,133 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Gamepad2, Search, Globe, History, PhoneCall, Menu, X } from 'lucide-react';
+import { Gamepad2, Globe, History, Menu, X, Zap } from 'lucide-react';
+
+const baseNavClass = 'relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-bold transition-all';
 
 export const Navbar: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const toggleLanguage = () => {
-    const nextLang = i18n.language === 'km' ? 'en' : 'km';
-    i18n.changeLanguage(nextLang);
+    i18n.changeLanguage(i18n.language === 'km' ? 'en' : 'km');
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+  const isGamesActive = location.pathname.startsWith('/game') || location.hash === '#games';
+  const isContactActive = location.pathname === '/contact';
+  const isTrackingActive = location.pathname === '/tracking';
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  useEffect(() => {
+    closeMobileMenu();
+  }, [location.pathname, location.hash]);
+
+  const handleGamesClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (location.pathname === '/') {
+      event.preventDefault();
+      document.getElementById('games')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+    closeMobileMenu();
   };
+
+  const activeLink = (active: boolean) =>
+    `${baseNavClass} ${active ? 'bg-cyan-400/10 text-cyan-300' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`;
 
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b border-gray-800/80 bg-[#080B11]/90">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        
-        {/* Brand Logo */}
-        <Link to="/" className="flex items-center space-x-3 group">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 via-purple-600 to-pink-500 p-0.5 glow-cyan transition-transform group-hover:scale-105">
-            <div className="w-full h-full bg-[#0B0F19] rounded-[10px] flex items-center justify-center">
-              <Gamepad2 className="w-7 h-7 text-cyan-400" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black tracking-wider bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500 bg-clip-text text-transparent">
-              KIYO<span className="text-white">TOPUP</span>
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#070A12]/90 shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+      <div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:px-8">
+        <Link to="/" onClick={closeMobileMenu} className="group flex shrink-0 items-center gap-3" aria-label="KIYO TOPUP home">
+          <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 via-cyan-500 to-purple-600 p-[1px] shadow-[0_0_25px_rgba(0,240,255,0.25)] transition-transform group-hover:scale-105">
+            <span className="flex h-full w-full items-center justify-center rounded-[15px] bg-[#0B1020]">
+              <Gamepad2 className="h-6 w-6 text-cyan-300" />
             </span>
-            <span className="block text-[10px] font-semibold text-cyan-400 uppercase tracking-widest -mt-1">
-              Enterprise Gaming
+          </span>
+          <span className="hidden sm:block">
+            <span className="block text-[19px] font-black leading-none tracking-[0.16em] text-white">
+              KIYO<span className="text-cyan-300">TOPUP</span>
             </span>
-          </div>
+            <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.28em] text-slate-500">Instant game credit</span>
+          </span>
         </Link>
 
-        {/* Global Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-8 relative">
-          <input
-            type="text"
-            placeholder={t('hero.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#111625] border border-gray-700/60 rounded-xl py-2.5 pl-11 pr-4 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-          />
-          <Search className="w-4 h-4 text-gray-400 absolute left-4 top-3.5" />
-        </form>
-
-        {/* Desktop Navigation Links */}
-        <div className="hidden lg:flex items-center space-x-8">
-          <Link to="/" className="text-sm font-bold text-gray-200 hover:text-cyan-400 transition-colors uppercase tracking-wider">
-            Home
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
+          <NavLink to="/" end className={({ isActive }) => activeLink(isActive)}>
+            {t('nav.home', 'Home')}
+          </NavLink>
+          <Link to="/#games" onClick={handleGamesClick} className={activeLink(isGamesActive)}>
+            {t('nav.games', 'Games')}
           </Link>
-          <a href="/#games" className="text-sm font-bold text-gray-200 hover:text-cyan-400 transition-colors uppercase tracking-wider">
-            Game
-          </a>
-          <Link to="/bulk-topup" className="text-sm font-bold text-gray-200 hover:text-cyan-400 transition-colors uppercase tracking-wider">
-            Bulk Top-Up
-          </Link>
-          <Link to="/contact" className="text-sm font-bold text-gray-200 hover:text-cyan-400 transition-colors uppercase tracking-wider flex items-center space-x-1.5">
-            <PhoneCall className="w-4 h-4 text-cyan-400" />
-            <span>Contact</span>
-          </Link>
-          <Link to="/tracking" className="text-sm font-bold text-gray-200 hover:text-cyan-400 transition-colors uppercase tracking-wider flex items-center space-x-1.5">
-            <History className="w-4 h-4 text-purple-400" />
-            <span>Track Order</span>
-          </Link>
-
-          {/* Language Switcher */}
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center space-x-1.5 text-xs font-bold bg-[#182033] hover:bg-gray-700 text-cyan-400 px-3.5 py-2 rounded-xl border border-cyan-500/30 transition-all"
+          <NavLink to="/contact" className={({ isActive }) => activeLink(isContactActive || isActive)}>
+            Contact
+          </NavLink>
+          <NavLink
+            to="/tracking"
+            className={({ isActive }) => `${activeLink(isTrackingActive || isActive)} ml-1 border border-cyan-400/30 bg-cyan-400/10 text-cyan-200 hover:border-cyan-300/60 hover:bg-cyan-400/20`}
           >
-            <Globe className="w-3.5 h-3.5" />
-            <span>{i18n.language.toUpperCase()}</span>
+            <History className="h-4 w-4" />
+            <span>{t('nav.tracking', 'Track Order')}</span>
+          </NavLink>
+        </nav>
+
+        <div className="hidden items-center gap-3 lg:flex">
+          <span className="hidden items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300 xl:flex">
+            <Zap className="h-3.5 w-3.5" />
+            Fast & secure
+          </span>
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-300 transition hover:border-cyan-400/40 hover:text-cyan-300"
+            aria-label="Change language"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            {i18n.language.toUpperCase()}
           </button>
         </div>
 
-        {/* Mobile Controls */}
-        <div className="lg:hidden flex items-center space-x-3">
+        <div className="flex items-center gap-2 lg:hidden">
           <button
+            type="button"
             onClick={toggleLanguage}
-            className="text-xs font-bold text-cyan-400 bg-[#182033] px-3 py-1.5 rounded-lg border border-cyan-500/30"
+            className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1.5 text-[10px] font-black text-cyan-300"
           >
             {i18n.language.toUpperCase()}
           </button>
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-gray-400 hover:text-white"
+            type="button"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300 transition hover:text-white"
+            aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
-
       </div>
 
-      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden glass-panel border-t border-gray-800 px-4 pt-4 pb-6 space-y-4">
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <input
-              type="text"
-              placeholder={t('hero.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#111625] border border-gray-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-gray-200"
-            />
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-          </form>
-          <div className="flex flex-col space-y-4 font-bold text-gray-200 uppercase tracking-wider pt-2">
-            <Link to="/" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-            <a href="/#games" onClick={() => setMobileMenuOpen(false)}>Game</a>
-            <Link to="/bulk-topup" onClick={() => setMobileMenuOpen(false)}>Bulk Top-Up</Link>
-            <Link to="/contact" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
-            <Link to="/tracking" onClick={() => setMobileMenuOpen(false)}>Track Order</Link>
-          </div>
+        <div className="border-t border-white/10 bg-[#0B1020]/95 px-4 pb-5 pt-3 shadow-2xl backdrop-blur-xl lg:hidden">
+          <nav className="mx-auto flex max-w-7xl flex-col gap-1" aria-label="Mobile navigation">
+            <NavLink to="/" end onClick={closeMobileMenu} className={({ isActive }) => activeLink(isActive)}>
+              {t('nav.home', 'Home')}
+            </NavLink>
+            <Link to="/#games" onClick={handleGamesClick} className={activeLink(isGamesActive)}>
+              {t('nav.games', 'Games')}
+            </Link>
+            <NavLink to="/contact" onClick={closeMobileMenu} className={({ isActive }) => activeLink(isContactActive || isActive)}>
+              Contact
+            </NavLink>
+            <NavLink
+              to="/tracking"
+              onClick={closeMobileMenu}
+              className={({ isActive }) => `${activeLink(isTrackingActive || isActive)} border border-cyan-400/30 bg-cyan-400/10 text-cyan-200`}
+            >
+              <History className="h-4 w-4" />
+              {t('nav.tracking', 'Track Order')}
+            </NavLink>
+          </nav>
         </div>
       )}
     </header>
