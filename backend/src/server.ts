@@ -1,5 +1,6 @@
 import express from 'express';
 import http from 'http';
+import mongoose from 'mongoose';
 import { Server as SocketServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -80,25 +81,34 @@ app.get('/health', (req, res) => {
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 export const initApp = async () => {
-  if (isInitialized) return;
+  if (isInitialized && mongoose.connection.readyState === 1) return;
 
   if (!initializationPromise) {
     initializationPromise = (async () => {
-      await connectDatabase();
-      await connectRedis();
-      if (shouldAutoSeedDatabase(env.AUTO_SEED_DATABASE)) {
-        await seedDatabase();
-      } else if (env.AUTO_SEED_DATABASE) {
-        logger.warn('AUTO_SEED_DATABASE was ignored in a production/serverless runtime.');
+      const isFirstInitialization = !isInitialized;
+
+      if (mongoose.connection.readyState !== 1) {
+        await connectDatabase();
       }
+
+      if (isFirstInitialization) {
+        await connectRedis();
+        if (shouldAutoSeedDatabase(env.AUTO_SEED_DATABASE)) {
+          await seedDatabase();
+        } else if (env.AUTO_SEED_DATABASE) {
+          logger.warn('AUTO_SEED_DATABASE was ignored in a production/serverless runtime.');
+        }
+      }
+
       isInitialized = true;
-    })().catch((error) => {
-      initializationPromise = null;
-      throw error;
-    });
+    })();
   }
 
-  await initializationPromise;
+  try {
+    await initializationPromise;
+  } finally {
+    initializationPromise = null;
+  }
 };
 
 app.use(async (req, res, next) => {
