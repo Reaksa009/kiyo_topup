@@ -12,7 +12,6 @@ interface GamePackage {
   title: string;
   price: number;
   badge?: string;
-  providerProductId: string;
   supportsBoth?: boolean;
   discountPercent?: number;
 }

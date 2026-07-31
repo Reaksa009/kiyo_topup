@@ -256,7 +256,10 @@ export class GameController {
       let packages: any[] = [];
 
       if (game) {
-        packages = await Package.find({ gameId: game._id, status: 'active' }).sort({ price: 1 }).lean();
+        packages = await Package.find({ gameId: game._id, status: 'active' })
+          .select('_id title price badge supportsBoth discountPercent')
+          .sort({ price: 1 })
+          .lean();
       }
 
       if (!game) {
