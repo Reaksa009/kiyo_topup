@@ -39,7 +39,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
 
   return (
     <article
-      className={`group relative overflow-hidden rounded-[20px] border bg-[#0e1420] shadow-[0_14px_36px_rgba(0,0,0,0.18)] transition duration-300 sm:rounded-[22px] ${
+      className={`group relative w-[148px] shrink-0 snap-start overflow-hidden rounded-[20px] border bg-[#0e1420] shadow-[0_14px_36px_rgba(0,0,0,0.18)] transition duration-300 sm:w-auto sm:rounded-[22px] ${
         game.comingSoon
           ? 'border-white/[0.06] opacity-75'
           : 'border-white/[0.09] hover:-translate-y-1 hover:border-cyan-300/25 hover:shadow-[0_18px_44px_rgba(4,20,34,0.38)]'
