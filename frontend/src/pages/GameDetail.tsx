@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  Gem,
   ShieldCheck,
   Star,
   Tag,
@@ -148,19 +149,20 @@ export function GameDetail() {
   const finalPrice = Math.max(0, basePrice - (basePrice * couponDiscount / 100));
   const selectedPayment = paymentOptions.find((option) => option.id === paymentMethod)!;
   const categoryName = typeof game.categoryId === 'object' ? game.categoryId?.name : 'Game Top-Up';
+  const hasRequiredPlayerFields = game.inputFields.every((field: any) => !field.required || playerFields[field.name]?.trim());
 
   return (
     <div className="flex min-h-screen flex-col bg-[#071024] text-slate-100">
       <Navbar />
       <main className="section-shell flex-1 py-4 sm:py-6">
-        <Link to="/#games" className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 text-[9px] font-black text-slate-400 transition hover:border-cyan-300/30 hover:text-cyan-200"><ArrowLeft className="h-3.5 w-3.5" />Back to Games</Link>
+        <Link to="/#games" className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/20 bg-[#081a30] px-3.5 text-[10px] font-black text-cyan-100 transition hover:border-cyan-300/45 hover:bg-cyan-300/[0.08] sm:h-9 sm:text-[9px]"><ArrowLeft className="h-4 w-4" />Back to Games</Link>
 
-        <section className="relative mt-3 h-40 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#081a30] shadow-xl shadow-black/20 sm:h-52 lg:h-60">
+        <section className="relative mt-3 aspect-[3/2] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#081a30] shadow-xl shadow-black/20 sm:aspect-auto sm:h-52 lg:h-60">
           <img src={game.bannerUrl || game.thumbnail} alt={game.title} fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#061321]/85 via-transparent to-black/10" />
-          <div className="absolute bottom-3 left-3 right-3 flex max-w-md items-center gap-2.5 rounded-xl border border-cyan-300/20 bg-[#061727]/95 p-2.5 shadow-2xl backdrop-blur sm:bottom-4 sm:left-4 sm:right-auto sm:gap-3 sm:p-3">
-            <img src={game.thumbnail} alt="" decoding="async" className="h-11 w-11 shrink-0 rounded-lg border border-cyan-300/40 object-cover sm:h-14 sm:w-14 sm:rounded-xl" />
-            <div className="min-w-0"><p className="truncate text-[7px] font-black uppercase tracking-[0.14em] text-cyan-300 sm:text-[8px]">{game.publisher || categoryName}</p><h1 className="mt-0.5 truncate text-sm font-black text-white sm:text-lg">{game.title}</h1><div className="mt-1 flex flex-wrap items-center gap-2 text-[7px] font-bold text-slate-400 sm:text-[8px]"><span>{categoryName || 'Digital Credits'}</span><span className="inline-flex items-center gap-0.5 text-amber-300"><Star className="h-2.5 w-2.5 fill-current" />4.9</span><span className="inline-flex items-center gap-0.5 text-emerald-300"><Zap className="h-2.5 w-2.5" />Instant delivery</span></div></div>
+          <div className="absolute bottom-2.5 left-2.5 right-2.5 flex max-w-lg items-center gap-3 rounded-2xl border border-cyan-300/25 bg-[#062131]/95 p-3 shadow-2xl backdrop-blur-md sm:bottom-4 sm:left-4 sm:right-auto sm:p-3.5">
+            <img src={game.thumbnail} alt="" decoding="async" className="h-12 w-12 shrink-0 rounded-xl border border-cyan-300/40 object-cover min-[380px]:h-14 min-[380px]:w-14 sm:h-16 sm:w-16" />
+            <div className="min-w-0"><p className="truncate text-[8px] font-black uppercase tracking-[0.14em] text-cyan-300">{game.publisher || categoryName}</p><h1 className="mt-0.5 line-clamp-2 text-sm font-black leading-5 text-white min-[380px]:text-base sm:text-xl">{game.title}</h1><div className="mt-1 flex flex-wrap items-center gap-2 text-[8px] font-bold text-slate-400 sm:text-[9px]"><span>{categoryName || 'Digital Credits'}</span><span className="inline-flex items-center gap-0.5"><Star className="h-3 w-3 text-slate-300" />4.9</span><span className="inline-flex items-center gap-0.5 text-emerald-300"><Zap className="h-3 w-3" />Instant delivery</span></div></div>
           </div>
         </section>
 
@@ -168,19 +170,28 @@ export function GameDetail() {
 
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-3">
-            <section className="rounded-2xl border border-cyan-300/20 bg-[#081d30] p-3 sm:p-4">
-              <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
-                <div className="flex min-w-0 items-center gap-2.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-300 text-[11px] font-black text-[#171006]">1</span><div className="min-w-0"><h2 className="truncate text-xs font-black text-white sm:text-sm">Enter Player Information</h2><p className="mt-0.5 text-[7px] text-slate-500 sm:text-[8px]">Your details are used only to deliver this order.</p></div></div>
-                <button type="button" onClick={handleVerifyPlayer} disabled={verifyingPlayer} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-300/[0.08] px-2.5 text-[8px] font-black text-cyan-200 disabled:opacity-50"><ShieldCheck className="h-3.5 w-3.5" /><span>{verifyingPlayer ? 'Verifying...' : 'Verify ID'}</span></button>
+            <section className="rounded-[24px] border border-cyan-300/25 bg-[#082536] p-4 shadow-xl shadow-black/15 sm:rounded-2xl sm:p-5">
+              <div className="flex items-center gap-3">
+                <span className="shrink-0 text-xl font-black text-amber-300 sm:text-2xl">1</span>
+                <div className="min-w-0"><h2 className="truncate text-base font-black text-white sm:text-lg">Enter Player Information</h2><p className="mt-0.5 text-[9px] text-slate-500 sm:text-[10px]">Enter the account details used for delivery.</p></div>
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {game.inputFields.map((field: any) => (
-                  <label key={field.name} className="block"><span className="mb-1.5 block text-[8px] font-black text-slate-400 sm:text-[9px]">{field.label}{field.required && <span className="text-rose-400"> *</span>}</span><input type={field.type || 'text'} placeholder={field.placeholder} value={playerFields[field.name] || ''} onChange={(event) => handleFieldChange(field.name, event.target.value)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-[#061522] px-3 text-[10px] text-white outline-none placeholder:text-slate-600 focus:border-amber-300/60" />{field.helpText && <span className="mt-1 block text-[7px] text-slate-600">{field.helpText}</span>}</label>
+                  <label key={field.name} className="block"><span className="mb-2 block text-[10px] font-black text-cyan-200/70 sm:text-[11px]">{field.label}{field.required && <span className="text-amber-300"> *</span>}</span><input type={field.type || 'text'} placeholder={field.placeholder} value={playerFields[field.name] || ''} onChange={(event) => handleFieldChange(field.name, event.target.value)} className="h-14 w-full rounded-xl border border-amber-300/80 bg-[#06152b] px-4 text-base font-bold text-white outline-none placeholder:text-slate-600 focus:border-amber-200 focus:ring-2 focus:ring-amber-300/10 sm:h-12 sm:text-sm" />{field.helpText && <span className="mt-1.5 block text-[8px] text-slate-600">{field.helpText}</span>}</label>
                 ))}
               </div>
 
-              {verifiedPlayerInfo && <div className={`mt-3 flex items-start gap-2 rounded-xl border p-2.5 text-[9px] font-bold ${verifiedPlayerInfo.valid ? 'border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-300' : 'border-rose-400/25 bg-rose-400/[0.08] text-rose-300'}`}>{verifiedPlayerInfo.valid ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}<div><p className="font-black">{verifiedPlayerInfo.valid ? `Account verified${verifiedPlayerInfo.username ? `: ${verifiedPlayerInfo.username}` : ''}` : 'Invalid account information'}</p>{verifiedPlayerInfo.message && <p className="mt-0.5 text-[8px] opacity-75">{verifiedPlayerInfo.message}</p>}</div></div>}
+              <div className="mt-3 rounded-2xl border border-white/[0.08] bg-[#061b2e] p-2">
+                <div className="flex min-h-14 items-center gap-3 rounded-xl bg-[#06182b] px-3 py-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-300/[0.1] text-cyan-200"><Gem className="h-4 w-4" /></span>
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{selectedPackage?.title || 'Choose a top-up package'}</p><p className="mt-0.5 text-[8px] text-slate-500">{selectedPackage ? `KHR ${Math.round((selectedPackage.price * 4100) / 100) * 100}` : 'Select from the packages below'}</p></div>
+                  <span className="shrink-0 text-base font-black text-amber-300">{selectedPackage ? `$${selectedPackage.price.toFixed(2)}` : '--'}</span>
+                </div>
+                <button type="button" onClick={handleVerifyPlayer} disabled={verifyingPlayer || !hasRequiredPlayerFields} className={`mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-black transition ${verifiedPlayerInfo?.valid ? 'bg-emerald-400 text-[#041910]' : 'bg-gradient-to-r from-cyan-400 to-blue-500 text-[#041523]'} disabled:cursor-not-allowed disabled:grayscale disabled:opacity-45`}><Zap className="h-5 w-5" /><span>{verifyingPlayer ? 'Verifying ID...' : verifiedPlayerInfo?.valid ? 'ID Verified' : 'Verify ID First'}</span></button>
+              </div>
+
+              {verifiedPlayerInfo && <div className={`mt-3 flex items-start gap-2 rounded-xl border p-3 text-[10px] font-bold ${verifiedPlayerInfo.valid ? 'border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-300' : 'border-rose-400/25 bg-rose-400/[0.08] text-rose-300'}`}>{verifiedPlayerInfo.valid ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}<div><p className="font-black">{verifiedPlayerInfo.valid ? `Account verified${verifiedPlayerInfo.username ? `: ${verifiedPlayerInfo.username}` : ''}` : 'Invalid account information'}</p>{verifiedPlayerInfo.message && <p className="mt-0.5 text-[8px] opacity-75">{verifiedPlayerInfo.message}</p>}</div></div>}
             </section>
 
             <TopUpPackageSelector packages={packages} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact initialVisibleCount={48} />
