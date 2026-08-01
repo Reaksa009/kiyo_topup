@@ -1,22 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { PaymentModal } from '../components/PaymentModal';
+import { TopUpPackageSelector, type TopUpPackage } from '../components/TopUpPackageSelector';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle2, ShieldCheck, AlertCircle, Sparkles, Tag, ArrowRight, Search } from 'lucide-react';
-
-interface GamePackage {
-  _id: string;
-  title: string;
-  price: number;
-  badge?: string;
-  supportsBoth?: boolean;
-  discountPercent?: number;
-}
-
-const formatKhr = (usd: number) => Math.round(usd * 4100 / 100) * 100;
+import { CheckCircle2, ShieldCheck, AlertCircle, Sparkles, Tag, ArrowRight } from 'lucide-react';
 
 export function GameDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -24,12 +14,9 @@ export function GameDetail() {
   const { user } = useAuth();
 
   const [game, setGame] = useState<any>(null);
-  const [packages, setPackages] = useState<GamePackage[]>([]);
-  const [selectedPackage, setSelectedPackage] = useState<GamePackage | null>(null);
+  const [packages, setPackages] = useState<TopUpPackage[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<TopUpPackage | null>(null);
   const [playerFields, setPlayerFields] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<'best_selling' | 'normal'>('best_selling');
-  const [packageSearch, setPackageSearch] = useState('');
-  const [visiblePackageCount, setVisiblePackageCount] = useState(48);
   
   // Account Validation State
   const [verifyingPlayer, setVerifyingPlayer] = useState(false);
@@ -66,23 +53,6 @@ export function GameDetail() {
     };
     fetchGame();
   }, [slug]);
-
-  useEffect(() => {
-    setVisiblePackageCount(48);
-  }, [activeTab, packageSearch, slug]);
-
-  const filteredPackages = useMemo(() => {
-    const matchingTab = packages.filter((pkg) => {
-      const badgeLower = (pkg.badge || '').toLowerCase();
-      const isBest = badgeLower.includes('seller') || badgeLower.includes('pass') || badgeLower.includes('value') || badgeLower.includes('sale') || badgeLower.includes('deal');
-      return activeTab === 'best_selling' ? isBest : !isBest;
-    });
-    const tabPackages = matchingTab.length > 0 ? matchingTab : packages;
-    const query = packageSearch.trim().toLowerCase();
-    return query ? tabPackages.filter((pkg) => pkg.title.toLowerCase().includes(query)) : tabPackages;
-  }, [activeTab, packageSearch, packages]);
-
-  const visiblePackages = filteredPackages.slice(0, visiblePackageCount);
 
   const handleFieldChange = (fieldName: string, value: string) => {
     setPlayerFields((prev) => ({ ...prev, [fieldName]: value }));
@@ -280,107 +250,13 @@ export function GameDetail() {
               )}
             </div>
 
-            {/* Step 2: Choose Package */}
-            <div className="glass-panel p-6 rounded-3xl space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-                <div className="flex items-center space-x-3">
-                  <span className="w-7 h-7 rounded-xl bg-purple-500 text-white font-black flex items-center justify-center text-xs">2</span>
-                  <h3 className="text-lg font-black text-white">Select Top-Up Package</h3>
-                </div>
-              </div>
-
-              {/* Category tabs: Best Selling vs Normal Package */}
-              <div className="flex space-x-2 bg-[#111625] p-1.5 rounded-2xl border border-gray-800/60">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('best_selling')}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-1.5 ${
-                    activeTab === 'best_selling'
-                      ? 'bg-purple-600 text-white shadow-lg glow-purple'
-                      : 'text-gray-400 hover:text-gray-200'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4 text-purple-300" />
-                  <span>Best Selling</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('normal')}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-1.5 ${
-                    activeTab === 'normal'
-                      ? 'bg-purple-600 text-white shadow-lg glow-purple'
-                      : 'text-gray-400 hover:text-gray-200'
-                  }`}
-                >
-                  <Tag className="w-4 h-4 text-cyan-300" />
-                  <span>Normal Package</span>
-                </button>
-              </div>
-
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-gray-500" />
-                <input
-                  type="search"
-                  value={packageSearch}
-                  onChange={(event) => setPackageSearch(event.target.value)}
-                  placeholder="Search diamonds, UC, passes or packages"
-                  className="w-full rounded-xl border border-gray-800 bg-[#111625] py-3 pl-10 pr-4 text-xs text-white outline-none transition focus:border-cyan-400"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {visiblePackages.map((pkg) => {
-                    const isSelected = selectedPackage?._id === pkg._id;
-                    return (
-                      <button
-                        key={pkg._id}
-                        onClick={() => setSelectedPackage(pkg)}
-                        className={`relative p-4 rounded-2xl text-left border transition-all flex flex-col justify-between space-y-2 ${
-                          isSelected
-                            ? 'bg-purple-950/40 border-purple-500 glow-purple text-white'
-                            : 'bg-[#111625] border-gray-800 hover:border-gray-700 text-gray-300'
-                        }`}
-                      >
-                        {pkg.badge && (
-                          <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-red-500 text-black uppercase tracking-wider shadow">
-                            {pkg.badge}
-                          </span>
-                        )}
-                        <div>
-                          <h4 className="font-bold text-sm leading-snug">{pkg.title}</h4>
-                          {pkg.supportsBoth && (
-                            <div className="inline-flex items-center text-[8px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded mt-1.5 uppercase tracking-wide">
-                              Global & Regular
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-800/60 w-full">
-                          <span className="text-xs text-gray-400">Price</span>
-                          <div className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {pkg.discountPercent && pkg.discountPercent > 0 && <span className="text-[10px] text-gray-500 line-through">${(pkg.price / (1 - pkg.discountPercent / 100)).toFixed(2)}</span>}
-                              <span className="text-base font-black text-cyan-400">${pkg.price.toFixed(2)}</span>
-                            </div>
-                            <p className="text-[10px] font-semibold text-gray-500">≈ ៛{formatKhr(pkg.price).toLocaleString('en-US')}</p>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-              </div>
-              {visiblePackages.length < filteredPackages.length && (
-                <button
-                  type="button"
-                  onClick={() => setVisiblePackageCount((count) => count + 48)}
-                  className="w-full rounded-xl border border-cyan-400/20 bg-cyan-400/[0.06] py-3 text-xs font-bold text-cyan-300 transition hover:bg-cyan-400/[0.12]"
-                >
-                  Show 48 more packages ({filteredPackages.length - visiblePackages.length} remaining)
-                </button>
-              )}
-              {filteredPackages.length === 0 && (
-                <p className="rounded-xl border border-gray-800 bg-[#111625] py-8 text-center text-xs text-gray-400">No packages match your search.</p>
-              )}
-            </div>
+            <TopUpPackageSelector
+              packages={packages}
+              selectedPackage={selectedPackage}
+              onSelect={setSelectedPackage}
+              step="2"
+              initialVisibleCount={24}
+            />
 
             {/* Step 3: Payment Method */}
             <div className="glass-panel p-6 rounded-3xl space-y-4">

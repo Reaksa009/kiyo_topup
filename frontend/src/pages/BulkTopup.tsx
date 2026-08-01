@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { PaymentModal } from '../components/PaymentModal';
+import { TopUpPackageSelector, type TopUpPackage } from '../components/TopUpPackageSelector';
 import { apiClient } from '../api/client';
-import { CheckCircle2, AlertCircle, Upload, Play, ShieldCheck, Trash2, HelpCircle, FileText, Sparkles, Tag } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Upload, Play, ShieldCheck, Trash2, HelpCircle, FileText } from 'lucide-react';
 
 interface GameItem {
   _id: string;
@@ -12,14 +13,6 @@ interface GameItem {
   thumbnail: string;
   publisher: string;
   inputFields: Array<{ name: string; label: string; placeholder: string; required: boolean }>;
-}
-
-interface GamePackage {
-  _id: string;
-  title: string;
-  price: number;
-  badge?: string;
-  supportsBoth?: boolean;
 }
 
 interface LoadedAccount {
@@ -34,9 +27,8 @@ interface LoadedAccount {
 export function BulkTopup() {
   const [games, setGames] = useState<GameItem[]>([]);
   const [selectedGame, setSelectedGame] = useState<GameItem | null>(null);
-  const [packages, setPackages] = useState<GamePackage[]>([]);
-  const [selectedPackage, setSelectedPackage] = useState<GamePackage | null>(null);
-  const [activeTab, setActiveTab] = useState<'best_selling' | 'normal'>('best_selling');
+  const [packages, setPackages] = useState<TopUpPackage[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<TopUpPackage | null>(null);
 
   // Input Accounts State
   const [rawText, setRawText] = useState('');
@@ -329,75 +321,14 @@ export function BulkTopup() {
                 })}
               </div>
 
-              {/* Packages Tabs */}
               {packages.length > 0 && (
-                <div className="space-y-4">
-                  {/* Category tabs: Best Selling vs Normal Package */}
-                  <div className="flex space-x-2 bg-[#111625] p-1.5 rounded-2xl border border-gray-800/60">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('best_selling')}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-1.5 ${
-                        activeTab === 'best_selling'
-                          ? 'bg-purple-600 text-white shadow-lg glow-purple'
-                          : 'text-gray-400 hover:text-gray-200'
-                      }`}
-                    >
-                      <Sparkles className="w-4 h-4 text-purple-300" />
-                      <span>Best Selling</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('normal')}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-1.5 ${
-                        activeTab === 'normal'
-                          ? 'bg-purple-600 text-white shadow-lg glow-purple'
-                          : 'text-gray-400 hover:text-gray-200'
-                      }`}
-                    >
-                      <Tag className="w-4 h-4 text-cyan-300" />
-                      <span>Normal Package</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {(() => {
-                      const filtered = packages.filter(pkg => {
-                        const badgeLower = (pkg.badge || '').toLowerCase();
-                        const isBest = badgeLower.includes('seller') || badgeLower.includes('pass') || badgeLower.includes('value') || badgeLower.includes('sale') || badgeLower.includes('deal');
-                        return activeTab === 'best_selling' ? isBest : !isBest;
-                      });
-                      const toDisplay = filtered.length > 0 ? filtered : packages;
-                      return toDisplay.map((pkg) => {
-                        const isSel = selectedPackage?._id === pkg._id;
-                        return (
-                          <button
-                            key={pkg._id}
-                            onClick={() => setSelectedPackage(pkg)}
-                            className={`p-3 rounded-xl border text-left relative flex flex-col justify-between h-24 transition ${
-                              isSel ? 'border-purple-500 bg-purple-950/20 text-white shadow glow-purple' : 'border-gray-800 bg-[#111625] text-gray-400'
-                            }`}
-                          >
-                            <div>
-                              <h5 className="font-bold text-[11px] leading-tight pr-4">{pkg.title}</h5>
-                              {pkg.supportsBoth && (
-                                <span className="inline-flex items-center text-[7px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1 py-0.2 rounded mt-1 uppercase tracking-wide">
-                                  Global & Regular
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-cyan-400 font-black text-xs mt-1">${pkg.price.toFixed(2)}</span>
-                            {pkg.badge && (
-                              <span className="absolute top-1.5 right-1.5 px-1 py-0.5 rounded text-[8px] bg-red-600 text-white font-black scale-75">
-                                {pkg.badge.substring(0, 10)}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
+                <TopUpPackageSelector
+                  packages={packages}
+                  selectedPackage={selectedPackage}
+                  onSelect={setSelectedPackage}
+                  embedded
+                  initialVisibleCount={18}
+                />
               )}
             </div>
 
