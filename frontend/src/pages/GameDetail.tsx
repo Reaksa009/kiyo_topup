@@ -6,9 +6,7 @@ import {
   ArrowRight,
   CheckCircle2,
   ShieldCheck,
-  Star,
-  Tag,
-  Zap
+  Tag
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -147,8 +145,6 @@ export function GameDetail() {
   const basePrice = selectedPackage?.price || 0;
   const finalPrice = Math.max(0, basePrice - (basePrice * couponDiscount / 100));
   const selectedPayment = paymentOptions.find((option) => option.id === paymentMethod)!;
-  const categoryName = typeof game.categoryId === 'object' ? game.categoryId?.name : 'Game Top-Up';
-
   return (
     <div className="flex min-h-screen flex-col bg-[#071024] text-slate-100">
       <Navbar />
@@ -157,11 +153,6 @@ export function GameDetail() {
 
         <section className="relative mt-3 h-40 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#081a30] shadow-xl shadow-black/20 sm:h-52 lg:h-60">
           <img src={game.bannerUrl || game.thumbnail} alt={game.title} fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#061321]/85 via-transparent to-black/10" />
-          <div className="absolute bottom-3 left-3 right-3 flex max-w-md items-center gap-2.5 rounded-xl border border-cyan-300/20 bg-[#061727]/95 p-2.5 shadow-2xl backdrop-blur sm:bottom-4 sm:left-4 sm:right-auto sm:gap-3 sm:p-3">
-            <img src={game.thumbnail} alt="" decoding="async" className="h-11 w-11 shrink-0 rounded-lg border border-cyan-300/40 object-cover sm:h-14 sm:w-14 sm:rounded-xl" />
-            <div className="min-w-0"><p className="truncate text-[7px] font-black uppercase tracking-[0.14em] text-cyan-300 sm:text-[8px]">{game.publisher || categoryName}</p><h1 className="mt-0.5 truncate text-sm font-black text-white sm:text-lg">{game.title}</h1><div className="mt-1 flex flex-wrap items-center gap-2 text-[7px] font-bold text-slate-400 sm:text-[8px]"><span>{categoryName || 'Digital Credits'}</span><span className="inline-flex items-center gap-0.5 text-amber-300"><Star className="h-2.5 w-2.5 fill-current" />4.9</span><span className="inline-flex items-center gap-0.5 text-emerald-300"><Zap className="h-2.5 w-2.5" />Instant delivery</span></div></div>
-          </div>
         </section>
 
         {errorMsg && <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/[0.08] px-3 py-2.5 text-[10px] font-bold text-rose-300"><AlertCircle className="h-4 w-4 shrink-0" />{errorMsg}</div>}
