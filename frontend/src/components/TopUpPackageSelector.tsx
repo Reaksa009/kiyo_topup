@@ -30,6 +30,7 @@ interface TopUpPackageSelectorProps {
   onSelect: (pkg: TopUpPackage) => void;
   step?: string;
   embedded?: boolean;
+  compact?: boolean;
   initialVisibleCount?: number;
 }
 
@@ -81,6 +82,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
   onSelect,
   step,
   embedded = false,
+  compact = false,
   initialVisibleCount = 24
 }) => {
   const [activeFilter, setActiveFilter] = useState<PackageFilter>('all');
@@ -115,6 +117,67 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
   }, [activeFilter, packages, query]);
 
   const visiblePackages = filteredPackages.slice(0, visibleCount);
+
+  if (compact) {
+    return (
+      <section className="overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#081d30] shadow-xl shadow-black/15" aria-labelledby="package-selector-title">
+        <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] bg-[#0d2a43] px-3 py-3 sm:px-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {step && <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-300 text-[11px] font-black text-[#04131f]">{step}</span>}
+            <div className="min-w-0"><h2 id="package-selector-title" className="text-xs font-black text-white sm:text-sm">Select Top-Up Package</h2><p className="mt-0.5 text-[7px] text-slate-500 sm:text-[8px]">{packages.length} choices available</p></div>
+          </div>
+          <div className={`min-w-0 rounded-lg border px-2 py-1.5 text-right ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.07] bg-black/15'}`}>
+            <p className="max-w-[105px] truncate text-[7px] font-bold text-slate-500 sm:max-w-[150px]">{selectedPackage?.title || 'No package selected'}</p>
+            {selectedPackage && <p className="mt-0.5 text-[10px] font-black text-cyan-200">${selectedPackage.price.toFixed(2)}</p>}
+          </div>
+        </div>
+
+        <div className="space-y-3 p-2.5 sm:p-4">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {filters.map(({ id, shortLabel, icon: Icon }) => {
+              const active = activeFilter === id;
+              return (
+                <button key={id} type="button" onClick={() => setActiveFilter(id)} aria-pressed={active} className={`flex h-8 items-center justify-center gap-1 rounded-lg border px-1.5 text-[7px] font-black uppercase transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 sm:text-[8px] ${active ? 'border-cyan-300/35 bg-cyan-300/[0.11] text-cyan-100' : 'border-white/[0.07] bg-black/15 text-slate-500 hover:text-white'}`}>
+                  <Icon className="h-3 w-3" />{shortLabel}<span className="rounded bg-black/20 px-1 py-0.5 text-[6px]">{counts[id]}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-600" />
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search diamonds or passes" className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#061522] pl-9 pr-9 text-[9px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/45" aria-label="Search top-up packages" />
+            {query && <button type="button" onClick={() => setQuery('')} className="absolute right-2.5 top-2.5 text-slate-600 hover:text-white" aria-label="Clear package search"><X className="h-3.5 w-3.5" /></button>}
+          </div>
+
+          {visiblePackages.length > 0 ? (
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              {visiblePackages.map((pkg) => {
+                const selected = selectedPackage?._id === pkg._id;
+                const group = packageGroup(pkg);
+                return (
+                  <button key={pkg._id} type="button" onClick={() => onSelect(pkg)} aria-pressed={selected} className={`group relative flex min-h-[94px] min-w-0 flex-col overflow-hidden rounded-lg border text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 sm:min-h-[108px] ${selected ? 'border-cyan-200 bg-cyan-300/[0.12] shadow-md shadow-cyan-950/30' : 'border-white/[0.1] bg-[#3a4552]/75 hover:border-cyan-300/35 hover:bg-[#43505f]'}`}>
+                    <div className="flex flex-1 flex-col items-center justify-center px-1.5 py-2">
+                      <span className={`flex h-5 w-5 items-center justify-center rounded-md border sm:h-6 sm:w-6 ${groupTone[group]}`}>{selected ? <Check className="h-3 w-3" strokeWidth={3} /> : group === 'popular' ? <Flame className="h-3 w-3" /> : group === 'event' ? <Sparkles className="h-3 w-3" /> : <Gem className="h-3 w-3" />}</span>
+                      <h3 className="mt-1.5 line-clamp-2 min-h-6 text-[7px] font-black leading-3 text-white sm:min-h-7 sm:text-[9px] sm:leading-3.5">{pkg.title}</h3>
+                      <p className="mt-1 text-[6px] font-semibold text-slate-400 sm:text-[7px]">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
+                    </div>
+                    <div className={`py-1 text-[10px] font-black sm:text-xs ${selected ? 'bg-cyan-300 text-[#04131f]' : 'bg-[#07182a] text-cyan-200 group-hover:bg-cyan-300 group-hover:text-[#04131f]'}`}>${pkg.price.toFixed(2)}</div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-white/[0.09] bg-black/15 py-8 text-center"><PackageOpen className="mx-auto h-6 w-6 text-slate-700" /><p className="mt-2 text-[10px] font-black text-slate-300">No packages found</p><button type="button" onClick={() => { setActiveFilter('all'); setQuery(''); }} className="mt-2 text-[8px] font-black text-cyan-300">Show all packages</button></div>
+          )}
+
+          {visiblePackages.length < filteredPackages.length && (
+            <button type="button" onClick={() => setVisibleCount((count) => count + initialVisibleCount)} className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] text-[8px] font-black uppercase text-cyan-200 hover:bg-cyan-300/[0.1]">Load more packages <span className="text-slate-500">({filteredPackages.length - visiblePackages.length})</span></button>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

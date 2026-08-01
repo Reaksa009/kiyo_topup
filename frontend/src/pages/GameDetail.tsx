@@ -1,12 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  ShieldCheck,
+  Star,
+  Tag,
+  Zap
+} from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { PaymentModal } from '../components/PaymentModal';
 import { TopUpPackageSelector, type TopUpPackage } from '../components/TopUpPackageSelector';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle2, ShieldCheck, AlertCircle, Sparkles, Tag, ArrowRight } from 'lucide-react';
+
+type PaymentMethod = 'ABA_PAYWAY' | 'BAKONG_KHQR' | 'WALLET';
+
+const paymentOptions: Array<{ id: PaymentMethod; label: string; short: string; subtitle: string; tone: string }> = [
+  { id: 'BAKONG_KHQR', label: 'Bakong KHQR', short: 'KHQR', subtitle: 'Scan with any Cambodian banking app', tone: 'from-rose-500/20 to-red-600/5 text-rose-300' },
+  { id: 'ABA_PAYWAY', label: 'ABA PayWay', short: 'ABA', subtitle: 'ABA Mobile, Visa or Mastercard', tone: 'from-cyan-500/20 to-blue-600/5 text-cyan-300' },
+  { id: 'WALLET', label: 'Kiyo Wallet', short: 'KIYO', subtitle: 'Use your available account balance', tone: 'from-violet-500/20 to-purple-600/5 text-violet-300' }
+];
 
 export function GameDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -17,22 +34,16 @@ export function GameDetail() {
   const [packages, setPackages] = useState<TopUpPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<TopUpPackage | null>(null);
   const [playerFields, setPlayerFields] = useState<Record<string, string>>({});
-  
-  // Account Validation State
   const [verifyingPlayer, setVerifyingPlayer] = useState(false);
   const [verifiedPlayerInfo, setVerifiedPlayerInfo] = useState<{ valid: boolean; username?: string; message?: string } | null>(null);
-
-  const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'BAKONG_KHQR' | 'WALLET'>('BAKONG_KHQR');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BAKONG_KHQR');
   const [couponCode, setCouponCode] = useState('');
-  const [couponDiscount, setCouponDiscount] = useState<number>(0);
+  const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponMsg, setCouponMsg] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
-
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
-  // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
@@ -41,12 +52,14 @@ export function GameDetail() {
     const fetchGame = async () => {
       try {
         setLoading(true);
-        const res = await apiClient.get(`/games/${slug}`);
-        setGame(res.data.data.game);
-        setPackages(res.data.data.packages || []);
+        const response = await apiClient.get(`/games/${slug}`);
+        setGame(response.data.data.game);
+        setPackages(response.data.data.packages || []);
         setSelectedPackage(null);
-      } catch (err: any) {
-        setErrorMsg(err.response?.data?.message || 'Game not found.');
+        setPlayerFields({});
+        setVerifiedPlayerInfo(null);
+      } catch (error: any) {
+        setErrorMsg(error.response?.data?.message || 'Game not found.');
       } finally {
         setLoading(false);
       }
@@ -55,7 +68,7 @@ export function GameDetail() {
   }, [slug]);
 
   const handleFieldChange = (fieldName: string, value: string) => {
-    setPlayerFields((prev) => ({ ...prev, [fieldName]: value }));
+    setPlayerFields((previous) => ({ ...previous, [fieldName]: value }));
     setVerifiedPlayerInfo(null);
   };
 
@@ -63,16 +76,10 @@ export function GameDetail() {
     setVerifyingPlayer(true);
     setVerifiedPlayerInfo(null);
     try {
-      const res = await apiClient.post('/games/verify-player', {
-        slug: game.slug,
-        fields: playerFields
-      });
-      setVerifiedPlayerInfo(res.data.data);
-    } catch (err: any) {
-      setVerifiedPlayerInfo({
-        valid: false,
-        message: err.response?.data?.message || 'Verification failed'
-      });
+      const response = await apiClient.post('/games/verify-player', { slug: game.slug, fields: playerFields });
+      setVerifiedPlayerInfo(response.data.data);
+    } catch (error: any) {
+      setVerifiedPlayerInfo({ valid: false, message: error.response?.data?.message || 'Verification failed' });
     } finally {
       setVerifyingPlayer(false);
     }
@@ -81,30 +88,22 @@ export function GameDetail() {
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
     try {
-      const res = await apiClient.get(`/cms/coupons/validate/${couponCode.trim()}`);
-      const coupon = res.data.data;
-      if (coupon.discountType === 'percentage') {
-        setCouponDiscount(coupon.discountValue);
-        setCouponMsg(`10% discount applied!`);
-      } else {
-        setCouponDiscount(coupon.discountValue);
-        setCouponMsg(`$${coupon.discountValue} discount applied!`);
-      }
-    } catch (err: any) {
-      setCouponMsg(err.response?.data?.message || 'Invalid coupon code');
+      const response = await apiClient.get(`/cms/coupons/validate/${couponCode.trim()}`);
+      const coupon = response.data.data;
+      setCouponDiscount(coupon.discountValue);
+      setCouponMsg(coupon.discountType === 'percentage' ? `${coupon.discountValue}% discount applied!` : `$${coupon.discountValue} discount applied!`);
+    } catch (error: any) {
+      setCouponMsg(error.response?.data?.message || 'Invalid coupon code');
       setCouponDiscount(0);
     }
   };
 
   const handleCheckout = async () => {
     setErrorMsg('');
-
     if (!selectedPackage) {
       setErrorMsg('Please select a top-up package.');
       return;
     }
-
-    // Validate input fields
     for (const field of game.inputFields) {
       if (field.required && !playerFields[field.name]) {
         setErrorMsg(`Please enter your ${field.label}.`);
@@ -114,7 +113,7 @@ export function GameDetail() {
 
     setSubmitting(true);
     try {
-      const res = await apiClient.post('/orders', {
+      const response = await apiClient.post('/orders', {
         gameId: game._id,
         packageId: selectedPackage._id,
         playerFields,
@@ -122,297 +121,105 @@ export function GameDetail() {
         couponCode,
         guestEmail: user?.email || guestEmail || 'customer@kiyotopup.com'
       });
-
-      const orderData = res.data.data.order;
-
+      const orderData = response.data.data.order;
       if (paymentMethod === 'WALLET') {
         navigate(`/tracking?orderNumber=${orderData.orderNumber}`);
         return;
       }
-
       setActiveOrder(orderData);
-      setPaymentDetails(res.data.data.paymentDetails);
+      setPaymentDetails(response.data.data.paymentDetails);
       setShowPaymentModal(true);
-    } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Failed to initialize order.');
+    } catch (error: any) {
+      setErrorMsg(error.response?.data?.message || 'Failed to initialize order.');
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#080B11] text-gray-100 flex flex-col justify-between">
-        <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-        <Footer />
-      </div>
-    );
+    return <div className="flex min-h-screen flex-col bg-[#071024] text-white"><Navbar /><div className="flex flex-1 items-center justify-center"><div className="h-9 w-9 animate-spin rounded-full border-4 border-cyan-300 border-t-transparent" /></div><Footer /></div>;
   }
 
   if (!game) {
-    return (
-      <div className="min-h-screen bg-[#080B11] text-gray-100 flex flex-col justify-between">
-        <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-          <h2 className="text-2xl font-bold">Game Not Found</h2>
-          <p className="text-gray-400 mt-2">The requested game title does not exist or is currently inactive.</p>
-        </div>
-        <Footer />
-      </div>
-    );
+    return <div className="flex min-h-screen flex-col bg-[#071024] text-white"><Navbar /><div className="flex flex-1 flex-col items-center justify-center p-8 text-center"><AlertCircle className="h-12 w-12 text-rose-400" /><h2 className="mt-4 text-xl font-black">Game Not Found</h2><p className="mt-2 text-xs text-slate-500">The requested game is unavailable.</p><Link to="/#games" className="mt-5 rounded-xl border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-[10px] font-black text-cyan-200">Browse Games</Link></div><Footer /></div>;
   }
 
-  const basePrice = selectedPackage ? selectedPackage.price : 0;
-  const finalPrice = Math.max(0, basePrice - (basePrice * (couponDiscount / 100)));
+  const basePrice = selectedPackage?.price || 0;
+  const finalPrice = Math.max(0, basePrice - (basePrice * couponDiscount / 100));
+  const selectedPayment = paymentOptions.find((option) => option.id === paymentMethod)!;
+  const categoryName = typeof game.categoryId === 'object' ? game.categoryId?.name : 'Game Top-Up';
 
   return (
-    <div className="min-h-screen bg-[#080B11] text-gray-100 flex flex-col">
+    <div className="flex min-h-screen flex-col bg-[#071024] text-slate-100">
       <Navbar />
+      <main className="section-shell flex-1 py-4 sm:py-6">
+        <Link to="/#games" className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 text-[9px] font-black text-slate-400 transition hover:border-cyan-300/30 hover:text-cyan-200"><ArrowLeft className="h-3.5 w-3.5" />Back to Games</Link>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 w-full py-8 space-y-8">
-        
-        {/* Game Banner Header */}
-        <div className="relative h-64 md:h-80 rounded-3xl overflow-hidden glass-panel border border-cyan-500/20">
-          <img src={game.bannerUrl} alt={game.title} fetchPriority="high" decoding="async" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#080B11] via-[#080B11]/60 to-transparent flex items-end p-8">
-            <div className="flex items-center space-x-6">
-              <img src={game.thumbnail} alt={game.title} decoding="async" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 border-cyan-400 shadow-2xl glow-cyan" />
-              <div>
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">{game.publisher}</span>
-                <h1 className="text-2xl md:text-4xl font-black text-white">{game.title}</h1>
-                <p className="text-xs text-gray-300 mt-1">Instant 5-Second Automated G2Bulk Provider Delivery</p>
-              </div>
-            </div>
+        <section className="relative mt-3 h-40 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#081a30] shadow-xl shadow-black/20 sm:h-52 lg:h-60">
+          <img src={game.bannerUrl || game.thumbnail} alt={game.title} fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#061321]/85 via-transparent to-black/10" />
+          <div className="absolute bottom-3 left-3 right-3 flex max-w-md items-center gap-2.5 rounded-xl border border-cyan-300/20 bg-[#061727]/95 p-2.5 shadow-2xl backdrop-blur sm:bottom-4 sm:left-4 sm:right-auto sm:gap-3 sm:p-3">
+            <img src={game.thumbnail} alt="" decoding="async" className="h-11 w-11 shrink-0 rounded-lg border border-cyan-300/40 object-cover sm:h-14 sm:w-14 sm:rounded-xl" />
+            <div className="min-w-0"><p className="truncate text-[7px] font-black uppercase tracking-[0.14em] text-cyan-300 sm:text-[8px]">{game.publisher || categoryName}</p><h1 className="mt-0.5 truncate text-sm font-black text-white sm:text-lg">{game.title}</h1><div className="mt-1 flex flex-wrap items-center gap-2 text-[7px] font-bold text-slate-400 sm:text-[8px]"><span>{categoryName || 'Digital Credits'}</span><span className="inline-flex items-center gap-0.5 text-amber-300"><Star className="h-2.5 w-2.5 fill-current" />4.9</span><span className="inline-flex items-center gap-0.5 text-emerald-300"><Zap className="h-2.5 w-2.5" />Instant delivery</span></div></div>
           </div>
-        </div>
+        </section>
 
-        {errorMsg && (
-          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center space-x-3">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+        {errorMsg && <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/[0.08] px-3 py-2.5 text-[10px] font-bold text-rose-300"><AlertCircle className="h-4 w-4 shrink-0" />{errorMsg}</div>}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Main Selection Column */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Step 1: Account Credentials */}
-            <div className="glass-panel p-6 rounded-3xl space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-                <div className="flex items-center space-x-3">
-                  <span className="w-7 h-7 rounded-xl bg-cyan-500 text-black font-black flex items-center justify-center text-xs">1</span>
-                  <h3 className="text-lg font-black text-white">Enter Account Credentials</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleVerifyPlayer}
-                  disabled={verifyingPlayer}
-                  className="px-4 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30 transition flex items-center space-x-2"
-                >
-                  <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                  <span>{verifyingPlayer ? 'Verifying...' : 'Verify Player ID'}</span>
-                </button>
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-3">
+            <section className="rounded-2xl border border-cyan-300/20 bg-[#081d30] p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
+                <div className="flex min-w-0 items-center gap-2.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-300 text-[11px] font-black text-[#171006]">1</span><div className="min-w-0"><h2 className="truncate text-xs font-black text-white sm:text-sm">Enter Player Information</h2><p className="mt-0.5 text-[7px] text-slate-500 sm:text-[8px]">Your details are used only to deliver this order.</p></div></div>
+                <button type="button" onClick={handleVerifyPlayer} disabled={verifyingPlayer} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-300/[0.08] px-2.5 text-[8px] font-black text-cyan-200 disabled:opacity-50"><ShieldCheck className="h-3.5 w-3.5" /><span>{verifyingPlayer ? 'Verifying...' : 'Verify ID'}</span></button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {game.inputFields.map((field: any) => (
-                  <div key={field.name} className="space-y-1.5">
-                    <label className="block text-xs font-bold text-gray-300">
-                      {field.label} {field.required && <span className="text-red-400">*</span>}
-                    </label>
-                    <input
-                      type={field.type || 'text'}
-                      placeholder={field.placeholder}
-                      value={playerFields[field.name] || ''}
-                      onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                      className="w-full bg-[#111625] border border-gray-700/80 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:border-cyan-400 focus:outline-none"
-                    />
-                    {field.helpText && <p className="text-[11px] text-gray-400">{field.helpText}</p>}
-                  </div>
+                  <label key={field.name} className="block"><span className="mb-1.5 block text-[8px] font-black text-slate-400 sm:text-[9px]">{field.label}{field.required && <span className="text-rose-400"> *</span>}</span><input type={field.type || 'text'} placeholder={field.placeholder} value={playerFields[field.name] || ''} onChange={(event) => handleFieldChange(field.name, event.target.value)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-[#061522] px-3 text-[10px] text-white outline-none placeholder:text-slate-600 focus:border-amber-300/60" />{field.helpText && <span className="mt-1 block text-[7px] text-slate-600">{field.helpText}</span>}</label>
                 ))}
               </div>
 
-              {/* Verified Player Status Banner */}
-              {verifiedPlayerInfo && (
-                <div className={`p-4 rounded-2xl text-xs font-bold flex items-center space-x-3 ${verifiedPlayerInfo.valid ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                  {verifiedPlayerInfo.valid ? <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />}
-                  <div>
-                    <p className="text-sm font-black">{verifiedPlayerInfo.valid ? `✓ Account Verified: ${verifiedPlayerInfo.username}` : 'Invalid Account Credentials'}</p>
-                    <p className="text-[11px] opacity-80 mt-0.5">{verifiedPlayerInfo.message}</p>
-                  </div>
-                </div>
-              )}
-            </div>
+              {verifiedPlayerInfo && <div className={`mt-3 flex items-start gap-2 rounded-xl border p-2.5 text-[9px] font-bold ${verifiedPlayerInfo.valid ? 'border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-300' : 'border-rose-400/25 bg-rose-400/[0.08] text-rose-300'}`}>{verifiedPlayerInfo.valid ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}<div><p className="font-black">{verifiedPlayerInfo.valid ? `Account verified${verifiedPlayerInfo.username ? `: ${verifiedPlayerInfo.username}` : ''}` : 'Invalid account information'}</p>{verifiedPlayerInfo.message && <p className="mt-0.5 text-[8px] opacity-75">{verifiedPlayerInfo.message}</p>}</div></div>}
+            </section>
 
-            <TopUpPackageSelector
-              packages={packages}
-              selectedPackage={selectedPackage}
-              onSelect={setSelectedPackage}
-              step="2"
-              initialVisibleCount={24}
-            />
-
-            {/* Step 3: Payment Method */}
-            <div className="glass-panel p-6 rounded-3xl space-y-4">
-              <div className="flex items-center space-x-3 border-b border-gray-800 pb-3">
-                <span className="w-7 h-7 rounded-xl bg-emerald-500 text-black font-black flex items-center justify-center text-xs">3</span>
-                <h3 className="text-lg font-black text-white">Select Payment Method</h3>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('BAKONG_KHQR')}
-                  className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition ${
-                    paymentMethod === 'BAKONG_KHQR'
-                      ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-lg glow-emerald'
-                      : 'bg-[#111625] border-gray-800 text-gray-400 hover:border-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-black text-sm text-red-500 uppercase">Bakong KHQR</span>
-                    <CheckCircle2 className={`w-5 h-5 ${paymentMethod === 'BAKONG_KHQR' ? 'text-emerald-400' : 'opacity-0'}`} />
-                  </div>
-                  <p className="text-[11px] text-gray-400">Instant scan & pay with any Cambodian Banking App (ABA, Acleda, Sathapana, Wing)</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('ABA_PAYWAY')}
-                  className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition ${
-                    paymentMethod === 'ABA_PAYWAY'
-                      ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-lg glow-emerald'
-                      : 'bg-[#111625] border-gray-800 text-gray-400 hover:border-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-black text-sm text-cyan-400 uppercase">ABA PayWay</span>
-                    <CheckCircle2 className={`w-5 h-5 ${paymentMethod === 'ABA_PAYWAY' ? 'text-emerald-400' : 'opacity-0'}`} />
-                  </div>
-                  <p className="text-[11px] text-gray-400">Credit/Debit Card (Visa, Mastercard) & ABA Mobile App</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('WALLET')}
-                  className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition ${
-                    paymentMethod === 'WALLET'
-                      ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-lg glow-emerald'
-                      : 'bg-[#111625] border-gray-800 text-gray-400 hover:border-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-black text-sm text-purple-400 uppercase">KIYO Wallet</span>
-                    <CheckCircle2 className={`w-5 h-5 ${paymentMethod === 'WALLET' ? 'text-emerald-400' : 'opacity-0'}`} />
-                  </div>
-                  <p className="text-[11px] text-gray-400">Pay directly using your account balance</p>
-                </button>
-              </div>
-            </div>
+            <TopUpPackageSelector packages={packages} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact initialVisibleCount={48} />
           </div>
 
-          {/* Checkout Order Summary Column */}
-          <div className="space-y-6">
-            <div className="glass-panel p-6 rounded-3xl space-y-6 sticky top-24 border border-cyan-500/20">
-              <h3 className="text-xl font-black text-white border-b border-gray-800 pb-3 flex items-center justify-between">
-                <span>Order Summary</span>
-                <Sparkles className="w-5 h-5 text-cyan-400" />
-              </h3>
+          <aside>
+            <section className="rounded-2xl border border-cyan-300/20 bg-[#081d30] p-3 shadow-xl shadow-black/15 md:sticky md:top-20 sm:p-4">
+              <div className="flex items-center gap-2.5 border-b border-white/[0.08] pb-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-300 text-[11px] font-black text-[#171006]">3</span><div><h2 className="text-xs font-black text-white sm:text-sm">Payment & Confirmation</h2><p className="mt-0.5 text-[7px] text-slate-500">Choose a secure payment method.</p></div></div>
 
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between text-gray-400">
-                  <span>Selected Package</span>
-                  <span className="font-bold text-white text-right max-w-[160px] truncate">{selectedPackage?.title || 'None'}</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Payment Gateway</span>
-                  <span className="font-bold text-cyan-400 uppercase">{paymentMethod.replace('_', ' ')}</span>
-                </div>
-
-                {couponDiscount > 0 && (
-                  <div className="flex justify-between text-emerald-400 font-bold">
-                    <span>Discount</span>
-                    <span>-{couponDiscount}%</span>
-                  </div>
-                )}
-
-                <div className="border-t border-gray-800 pt-3 flex justify-between items-baseline">
-                  <span className="text-base font-bold text-gray-200">Total Due</span>
-                  <span className="text-2xl font-black text-cyan-400">${finalPrice.toFixed(2)}</span>
-                </div>
+              <div className="mt-3 space-y-2">
+                {paymentOptions.map((option) => {
+                  const active = paymentMethod === option.id;
+                  return <button key={option.id} type="button" onClick={() => setPaymentMethod(option.id)} className={`flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition ${active ? 'border-amber-300/55 bg-amber-300/[0.06]' : 'border-white/[0.08] bg-[#061522] hover:border-white/[0.16]'}`}><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-[8px] font-black ${option.tone}`}>{option.short}</span><span className="min-w-0"><span className="block text-[9px] font-black text-white">{option.label}</span><span className="mt-0.5 block truncate text-[7px] text-slate-500">{option.subtitle}</span></span>{active && <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-cyan-300" />}</button>;
+                })}
               </div>
 
-              {/* Coupon Code Input */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 flex items-center space-x-1">
-                  <Tag className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Promo Code</span>
-                </label>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Enter coupon"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    className="flex-1 bg-[#111625] border border-gray-800 rounded-xl px-3 py-2 text-xs text-white uppercase placeholder-gray-600 focus:outline-none focus:border-cyan-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleApplyCoupon}
-                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xs font-bold transition"
-                  >
-                    Apply
-                  </button>
-                </div>
-                {couponMsg && <p className="text-[11px] font-bold text-cyan-400">{couponMsg}</p>}
+              <div className="mt-3 rounded-xl border border-white/[0.08] bg-[#061522] p-3">
+                <div className="flex items-center justify-between gap-2"><div className="min-w-0"><p className="text-[7px] font-black uppercase tracking-wider text-slate-600">Order Summary</p><p className="mt-1 truncate text-[9px] font-black text-white">{selectedPackage?.title || 'Select a package'}</p><p className="mt-0.5 text-[7px] text-slate-500">{game.title}</p></div><span className="shrink-0 text-lg font-black text-amber-300">${finalPrice.toFixed(2)}</span></div>
+                <div className="mt-2 flex items-center justify-between border-t border-white/[0.07] pt-2 text-[7px]"><span className="text-slate-600">Payment</span><span className="font-black text-cyan-300">{selectedPayment.label}</span></div>
               </div>
 
-              {!user && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-400">Recipient Email (Order Receipt)</label>
-                  <input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    className="w-full bg-[#111625] border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-              )}
+              <div className="mt-3">
+                <label className="mb-1.5 flex items-center gap-1 text-[8px] font-black text-slate-500"><Tag className="h-3 w-3" />Promo Code</label>
+                <div className="flex gap-1.5"><input type="text" placeholder="Enter coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value)} className="h-9 min-w-0 flex-1 rounded-lg border border-white/[0.09] bg-[#061522] px-2.5 text-[9px] uppercase text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/40" /><button type="button" onClick={handleApplyCoupon} className="h-9 rounded-lg border border-white/[0.09] bg-white/[0.05] px-3 text-[8px] font-black text-white">Apply</button></div>
+                {couponMsg && <p className="mt-1.5 text-[8px] font-bold text-cyan-300">{couponMsg}</p>}
+              </div>
 
-              <button
-                type="button"
-                onClick={handleCheckout}
-                disabled={submitting || !selectedPackage}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-black text-base shadow-xl hover:opacity-95 transition-all glow-cyan flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:glow-none"
-              >
-                <span>{submitting ? 'Processing Order...' : 'Pay & Top-Up Now'}</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+              {!user && <label className="mt-3 block"><span className="mb-1.5 block text-[8px] font-black text-slate-500">Receipt Email</span><input type="email" placeholder="your@email.com" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} className="h-9 w-full rounded-lg border border-white/[0.09] bg-[#061522] px-2.5 text-[9px] text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/40" /></label>}
+
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-white/[0.07] bg-black/10 p-2 text-[7px] leading-3.5 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />By continuing, you agree to the terms. Completed digital orders cannot be refunded.</div>
+
+              <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 text-[10px] font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"><span>{submitting ? 'Processing Order...' : 'Pay & Top-Up Now'}</span><ArrowRight className="h-4 w-4" /></button>
+            </section>
+          </aside>
         </div>
       </main>
 
       <Footer />
-
-      {/* Payment Modal */}
-      {showPaymentModal && activeOrder && (
-        <PaymentModal
-          orderNumber={activeOrder.orderNumber}
-          amount={activeOrder.totalAmount || activeOrder.amount || 0}
-          paymentMethod={paymentMethod}
-          paymentDetails={paymentDetails}
-          onSuccess={() => navigate(`/tracking?orderNumber=${activeOrder.orderNumber}`)}
-          onClose={() => setShowPaymentModal(false)}
-        />
-      )}
+      {showPaymentModal && activeOrder && <PaymentModal orderNumber={activeOrder.orderNumber} amount={activeOrder.totalAmount || activeOrder.amount || 0} paymentMethod={paymentMethod} paymentDetails={paymentDetails} onSuccess={() => navigate(`/tracking?orderNumber=${activeOrder.orderNumber}`)} onClose={() => setShowPaymentModal(false)} />}
     </div>
   );
 }
