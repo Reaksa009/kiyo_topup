@@ -2,17 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
-  BadgeCheck,
   CheckCircle2,
   Clock3,
-  CreditCard,
-  Filter,
-  Headphones,
   MessageCircle,
   Search,
   Send,
   ShieldCheck,
-  WalletCards
 } from 'lucide-react';
 import { HeroBanner } from '../components/HeroBanner';
 import { GameCard } from '../components/GameCard';
@@ -50,13 +45,6 @@ const getCategoriesFromGames = (games: any[]) => Array.from(
       .map((category) => [category.slug, category])
   ).values()
 );
-
-const processSteps = [
-  { number: '01', title: 'Select Game', text: 'Choose your favorite title.', icon: Filter },
-  { number: '02', title: 'Player ID', text: 'Enter the account details.', icon: BadgeCheck },
-  { number: '03', title: 'Pick Package', text: 'Compare value and bonuses.', icon: WalletCards },
-  { number: '04', title: 'Pay Securely', text: 'Confirm with a local method.', icon: CreditCard }
-];
 
 const highlights = [
   { icon: CheckCircle2, title: '12K+ Players', text: 'Trusted in Cambodia', tone: 'text-emerald-300 bg-emerald-300/[0.1]' },
@@ -175,24 +163,6 @@ export const Home: React.FC = () => {
           </div>
         </section>
 
-        <section className="section-shell py-10 sm:py-14">
-          <div className="text-center"><span className="eyebrow">FAST CHECKOUT</span><h2 className="mt-1.5 text-xl font-black text-white sm:text-3xl">Top up in four steps</h2></div>
-          <div className="mt-5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-            {processSteps.map(({ number, title, text, icon: Icon }) => (
-              <div key={number} className="relative rounded-xl border border-white/[0.08] bg-[#0a1730] p-3 sm:rounded-2xl sm:p-4">
-                <div className="flex items-center justify-between"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-300/[0.1] text-cyan-200"><Icon className="h-3.5 w-3.5" /></span><span className="text-[8px] font-black text-slate-700">{number}</span></div>
-                <h3 className="mt-3 text-[10px] font-black text-white sm:text-xs">{title}</h3><p className="mt-1 text-[8px] leading-4 text-slate-600 sm:text-[10px]">{text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="section-shell pb-3">
-          <div className="flex flex-col gap-4 rounded-2xl border border-cyan-300/25 bg-gradient-to-r from-cyan-300/[0.09] via-[#0a1730] to-violet-400/[0.09] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <div className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#229ED9] text-white"><Headphones className="h-4 w-4" /></span><div><p className="text-xs font-black text-white">Need help choosing a package?</p><p className="mt-1 text-[9px] text-slate-500">Real support through Telegram. Rated 4.9/5 by Kiyo players.</p></div></div>
-            <a href="https://t.me/VReaksa" target="_blank" rel="noreferrer" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/[0.08] px-4 text-[9px] font-black uppercase text-cyan-100 hover:bg-cyan-300/[0.14]"><Send className="h-3.5 w-3.5" />Telegram Support</a>
-          </div>
-        </section>
       </main>
 
       <div className="fixed bottom-4 right-3 z-40 flex flex-col gap-2 sm:right-5">
