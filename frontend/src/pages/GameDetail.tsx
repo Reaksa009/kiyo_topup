@@ -166,7 +166,7 @@ export function GameDetail() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#071024] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-[#071024] pb-24 text-slate-100 md:pb-0">
       <Navbar />
       <main className="section-shell flex-1 py-4 sm:py-6">
         <Link to="/#games" className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/20 bg-[#081a30] px-3.5 text-[10px] font-black text-cyan-100 transition hover:border-cyan-300/45 hover:bg-cyan-300/[0.08] sm:h-9 sm:text-[9px]"><ArrowLeft className="h-4 w-4" />Back to Games</Link>
@@ -218,23 +218,31 @@ export function GameDetail() {
                 <div className="mt-2 flex items-center justify-between border-t border-white/[0.07] pt-2 text-[7px]"><span className="text-slate-600">Payment</span><span className="font-black text-cyan-300">{selectedPayment.label}</span></div>
               </div>
 
-              <div className="mt-3">
+              <div className="mt-3 hidden md:block">
                 <label className="mb-1.5 flex items-center gap-1 text-[8px] font-black text-slate-500"><Tag className="h-3 w-3" />Promo Code</label>
                 <div className="flex gap-1.5"><input type="text" placeholder="Enter coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value)} className="h-9 min-w-0 flex-1 rounded-lg border border-white/[0.09] bg-[#061522] px-2.5 text-[9px] uppercase text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/40" /><button type="button" onClick={handleApplyCoupon} className="h-9 rounded-lg border border-white/[0.09] bg-white/[0.05] px-3 text-[8px] font-black text-white">Apply</button></div>
                 {couponMsg && <p className="mt-1.5 text-[8px] font-bold text-cyan-300">{couponMsg}</p>}
               </div>
 
-              {!user && <label className="mt-3 block"><span className="mb-1.5 block text-[8px] font-black text-slate-500">Receipt Email</span><input type="email" placeholder="your@email.com" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} className="h-9 w-full rounded-lg border border-white/[0.09] bg-[#061522] px-2.5 text-[9px] text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/40" /></label>}
+              {!user && <label className="mt-3 hidden md:block"><span className="mb-1.5 block text-[8px] font-black text-slate-500">Receipt Email</span><input type="email" placeholder="your@email.com" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} className="h-9 w-full rounded-lg border border-white/[0.09] bg-[#061522] px-2.5 text-[9px] text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/40" /></label>}
 
-              <div className="mt-3 flex items-start gap-2 rounded-lg border border-white/[0.07] bg-black/10 p-2 text-[7px] leading-3.5 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />By continuing, you agree to the terms. Completed digital orders cannot be refunded.</div>
+              <div className="mt-3 hidden items-start gap-2 rounded-lg border border-white/[0.07] bg-black/10 p-2 text-[7px] leading-3.5 text-slate-500 md:flex"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />By continuing, you agree to the terms. Completed digital orders cannot be refunded.</div>
 
-              <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 text-[10px] font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"><span>{submitting ? 'Processing Order...' : 'Pay & Top-Up Now'}</span><ArrowRight className="h-4 w-4" /></button>
+              <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage} className="mt-3 hidden h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 text-[10px] font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40 md:flex"><span>{submitting ? 'Processing Order...' : 'Pay & Top-Up Now'}</span><ArrowRight className="h-4 w-4" /></button>
             </section>
           </aside>
         </div>
       </main>
 
       <Footer />
+      {!showPaymentModal && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-300/20 bg-[#061522]/95 px-3 pt-2 shadow-[0_-14px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl md:hidden pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+          <div className="mx-auto flex w-full max-w-lg items-center gap-3">
+            <div className="min-w-0 shrink-0"><p className="text-[7px] font-black uppercase tracking-[0.16em] text-slate-500">Total</p><p className="mt-0.5 text-lg font-black text-amber-300">${finalPrice.toFixed(2)}</p></div>
+            <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage} className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 px-4 text-xs font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"><span className="truncate">{submitting ? 'Processing...' : selectedPackage ? 'Buy Now' : 'Select Package'}</span><ArrowRight className="h-4 w-4 shrink-0" /></button>
+          </div>
+        </div>
+      )}
       {showPaymentModal && activeOrder && <PaymentModal orderNumber={activeOrder.orderNumber} amount={activeOrder.totalAmount || activeOrder.amount || 0} paymentMethod={paymentMethod} paymentDetails={paymentDetails} onSuccess={() => navigate(`/tracking?orderNumber=${activeOrder.orderNumber}`)} onClose={() => setShowPaymentModal(false)} />}
     </div>
   );
