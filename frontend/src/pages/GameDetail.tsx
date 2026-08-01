@@ -150,6 +150,20 @@ export function GameDetail() {
   const selectedPayment = paymentOptions.find((option) => option.id === paymentMethod)!;
   const categoryName = typeof game.categoryId === 'object' ? game.categoryId?.name : 'Game Top-Up';
   const hasRequiredPlayerFields = game.inputFields.every((field: any) => !field.required || playerFields[field.name]?.trim());
+  const verificationPanel = (
+    <>
+      <div className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#061b2e] p-1.5 min-[360px]:p-2">
+        <div className="flex min-h-14 min-w-0 items-center gap-2 rounded-xl bg-[#06182b] px-2.5 py-2.5 min-[360px]:gap-3 min-[360px]:px-3" aria-live="polite">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-300/[0.1] text-cyan-200 min-[360px]:h-9 min-[360px]:w-9 min-[360px]:rounded-xl"><Gem className="h-4 w-4" /></span>
+          <div className="min-w-0 flex-1"><p className="truncate text-[11px] font-black text-white min-[360px]:text-sm">{selectedPackage?.title || 'Choose a top-up package'}</p><p className="mt-0.5 truncate text-[7px] text-slate-500 min-[360px]:text-[8px]">{selectedPackage ? `KHR ${(Math.round((selectedPackage.price * 4100) / 100) * 100).toLocaleString('en-US')}` : 'Select from the packages below'}</p></div>
+          <span className="shrink-0 text-sm font-black text-amber-300 min-[360px]:text-base">{selectedPackage ? `$${selectedPackage.price.toFixed(2)}` : '--'}</span>
+        </div>
+        <button type="button" onClick={handleVerifyPlayer} disabled={verifyingPlayer || !hasRequiredPlayerFields} className={`mt-1.5 flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-xl px-3 text-xs font-black transition min-[360px]:mt-2 min-[360px]:h-12 min-[360px]:text-sm ${verifiedPlayerInfo?.valid ? 'bg-emerald-400 text-[#041910]' : 'bg-gradient-to-r from-cyan-400 to-blue-500 text-[#041523]'} disabled:cursor-not-allowed disabled:grayscale disabled:opacity-45`}><Zap className="h-4 w-4 shrink-0 min-[360px]:h-5 min-[360px]:w-5" /><span className="truncate">{verifyingPlayer ? 'Verifying ID...' : verifiedPlayerInfo?.valid ? 'ID Verified' : 'Verify ID First'}</span></button>
+      </div>
+
+      {verifiedPlayerInfo && <div className={`mt-3 flex items-start gap-2 rounded-xl border p-3 text-[10px] font-bold ${verifiedPlayerInfo.valid ? 'border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-300' : 'border-rose-400/25 bg-rose-400/[0.08] text-rose-300'}`}>{verifiedPlayerInfo.valid ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}<div><p className="font-black">{verifiedPlayerInfo.valid ? `Account verified${verifiedPlayerInfo.username ? `: ${verifiedPlayerInfo.username}` : ''}` : 'Invalid account information'}</p>{verifiedPlayerInfo.message && <p className="mt-0.5 text-[8px] opacity-75">{verifiedPlayerInfo.message}</p>}</div></div>}
+    </>
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-[#071024] text-slate-100">
@@ -169,8 +183,8 @@ export function GameDetail() {
         {errorMsg && <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/[0.08] px-3 py-2.5 text-[10px] font-bold text-rose-300"><AlertCircle className="h-4 w-4 shrink-0" />{errorMsg}</div>}
 
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-3">
-            <section className="rounded-[24px] border border-cyan-300/25 bg-[#082536] p-4 shadow-xl shadow-black/15 sm:rounded-2xl sm:p-5">
+          <div className="space-y-0 md:space-y-3">
+            <section className="rounded-t-[24px] rounded-b-none border border-b-0 border-cyan-300/25 bg-[#082536] p-4 shadow-xl shadow-black/15 sm:p-5 md:rounded-2xl md:border-b">
               <div className="flex items-center gap-3">
                 <span className="shrink-0 text-xl font-black text-amber-300 sm:text-2xl">1</span>
                 <div className="min-w-0"><h2 className="truncate text-base font-black text-white sm:text-lg">Enter Player Information</h2><p className="mt-0.5 text-[9px] text-slate-500 sm:text-[10px]">Enter the account details used for delivery.</p></div>
@@ -182,19 +196,10 @@ export function GameDetail() {
                 ))}
               </div>
 
-              <div className="mt-3 min-w-0 rounded-2xl border border-white/[0.08] bg-[#061b2e] p-1.5 min-[360px]:p-2">
-                <div className="flex min-h-14 min-w-0 items-center gap-2 rounded-xl bg-[#06182b] px-2.5 py-2.5 min-[360px]:gap-3 min-[360px]:px-3" aria-live="polite">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-300/[0.1] text-cyan-200 min-[360px]:h-9 min-[360px]:w-9 min-[360px]:rounded-xl"><Gem className="h-4 w-4" /></span>
-                  <div className="min-w-0 flex-1"><p className="truncate text-[11px] font-black text-white min-[360px]:text-sm">{selectedPackage?.title || 'Choose a top-up package'}</p><p className="mt-0.5 truncate text-[7px] text-slate-500 min-[360px]:text-[8px]">{selectedPackage ? `KHR ${(Math.round((selectedPackage.price * 4100) / 100) * 100).toLocaleString('en-US')}` : 'Select from the packages below'}</p></div>
-                  <span className="shrink-0 text-sm font-black text-amber-300 min-[360px]:text-base">{selectedPackage ? `$${selectedPackage.price.toFixed(2)}` : '--'}</span>
-                </div>
-                <button type="button" onClick={handleVerifyPlayer} disabled={verifyingPlayer || !hasRequiredPlayerFields} className={`mt-1.5 flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-xl px-3 text-xs font-black transition min-[360px]:mt-2 min-[360px]:h-12 min-[360px]:text-sm ${verifiedPlayerInfo?.valid ? 'bg-emerald-400 text-[#041910]' : 'bg-gradient-to-r from-cyan-400 to-blue-500 text-[#041523]'} disabled:cursor-not-allowed disabled:grayscale disabled:opacity-45`}><Zap className="h-4 w-4 shrink-0 min-[360px]:h-5 min-[360px]:w-5" /><span className="truncate">{verifyingPlayer ? 'Verifying ID...' : verifiedPlayerInfo?.valid ? 'ID Verified' : 'Verify ID First'}</span></button>
-              </div>
-
-              {verifiedPlayerInfo && <div className={`mt-3 flex items-start gap-2 rounded-xl border p-3 text-[10px] font-bold ${verifiedPlayerInfo.valid ? 'border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-300' : 'border-rose-400/25 bg-rose-400/[0.08] text-rose-300'}`}>{verifiedPlayerInfo.valid ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}<div><p className="font-black">{verifiedPlayerInfo.valid ? `Account verified${verifiedPlayerInfo.username ? `: ${verifiedPlayerInfo.username}` : ''}` : 'Invalid account information'}</p>{verifiedPlayerInfo.message && <p className="mt-0.5 text-[8px] opacity-75">{verifiedPlayerInfo.message}</p>}</div></div>}
+              <div className="mt-3 hidden md:block">{verificationPanel}</div>
             </section>
 
-            <TopUpPackageSelector packages={packages} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact initialVisibleCount={48} />
+            <TopUpPackageSelector packages={packages} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact compactJoined compactMobileLead={verificationPanel} initialVisibleCount={48} />
           </div>
 
           <aside>

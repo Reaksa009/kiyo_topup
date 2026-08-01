@@ -31,6 +31,8 @@ interface TopUpPackageSelectorProps {
   step?: string;
   embedded?: boolean;
   compact?: boolean;
+  compactJoined?: boolean;
+  compactMobileLead?: React.ReactNode;
   initialVisibleCount?: number;
 }
 
@@ -83,6 +85,8 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
   step,
   embedded = false,
   compact = false,
+  compactJoined = false,
+  compactMobileLead,
   initialVisibleCount = 24
 }) => {
   const [activeFilter, setActiveFilter] = useState<PackageFilter>('all');
@@ -120,13 +124,13 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
 
   if (compact) {
     return (
-      <section className="overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#081d30] shadow-xl shadow-black/15" aria-labelledby="package-selector-title">
+      <section className={`overflow-hidden border border-cyan-300/20 bg-[#081d30] shadow-xl shadow-black/15 ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
         <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] bg-[#0d2a43] px-3 py-3 sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {step && <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-300 text-[11px] font-black text-[#04131f]">{step}</span>}
             <div className="min-w-0"><h2 id="package-selector-title" className="text-xs font-black text-white sm:text-sm">Select Top-Up Package</h2><p className="mt-0.5 text-[7px] text-slate-500 sm:text-[8px]">{packages.length} choices available</p></div>
           </div>
-          <div className={`min-w-0 rounded-lg border px-2 py-1.5 text-right ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.07] bg-black/15'}`}>
+          <div className={`min-w-0 rounded-lg border px-2 py-1.5 text-right ${compactMobileLead ? 'hidden md:block' : ''} ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.07] bg-black/15'}`}>
             <p className="max-w-[105px] truncate text-[7px] font-bold text-slate-500 sm:max-w-[150px]">{selectedPackage?.title || 'No package selected'}</p>
             {selectedPackage && <p className="mt-0.5 text-[10px] font-black text-cyan-200">${selectedPackage.price.toFixed(2)}</p>}
           </div>
@@ -149,6 +153,8 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
             <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search diamonds or passes" className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#061522] pl-9 pr-9 text-[9px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/45" aria-label="Search top-up packages" />
             {query && <button type="button" onClick={() => setQuery('')} className="absolute right-2.5 top-2.5 text-slate-600 hover:text-white" aria-label="Clear package search"><X className="h-3.5 w-3.5" /></button>}
           </div>
+
+          {compactMobileLead && <div className="md:hidden">{compactMobileLead}</div>}
 
           {visiblePackages.length > 0 ? (
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
