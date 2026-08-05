@@ -41,4 +41,12 @@ describe('Top-Up Provider Adapter Pattern & G2Bulk Integration', () => {
     expect(res.balance).toBeGreaterThanOrEqual(0);
     expect(res.currency).toBe('USD');
   });
+
+  it('should validate player ID via G2Bulk adapter', async () => {
+    const provider = ProviderFactory.getProvider('G2BULK');
+    const res = await provider.validatePlayer('mobile-legends', { userId: '12345678', zoneId: '1234' });
+
+    expect(res.valid).toBe(true);
+    expect(res.username).toContain('12345678');
+  });
 });

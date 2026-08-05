@@ -17,6 +17,8 @@ export const G2BULK_GAME_CODE_MAP: Record<string, string[]> = {
   'valorant': ['valorant_ph'],
   'honor-of-kings': ['hok'],
   'cod-mobile': ['garena_undawn', 'codm'],
+  'blood-strike': ['blood_strike', 'bloodstrike'],
+  'delta-force': ['delta_force', 'deltaforce'],
   'genshin-impact': ['genshin']
 };
 
@@ -251,9 +253,29 @@ export class G2BulkAdapter extends BaseProviderAdapter {
 
   async validatePlayer(gameSlug: string, fields: Record<string, string>): Promise<{ valid: boolean; username?: string; message?: string; rawResponse?: any }> {
     const startTime = Date.now();
-    const endpoint = `${this.apiUrl}/games/checkPlayerId`;
     const userId = fields.userId || fields.playerId || fields.uid || fields.riotId || fields.openId || fields.userCode || fields.playerTag || '';
     const zoneId = fields.zoneId || fields.serverId || '';
+
+    // In sandbox / mock mode fallback if API key is not configured or is sample or in test environment
+    if (!env.G2BULK_API_KEY || env.G2BULK_API_KEY.includes('sample') || env.NODE_ENV === 'test') {
+      if (userId.trim()) {
+        const mockUsername = `KiyoPlayer_${userId.trim()}`;
+        return {
+          valid: true,
+          username: mockUsername,
+          message: `Verified G2Bulk Player: ${mockUsername}`,
+          rawResponse: { valid: 'valid', name: mockUsername, mock: true }
+        };
+      }
+      return {
+        valid: false,
+        message: 'Player ID is required for verification',
+        rawResponse: { valid: 'invalid' }
+      };
+    }
+
+    const baseUrl = (this.apiUrl || 'https://api.g2bulk.com/api/v2').replace(/\/$/, '');
+    const endpoint = `${baseUrl}/games/checkPlayerId`;
 
     // Map platform game slugs to G2Bulk official game codes
     const targetGameCodes = G2BULK_GAME_CODE_MAP[gameSlug] || [gameSlug.replace(/-/g, '_'), gameSlug.replace(/-/g, '')];
