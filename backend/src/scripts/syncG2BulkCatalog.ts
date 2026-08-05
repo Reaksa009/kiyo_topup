@@ -84,8 +84,11 @@ export const normalizeG2Products = (payload: any): G2Product[] => {
 
 export const fetchLatestG2BulkServices = async (): Promise<G2Product[]> => {
   let catalogUrl: string;
+  const rawApiUrl = (env.G2BULK_API_URL || 'https://api.g2bulk.com/v1').trim();
   try {
-    catalogUrl = new URL('/api/v2', env.G2BULK_API_URL).toString();
+    catalogUrl = rawApiUrl.includes('/api/v2')
+      ? rawApiUrl
+      : new URL('/api/v2', rawApiUrl.replace(/\/v1\/?$/, '')).toString();
   } catch {
     throw new ValidationError('G2Bulk API URL is invalid.');
   }
