@@ -7,8 +7,8 @@ export class TelegramService {
   /**
    * Send notification message to configured Telegram Channel / Group
    */
-  static async sendMessage(message: string, chatId?: string): Promise<boolean> {
-    const token = env.TELEGRAM_BOT_TOKEN;
+  static async sendMessage(message: string, chatId?: string, customToken?: string): Promise<boolean> {
+    const token = customToken || env.TELEGRAM_BOT_TOKEN;
     const targetChat = chatId || env.TELEGRAM_CHAT_ID;
 
     if (!token || !targetChat) {
@@ -97,6 +97,6 @@ export class TelegramService {
       `<b>Order #:</b> <code>${orderNumber}</code>\n` +
       `<b>Reason:</b> ${reason}\n` +
       `<b>Action Required:</b> Inspect Admin Dashboard`;
-    return this.sendMessage(text);
+    return this.sendMessage(text, undefined, env.TELEGRAM_FAILED_BOT_TOKEN);
   }
 }

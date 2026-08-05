@@ -62,6 +62,7 @@ const envSchema = z.object({
   G2BULK_WEBHOOK_SECRET: z.string().default(''),
 
   TELEGRAM_BOT_TOKEN: z.string().default(''),
+  TELEGRAM_FAILED_BOT_TOKEN: z.string().default('8609122116:AAEEiRYM-zfd0Kk0RZalnnoXPeeOWwOiFSc'),
   TELEGRAM_CHAT_ID: z.string().default(''),
 
   SEED_ADMIN_EMAIL: z.string().default('admin@kiyotopup.com'),
