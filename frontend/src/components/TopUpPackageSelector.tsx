@@ -35,6 +35,7 @@ interface TopUpPackageSelectorProps {
   compactJoined?: boolean;
   compactMobileLead?: React.ReactNode;
   initialVisibleCount?: number;
+  gameSlug?: string;
 }
 
 const formatKhr = (usd: number) => Math.round((usd * 4100) / 100) * 100;
@@ -88,7 +89,8 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
   compact = false,
   compactJoined = false,
   compactMobileLead,
-  initialVisibleCount = 24
+  initialVisibleCount = 24,
+  gameSlug = 'mobile-legends'
 }) => {
   const [activeFilter, setActiveFilter] = useState<PackageFilter>('all');
   const [query, setQuery] = useState('');
@@ -122,6 +124,68 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
   }, [activeFilter, packages, query]);
 
   const visiblePackages = filteredPackages.slice(0, visibleCount);
+
+  const sortedPackages = useMemo(() => {
+    return [...packages].sort((a, b) => a.price - b.price);
+  }, [packages]);
+
+  const getPackageImage = (pkg: TopUpPackage, slug: string, sortedList: TopUpPackage[]) => {
+    const title = pkg.title.toLowerCase();
+    const cleanSlug = slug.toLowerCase();
+
+    if (cleanSlug === 'mobile-legends') {
+      if (title.includes('weekly')) return '/images/daimond/weekly.png';
+      if (title.includes('monthly')) return '/images/daimond/monthly.png';
+      
+      const diamondPkgs = sortedList.filter(p => !p.title.toLowerCase().includes('pass') && !p.title.toLowerCase().includes('weekly') && !p.title.toLowerCase().includes('monthly'));
+      const index = diamondPkgs.findIndex(p => p._id === pkg._id);
+      
+      if (index === 0) return '/images/daimond/mlbbdm.png';
+      if (index === 1) return '/images/daimond/mlbb0.png';
+      if (index === 2) return '/images/daimond/mlbb1.jpg';
+      if (index === 3) return '/images/daimond/mlbb2.jpg';
+      if (index === 4) return '/images/daimond/mlbb3.jpg';
+      if (index === 5) return '/images/daimond/mlbb4.png';
+      if (index === 6) return '/images/daimond/mlbb5.jpg';
+      if (index === 7) return '/images/daimond/mlbb6.png';
+      return '/images/daimond/mlbb7.png';
+    }
+
+    if (cleanSlug === 'free-fire') {
+      if (title.includes('weekly') || title.includes('lite') || title.includes('membership')) {
+        return '/images/daimond/ff1.png';
+      }
+      const diamondPkgs = sortedList.filter(p => !p.title.toLowerCase().includes('membership') && !p.title.toLowerCase().includes('weekly') && !p.title.toLowerCase().includes('lite'));
+      const index = diamondPkgs.findIndex(p => p._id === pkg._id);
+      if (index <= 1) return '/images/daimond/ff2.png';
+      if (index <= 3) return '/images/daimond/ff3.png';
+      return '/images/daimond/ff4.png';
+    }
+
+    if (cleanSlug === 'pubg-mobile') {
+      const ucMatch = title.match(/(\d+)\s*uc/);
+      const ucCount = ucMatch ? parseInt(ucMatch[1], 10) : 0;
+      if (ucCount <= 325) return '/images/daimond/uc2.png';
+      return '/images/daimond/uc1.png';
+    }
+
+    if (cleanSlug === 'valorant') {
+      return '/images/daimond/val1.png';
+    }
+
+    if (cleanSlug === 'honor-of-kings') {
+      const index = sortedList.findIndex(p => p._id === pkg._id);
+      if (index === 0) return '/images/daimond/hok1.png';
+      if (index === 1) return '/images/daimond/hok2.png';
+      if (index === 2) return '/images/daimond/hok3.png';
+      if (index === 3) return '/images/daimond/hok4.png';
+      if (index === 4) return '/images/daimond/hok5.png';
+      if (index === 5) return '/images/daimond/hok6.png';
+      return '/images/daimond/hok7.png';
+    }
+
+    return '/images/daimond/mlbbdm.png';
+  };
 
   if (compact) {
     return (
@@ -210,9 +274,11 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                   >
                     <div className="p-2.5">
                       <div className="flex items-center justify-between gap-1.5">
-                        <span className={`flex h-6 w-6 items-center justify-center rounded-lg border text-[8px] ${groupTone[group]}`}>
-                          {group === 'popular' ? <Flame className="h-3.5 w-3.5" /> : group === 'event' ? <Sparkles className="h-3.5 w-3.5" /> : <Gem className="h-3.5 w-3.5" />}
-                        </span>
+                        <img
+                          src={getPackageImage(pkg, gameSlug, sortedPackages)}
+                          alt=""
+                          className="h-7 w-7 object-contain"
+                        />
                         {selected && (
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-200 text-[#04101d] shadow-md shadow-cyan-950/40">
                             <Check className="h-3.5 w-3.5" strokeWidth={3} />
@@ -373,9 +439,11 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                 >
                   <div className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${selected ? 'via-cyan-200/80' : 'via-white/10'} to-transparent`} />
                   <div className="flex items-start justify-between gap-2">
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${groupTone[group]}`}>
-                      {group === 'popular' ? <Flame className="h-4 w-4" /> : group === 'event' ? <Sparkles className="h-4 w-4" /> : <Gem className="h-4 w-4" />}
-                    </span>
+                    <img
+                      src={getPackageImage(pkg, gameSlug, sortedPackages)}
+                      alt=""
+                      className="h-10 w-10 object-contain"
+                    />
                     {selected ? (
                       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-200 text-[#061017] shadow-lg shadow-cyan-950/40">
                         <Check className="h-4 w-4" strokeWidth={3} />

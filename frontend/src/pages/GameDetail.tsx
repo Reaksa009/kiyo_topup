@@ -267,7 +267,7 @@ export function GameDetail() {
               <div className="mt-4">{verificationPanel}</div>
             </section>
 
-            <TopUpPackageSelector packages={packages.filter((pkg) => pkg.isPurchasable !== false)} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact compactJoined initialVisibleCount={48} />
+            <TopUpPackageSelector packages={packages.filter((pkg) => pkg.isPurchasable !== false)} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact compactJoined gameSlug={game.slug} initialVisibleCount={48} />
           </div>
 
           <aside>
