@@ -309,16 +309,16 @@ export class G2BulkAdapter extends BaseProviderAdapter {
       };
     }
 
-    const baseUrl = (this.apiUrl || 'https://api.g2bulk.com/api/v2').replace(/\/$/, '');
+    const formUrl = 'https://api.g2bulk.com/api/v2';
+    const jsonUrl = 'https://api.g2bulk.com/v1/games/checkPlayerId';
     const targetGameCodes = G2BULK_GAME_CODE_MAP[gameSlug] || [gameSlug.replace(/-/g, '_'), gameSlug.replace(/-/g, '')];
     const primaryGCode = targetGameCodes[0];
     const link = zoneId ? `${userId}|${zoneId}` : userId;
 
-    // Fast-path parallel execution of primary API candidates
-    const primaryActions = ['get-user-id', 'checkid', 'check'];
     const tasks: Promise<{ valid: boolean; username: string; rawResponse: any } | null>[] = [];
 
-    // Parallel Candidate Group 1: Form-urlencoded requests for primary game codes
+    // 1. Parallel G2Bulk v2 Form Action requests
+    const primaryActions = ['get-user-id', 'checkid', 'check'];
     for (const gCode of [primaryGCode, ...targetGameCodes.slice(1, 3)].filter(Boolean)) {
       for (const actionName of primaryActions) {
         const formParams = new URLSearchParams();
@@ -329,12 +329,15 @@ export class G2BulkAdapter extends BaseProviderAdapter {
         formParams.append('link', link);
         formParams.append('target', link);
         formParams.append('user_id', userId);
-        if (zoneId) formParams.append('zone_id', zoneId);
+        if (zoneId) {
+          formParams.append('zone_id', zoneId);
+          formParams.append('server_id', zoneId);
+        }
 
         tasks.push(
-          axios.post(baseUrl, formParams, {
+          axios.post(formUrl, formParams, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            timeout: 2500
+            timeout: 3000
           }).then((res) => {
             const realName = extractRealNickname(res.data);
             if (realName) {
@@ -346,38 +349,107 @@ export class G2BulkAdapter extends BaseProviderAdapter {
       }
     }
 
-    // Parallel Candidate Group 2: Dedicated JSON Endpoint /games/checkPlayerId
-    const jsonEndpoint = `${baseUrl}/games/checkPlayerId`;
-    const payload = {
-      game: primaryGCode,
-      service: primaryGCode,
-      user_id: userId,
-      userid: userId,
-      zone_id: zoneId,
-      zoneid: zoneId,
-      player_id: userId
-    };
-    tasks.push(
-      axios.post(jsonEndpoint, payload, {
-        headers: {
-          'x-api-key': env.G2BULK_API_KEY,
-          'X-API-Key': env.G2BULK_API_KEY
-        },
-        timeout: 2500
-      }).then((res) => {
-        const realName = extractRealNickname(res.data);
-        if (realName) {
-          return { valid: true, username: realName, rawResponse: res.data };
-        }
-        return null;
-      }).catch((err) => {
-        const realName = extractRealNickname(err.response?.data);
-        if (realName) {
-          return { valid: true, username: realName, rawResponse: err.response?.data };
-        }
-        return null;
-      })
-    );
+    // 2. Parallel G2Bulk v1 Dedicated JSON Endpoint requests (/v1/games/checkPlayerId)
+    for (const gCode of [primaryGCode, ...targetGameCodes.slice(1, 3)].filter(Boolean)) {
+      const payload = {
+        game: gCode,
+        service: gCode,
+        user_id: userId,
+        userid: userId,
+        zone_id: zoneId,
+        zoneid: zoneId,
+        server_id: zoneId,
+        serverid: zoneId,
+        player_id: userId
+      };
+
+      tasks.push(
+        axios.post(jsonUrl, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': env.G2BULK_API_KEY,
+            'X-API-Key': env.G2BULK_API_KEY
+          },
+          timeout: 3000
+        }).then((res) => {
+          const realName = extractRealNickname(res.data);
+          if (realName) {
+            return { valid: true, username: realName, rawResponse: res.data };
+          }
+          return null;
+        }).catch((err) => {
+          const realName = extractRealNickname(err.response?.data);
+          if (realName) {
+            return { valid: true, username: realName, rawResponse: err.response?.data };
+          }
+          return null;
+        })
+      );
+    }
+
+    // 3. User configured custom URL fallback support
+    const userConfiguredUrl = this.apiUrl ? this.apiUrl.replace(/\/$/, '') : null;
+    if (userConfiguredUrl) {
+      const customFormUrl = userConfiguredUrl.includes('/v1')
+        ? userConfiguredUrl.replace('/v1', '/api/v2')
+        : userConfiguredUrl;
+      const customJsonUrl = userConfiguredUrl.includes('/api/v2')
+        ? userConfiguredUrl.replace('/api/v2', '/v1')
+        : userConfiguredUrl;
+
+      // Custom form action
+      const formParams = new URLSearchParams();
+      formParams.append('key', env.G2BULK_API_KEY);
+      formParams.append('action', 'get-user-id');
+      formParams.append('service', primaryGCode);
+      formParams.append('game', primaryGCode);
+      formParams.append('link', link);
+      formParams.append('target', link);
+      formParams.append('user_id', userId);
+      if (zoneId) {
+        formParams.append('zone_id', zoneId);
+        formParams.append('server_id', zoneId);
+      }
+
+      tasks.push(
+        axios.post(customFormUrl, formParams, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          timeout: 3000
+        }).then((res) => {
+          const realName = extractRealNickname(res.data);
+          if (realName) return { valid: true, username: realName, rawResponse: res.data };
+          return null;
+        }).catch(() => null)
+      );
+
+      // Custom json action
+      const payload = {
+        game: primaryGCode,
+        service: primaryGCode,
+        user_id: userId,
+        userid: userId,
+        zone_id: zoneId,
+        zoneid: zoneId,
+        server_id: zoneId,
+        serverid: zoneId,
+        player_id: userId
+      };
+
+      tasks.push(
+        axios.post(`${customJsonUrl}/games/checkPlayerId`, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': env.G2BULK_API_KEY,
+            'X-API-Key': env.G2BULK_API_KEY
+          },
+          timeout: 3000
+        }).then((res) => {
+          const realName = extractRealNickname(res.data);
+          if (realName) return { valid: true, username: realName, rawResponse: res.data };
+          return null;
+        }).catch(() => null)
+      );
+    }
 
     const results = await Promise.allSettled(tasks);
     for (const result of results) {
