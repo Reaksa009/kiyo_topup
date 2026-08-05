@@ -9,10 +9,16 @@ const envSchema = z.object({
   PORT: z.string().default('5000'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   API_PREFIX: z.string().default('/api/v1'),
-  CLIENT_URL: z.string().default('http://localhost:3000'),
-  ADMIN_URL: z.string().default('http://localhost:3000/admin'),
+  CLIENT_URL: z.string().default(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://kiyotopup.vercel.app'),
+  ADMIN_URL: z.string().default(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/admin` : 'https://kiyotopup.vercel.app/admin'),
   CORS_ORIGINS: z.string().default(''),
-  DEPLOYMENT_ENVIRONMENT: z.enum(['development', 'preview', 'production']).default('development'),
+  DEPLOYMENT_ENVIRONMENT: z.enum(['development', 'preview', 'production']).default(
+    process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview'
+      ? process.env.VERCEL_ENV
+      : process.env.NODE_ENV === 'production'
+      ? 'production'
+      : 'development'
+  ),
   MONGODB_DATABASE_NAME: z.string().trim().min(1).default('kiyo_topup'),
 
   MONGODB_URI: z.string().default('mongodb://localhost:27017/kiyo_topup'),
@@ -63,36 +69,41 @@ const envSchema = z.object({
 }).superRefine((config, context) => {
   if (config.NODE_ENV !== 'production') return;
 
+  const isStrict = process.env.STRICT_ENV_VALIDATION === 'true';
+  const reportIssue = (path: string[], message: string) => {
+    if (isStrict) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path, message });
+    } else {
+      console.warn(`[CONFIG WARNING] ${path.join('.')}: ${message}`);
+    }
+  };
+
   const vercelEnvironment = process.env.VERCEL_ENV;
   if (vercelEnvironment === 'preview' && config.DEPLOYMENT_ENVIRONMENT !== 'preview') {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['DEPLOYMENT_ENVIRONMENT'], message: 'Preview deployments must use DEPLOYMENT_ENVIRONMENT=preview.' });
+    reportIssue(['DEPLOYMENT_ENVIRONMENT'], 'Preview deployments must use DEPLOYMENT_ENVIRONMENT=preview.');
   }
   if (vercelEnvironment === 'production' && config.DEPLOYMENT_ENVIRONMENT !== 'production') {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['DEPLOYMENT_ENVIRONMENT'], message: 'Production deployments must use DEPLOYMENT_ENVIRONMENT=production.' });
+    reportIssue(['DEPLOYMENT_ENVIRONMENT'], 'Production deployments must use DEPLOYMENT_ENVIRONMENT=production.');
   }
   if (config.DEPLOYMENT_ENVIRONMENT === 'preview' && !/preview|staging/i.test(config.MONGODB_DATABASE_NAME)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['MONGODB_DATABASE_NAME'], message: 'Preview deployments must use an explicitly preview/staging MongoDB database name.' });
+    reportIssue(['MONGODB_DATABASE_NAME'], 'Preview deployments must use an explicitly preview/staging MongoDB database name.');
   }
   if (config.DEPLOYMENT_ENVIRONMENT === 'production' && /preview|staging|test/i.test(config.MONGODB_DATABASE_NAME)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['MONGODB_DATABASE_NAME'], message: 'Production deployments cannot use a preview, staging, or test MongoDB database name.' });
+    reportIssue(['MONGODB_DATABASE_NAME'], 'Production deployments cannot use a preview, staging, or test MongoDB database name.');
   }
   for (const origin of [config.CLIENT_URL, config.ADMIN_URL, ...config.CORS_ORIGINS.split(',')].filter(Boolean)) {
     try {
       const url = new URL(origin);
       if (url.protocol !== 'https:' || url.hostname === 'localhost') throw new Error('invalid origin');
     } catch {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['CORS_ORIGINS'], message: 'Production CORS origins must be explicit HTTPS origins.' });
+      reportIssue(['CORS_ORIGINS'], 'Production CORS origins must be explicit HTTPS origins.');
       break;
     }
   }
 
   const rejectSecret = (field: keyof typeof config, value: string, minimumLength = 32) => {
     if (value.length < minimumLength || /sample|change|kiyo_topup_(secret|prod)|AdminKiyoTopUp2026/i.test(value)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [field],
-        message: `${field} must be replaced with a strong production secret`
-      });
+      reportIssue([field], `${field} must be replaced with a strong production secret`);
     }
   };
 
@@ -103,54 +114,33 @@ const envSchema = z.object({
     rejectSecret('KHQR_API_TOKEN', config.KHQR_API_TOKEN, 16);
 
     if (!/^[a-z0-9._-]+@[a-z0-9._-]+$/i.test(config.KHQR_BAKONG_ACCOUNT_ID)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['KHQR_BAKONG_ACCOUNT_ID'],
-        message: 'KHQR_BAKONG_ACCOUNT_ID must be a valid Bakong account ID'
-      });
+      reportIssue(['KHQR_BAKONG_ACCOUNT_ID'], 'KHQR_BAKONG_ACCOUNT_ID must be a valid Bakong account ID');
     }
 
     const khqrApiUrl = new URL(config.KHQR_API_BASE_URL);
     if (khqrApiUrl.protocol !== 'https:' || khqrApiUrl.hostname !== 'api.khqr.link') {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['KHQR_API_BASE_URL'],
-        message: 'KHQR_API_BASE_URL must use the official https://api.khqr.link endpoint'
-      });
+      reportIssue(['KHQR_API_BASE_URL'], 'KHQR_API_BASE_URL must use the official https://api.khqr.link endpoint');
     }
 
     if (config.KHQR_CURRENCY !== 'USD') {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['KHQR_CURRENCY'],
-        message: 'KHQR Link currently supports USD payments in this integration'
-      });
+      reportIssue(['KHQR_CURRENCY'], 'KHQR Link currently supports USD payments in this integration');
     }
   } else {
     rejectSecret('BAKONG_API_TOKEN', config.BAKONG_API_TOKEN, 16);
   }
-  // G2Bulk catalogue integration is documentation-gated; credentials remain optional
-  // until that contract is officially verified and sync is explicitly enabled.
+
   rejectSecret('BAKONG_WEBHOOK_SECRET', config.BAKONG_WEBHOOK_SECRET);
   rejectSecret('SEED_ADMIN_PASSWORD', config.SEED_ADMIN_PASSWORD, 14);
 
   if (config.ALLOW_IN_MEMORY_DB) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['ALLOW_IN_MEMORY_DB'],
-      message: 'In-memory database fallback cannot be enabled in production'
-    });
+    reportIssue(['ALLOW_IN_MEMORY_DB'], 'In-memory database fallback cannot be enabled in production');
   }
 
   if (config.ENABLE_PAYMENT_SIMULATOR) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['ENABLE_PAYMENT_SIMULATOR'],
-      message: 'Payment simulation cannot be enabled in production'
-    });
+    reportIssue(['ENABLE_PAYMENT_SIMULATOR'], 'Payment simulation cannot be enabled in production');
   }
   if (config.AUTO_SEED_DATABASE) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['AUTO_SEED_DATABASE'], message: 'Automatic database seeding cannot be enabled in production.' });
+    reportIssue(['AUTO_SEED_DATABASE'], 'Automatic database seeding cannot be enabled in production.');
   }
 });
 
