@@ -11,7 +11,7 @@ import { logger } from '../../utils/logger';
 import { redactProviderLogData, redactSensitiveUrl } from '../../utils/redaction';
 
 export const G2BULK_GAME_CODE_MAP: Record<string, string[]> = {
-  'mobile-legends': ['mlbb', 'mlbb_global', 'mlbb_special', 'mlbb_exclusive', 'mlbb_ru', 'mlbb_tr', 'mlbb_br'],
+  'mobile-legends': ['mlbb', 'mobile_legends', 'mobilelegends', 'mlbb_global', 'ml', 'mobile_legend', 'mlbb_special', 'mlbb_exclusive'],
   'free-fire': ['freefire_global'],
   'pubg-mobile': ['pubg'],
   'valorant': ['valorant_ph'],
@@ -21,6 +21,40 @@ export const G2BULK_GAME_CODE_MAP: Record<string, string[]> = {
   'delta-force': ['delta_force', 'deltaforce'],
   'genshin-impact': ['genshin']
 };
+
+export function extractRealNickname(data: any): string | null {
+  if (!data || typeof data !== 'object') return null;
+
+  const candidates = [
+    data.name,
+    data.username,
+    data.nickname,
+    data.player_name,
+    data.player_username,
+    data.user_name,
+    typeof data.result === 'string' ? data.result : null,
+    data.result?.name,
+    data.result?.username,
+    data.result?.nickname,
+    data.result?.player_name,
+    data.data?.name,
+    data.data?.username,
+    data.data?.nickname,
+    data.data?.player_name,
+    data.data?.user_name
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      const trimmed = candidate.trim();
+      if (!/invalid|error|not found|failed|incorrect|unauthorized|denied|maintenance|false|null|undefined/i.test(trimmed)) {
+        return trimmed;
+      }
+    }
+  }
+
+  return null;
+}
 
 export class G2BulkAdapter extends BaseProviderAdapter {
   readonly providerName = 'G2BULK';
@@ -279,15 +313,16 @@ export class G2BulkAdapter extends BaseProviderAdapter {
     const targetGameCodes = G2BULK_GAME_CODE_MAP[gameSlug] || [gameSlug.replace(/-/g, '_'), gameSlug.replace(/-/g, '')];
     const link = zoneId ? `${userId}|${zoneId}` : userId;
 
-    // Strategy 1: G2Bulk v2 Form Action (action=check / checkplayer)
+    // Strategy 1: G2Bulk v2 Form Actions for Real Player Checking
     for (const gCode of targetGameCodes) {
-      for (const actionName of ['check', 'checkplayer', 'check_player', 'verify']) {
+      for (const actionName of ['get-user-id', 'checkid', 'check_id', 'check-id', 'check', 'checkplayer', 'check_player', 'checkusername', 'verify']) {
         const formParams = new URLSearchParams();
         formParams.append('key', env.G2BULK_API_KEY);
         formParams.append('action', actionName);
         formParams.append('service', gCode);
         formParams.append('game', gCode);
         formParams.append('link', link);
+        formParams.append('target', link);
         formParams.append('user_id', userId);
         if (zoneId) formParams.append('zone_id', zoneId);
 
@@ -298,95 +333,72 @@ export class G2BulkAdapter extends BaseProviderAdapter {
           });
           await this.logExecution(baseUrl, formParams.toString(), res.data, res.status, startTime);
 
-          const extractedName =
-            res.data?.name ||
-            res.data?.username ||
-            res.data?.nickname ||
-            res.data?.player_name ||
-            res.data?.data?.name ||
-            res.data?.data?.username;
-
-          if (extractedName || res.data?.valid === 'valid' || res.data?.valid === true || res.data?.success === true) {
-            const username = extractedName || `Player_${userId}${zoneId ? ` (${zoneId})` : ''}`;
+          const realName = extractRealNickname(res.data);
+          if (realName) {
             return {
               valid: true,
-              username,
-              message: `Verified G2Bulk Player: ${username}`,
+              username: realName,
+              message: `Verified G2Bulk Player: ${realName}`,
               rawResponse: res.data
             };
           }
         } catch (err: any) {
-          // Log and continue to next format
+          // Continue to next format action
         }
       }
     }
 
-    // Strategy 2: G2Bulk JSON Endpoint (/games/checkPlayerId)
-    const jsonEndpoint = `${baseUrl}/games/checkPlayerId`;
-    for (const gCode of targetGameCodes) {
-      const payload = {
-        game: gCode,
-        user_id: userId,
-        userid: userId,
-        zone_id: zoneId,
-        zoneid: zoneId,
-        serverid: zoneId,
-        server_id: zoneId,
-        player_id: userId
-      };
+    // Strategy 2: G2Bulk Dedicated JSON Endpoints (/games/checkPlayerId and /check-user-id)
+    const jsonEndpoints = [`${baseUrl}/games/checkPlayerId`, `${baseUrl}/check-user-id`, `${baseUrl}/check-username`];
+    for (const jsonEndpoint of jsonEndpoints) {
+      for (const gCode of targetGameCodes) {
+        const payload = {
+          game: gCode,
+          service: gCode,
+          user_id: userId,
+          userid: userId,
+          zone_id: zoneId,
+          zoneid: zoneId,
+          serverid: zoneId,
+          server_id: zoneId,
+          player_id: userId
+        };
 
-      try {
-        const res = await axios.post(jsonEndpoint, payload, {
-          headers: {
-            'x-api-key': env.G2BULK_API_KEY,
-            'X-API-Key': env.G2BULK_API_KEY
-          },
-          timeout: 8000
-        });
-        await this.logExecution(jsonEndpoint, payload, res.data, res.status, startTime);
+        try {
+          const res = await axios.post(jsonEndpoint, payload, {
+            headers: {
+              'x-api-key': env.G2BULK_API_KEY,
+              'X-API-Key': env.G2BULK_API_KEY
+            },
+            timeout: 8000
+          });
+          await this.logExecution(jsonEndpoint, payload, res.data, res.status, startTime);
 
-        const extractedName =
-          res.data?.name ||
-          res.data?.username ||
-          res.data?.nickname ||
-          res.data?.player_name ||
-          res.data?.data?.name;
+          const realName = extractRealNickname(res.data);
+          if (realName) {
+            return {
+              valid: true,
+              username: realName,
+              message: `Verified G2Bulk Player: ${realName}`,
+              rawResponse: res.data
+            };
+          }
+        } catch (error: any) {
+          const responseData = error.response?.data || { error: error.message };
+          const statusCode = error.response?.status || 500;
+          await this.logExecution(jsonEndpoint, payload, responseData, statusCode, startTime);
 
-        if (extractedName || res.data?.valid === 'valid' || res.data?.valid === true || res.data?.success === true) {
-          const username = extractedName || `Player_${userId}${zoneId ? ` (${zoneId})` : ''}`;
-          return {
-            valid: true,
-            username,
-            message: `Verified G2Bulk Player: ${username}`,
-            rawResponse: res.data
-          };
-        }
-      } catch (error: any) {
-        const responseData = error.response?.data || { error: error.message };
-        const statusCode = error.response?.status || 500;
-        await this.logExecution(jsonEndpoint, payload, responseData, statusCode, startTime);
-
-        if (responseData && (responseData.valid === 'valid' || responseData.valid === true) && responseData.name) {
-          return {
-            valid: true,
-            username: responseData.name,
-            message: `Verified G2Bulk Player: ${responseData.name}`,
-            rawResponse: responseData
-          };
+          const realName = extractRealNickname(responseData);
+          if (realName) {
+            return {
+              valid: true,
+              username: realName,
+              message: `Verified G2Bulk Player: ${realName}`,
+              rawResponse: responseData
+            };
+          }
         }
       }
-    }
-
-    // Strategy 3: Resilient ID Format Verification
-    // If the user entered a valid numeric/alphanumeric player ID (5+ chars), verify the account format
-    if (/^[a-zA-Z0-9_-]{3,20}$/.test(userId)) {
-      const verifiedName = `Player_${userId}${zoneId ? ` (${zoneId})` : ''}`;
-      return {
-        valid: true,
-        username: verifiedName,
-        message: `Account ID Verified (${userId}${zoneId ? ` / Zone ${zoneId}` : ''})`,
-        rawResponse: { valid: true, formatVerified: true, userId, zoneId }
-      };
     }
 
     return {
