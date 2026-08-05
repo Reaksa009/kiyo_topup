@@ -130,6 +130,28 @@ export const productMatchesGame = (product: G2Product, definition: GameCatalogMa
   return aliases.some((alias) => category === alias || category.startsWith(`${alias} `) || title.includes(alias));
 };
 
+export const isRegionalLocked = (product: G2Product, gameSlug: string): boolean => {
+  if (gameSlug !== 'mobile-legends') return false;
+
+  const title = product.title.toLowerCase();
+  const category = product.category_title.toLowerCase();
+  const combined = `${category} ${title}`;
+
+  const regionalKeywords = [
+    'brazil', 'brasil', 'turkey', 'turkia', 'russia', 'russian', 'latam', 'latin america', 
+    'mena', 'europe', 'cambodia', 'indonesia', 'philippines', 'singapore', 'malaysia', 'sg/my', 'sgmy',
+    ' br ', ' tr ', ' ru ', ' kh ', ' id ', ' ph ', ' my ', ' sg ', 'brz', 'rus', 'trki'
+  ];
+
+  return regionalKeywords.some(keyword => {
+    if (keyword.startsWith(' ') || keyword.endsWith(' ')) {
+      return combined.includes(keyword);
+    }
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    return regex.test(combined);
+  });
+};
+
 export interface SelectedCatalogProduct {
   prod: G2Product;
   uniqueKey: string;
@@ -583,11 +605,20 @@ export const syncG2BulkCatalog = async (options: CatalogSyncOptions = {}): Promi
     // merged as a fallback.
     const preparedCatalogs = new Map<string, SelectedCatalogProduct[]>();
     for (const gameMeta of selectedGameDefinitions) {
-      const matchedProducts = products.filter((product) => productMatchesGame(product, {
-        slug: gameMeta.slug,
-        keywords: gameMeta.keywords,
-        categoryAliases: GAME_IDENTITY_ALIASES[gameMeta.slug] || gameMeta.keywords
-      }));
+      const matchedProducts = products.filter((product) => {
+        const matches = productMatchesGame(product, {
+          slug: gameMeta.slug,
+          keywords: gameMeta.keywords,
+          categoryAliases: GAME_IDENTITY_ALIASES[gameMeta.slug] || gameMeta.keywords
+        });
+        if (!matches) return false;
+
+        // Exclude regional locked products for mobile-legends
+        if (gameMeta.slug === 'mobile-legends' && isRegionalLocked(product, 'mobile-legends')) {
+          return false;
+        }
+        return true;
+      });
       if (matchedProducts.length === 0) {
         throw new ValidationError(`Latest G2Bulk catalog contains no products for ${gameMeta.title}.`);
       }
