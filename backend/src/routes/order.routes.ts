@@ -13,10 +13,10 @@ router.post('/bulk', catalogSyncGuard, checkIdempotency, OrderController.createB
 router.get('/my-orders', authenticateJwt, OrderController.getUserOrders);
 router.get('/admin/price-reviews', authenticateJwt, requirePermission('orders:read'), OrderController.getPriceReviewOrders);
 router.post('/admin/:orderId/price-review/:decision', authenticateJwt, requirePermission('orders:write'), OrderController.decidePriceReview);
-router.get('/telegram-test', OrderController.testTelegram);
 router.get('/:orderNumber', OrderController.getOrderDetails);
 
 // Admin
+router.get('/telegram-test', authenticateJwt, requirePermission('orders:read'), OrderController.testTelegram);
 router.get('/', authenticateJwt, requirePermission('orders:read'), OrderController.getAllOrders);
 router.post('/:orderId/retry', catalogSyncGuard, authenticateJwt, requirePermission('orders:write'), OrderController.retryOrder);
 router.post('/:orderId/return', catalogSyncGuard, authenticateJwt, requirePermission('orders:write'), OrderController.returnOrder);
