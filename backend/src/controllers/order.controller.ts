@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import axios from 'axios';
 import crypto from 'crypto';
 import { Order } from '../models/Order';
 import { Game, Package } from '../models/Game';
@@ -585,5 +586,56 @@ export class OrderController {
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
+  }
+
+  static async testTelegram(req: Request, res: Response) {
+    const results: any = {};
+    const chatId = env.TELEGRAM_CHAT_ID;
+    
+    // Test Bot 1 (Main Bot)
+    try {
+      const token1 = env.TELEGRAM_BOT_TOKEN;
+      if (!token1 || !chatId) {
+        results.mainBot = { success: false, error: 'TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured.' };
+      } else {
+        const url = `https://api.telegram.org/bot${token1}/sendMessage`;
+        const response = await axios.post(url, {
+          chat_id: chatId,
+          text: '🔔 <b>KIYO TOPUP Main Bot Diagnostic Alert</b>',
+          parse_mode: 'HTML'
+        });
+        results.mainBot = { success: true, data: response.data };
+      }
+    } catch (err: any) {
+      results.mainBot = { success: false, error: err.response?.data || err.message };
+    }
+
+    // Test Bot 2 (Failure Bot)
+    try {
+      const token2 = env.TELEGRAM_FAILED_BOT_TOKEN;
+      if (!token2 || !chatId) {
+        results.failedBot = { success: false, error: 'TELEGRAM_FAILED_BOT_TOKEN or TELEGRAM_CHAT_ID not configured.' };
+      } else {
+        const url = `https://api.telegram.org/bot${token2}/sendMessage`;
+        const response = await axios.post(url, {
+          chat_id: chatId,
+          text: '❌ <b>KIYO TOPUP Failure Bot Diagnostic Alert</b>',
+          parse_mode: 'HTML'
+        });
+        results.failedBot = { success: true, data: response.data };
+      }
+    } catch (err: any) {
+      results.failedBot = { success: false, error: err.response?.data || err.message };
+    }
+
+    return res.json({
+      success: true,
+      results,
+      config: {
+        chatId,
+        mainBotTokenLength: env.TELEGRAM_BOT_TOKEN?.length || 0,
+        failedBotTokenLength: env.TELEGRAM_FAILED_BOT_TOKEN?.length || 0
+      }
+    });
   }
 }
