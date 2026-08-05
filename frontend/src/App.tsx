@@ -36,6 +36,16 @@ const RouteLoading = () => (
   </div>
 );
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 const CustomerRouteMeta = () => {
   const { pathname } = useLocation();
   if (pathname.startsWith('/admin') || pathname === '/' || pathname.startsWith('/game/')) return null;
@@ -67,6 +77,7 @@ export const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <CustomerRouteMeta />
         <Suspense fallback={<RouteLoading />}>
           <Routes>

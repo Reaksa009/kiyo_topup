@@ -193,23 +193,21 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
         <div className="absolute -right-16 -top-16 pointer-events-none h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
         <div className="absolute -left-16 bottom-0 pointer-events-none h-32 w-32 rounded-full bg-violet-500/5 blur-2xl" />
 
-        <div className="relative flex items-center justify-between gap-3 border-b border-white/[0.06] bg-[#0c1c33]/80 px-4 py-3.5 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            {step && (
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300 to-violet-500 text-xs font-black text-[#04101d] shadow-lg shadow-cyan-950/40">
-                {step}
-              </span>
-            )}
-            <div className="min-w-0">
-              <h2 id="package-selector-title" className="text-sm font-black tracking-tight text-white">Select Top-Up Package</h2>
-              <p className="mt-0.5 text-[8px] text-slate-500">{packages.length} choices available</p>
-            </div>
-          </div>
-          <div className={`min-w-0 rounded-xl border px-3 py-1.5 text-right ${compactMobileLead ? 'hidden md:block' : ''} ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.06] bg-black/20'}`}>
-            <p className="max-w-[120px] truncate text-[8px] font-bold text-slate-500">{selectedPackage?.title || 'No package selected'}</p>
-            {selectedPackage && <p className="mt-0.5 text-[11px] font-black text-cyan-200">${selectedPackage.price.toFixed(2)}</p>}
-          </div>
-        </div>
+         <div className="relative flex flex-col items-center text-center gap-3 border-b border-white/[0.06] bg-[#0c1c33]/80 px-4 py-4 sm:px-5">
+           {step && (
+             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-sm font-black text-white shadow-lg shadow-rose-300/30 sm:h-11 sm:w-11 sm:text-base">
+               {step}
+             </span>
+           )}
+           <div className="min-w-0">
+             <h2 id="package-selector-title" className="text-base font-black tracking-tight text-white sm:text-lg">Select Top-Up Package</h2>
+             <p className="mt-1 text-[10px] font-bold text-rose-400 sm:text-xs">{packages.length} choices available</p>
+           </div>
+           <div className={`mt-1 min-w-0 rounded-xl border px-4 py-1 text-center ${compactMobileLead ? 'hidden md:block' : ''} ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.06] bg-black/20'}`}>
+             <p className="max-w-[180px] truncate text-[9px] font-bold text-slate-500">{selectedPackage?.title || 'No package selected'}</p>
+             {selectedPackage && <p className="mt-0.5 text-xs font-black text-cyan-200">${selectedPackage.price.toFixed(2)}</p>}
+           </div>
+         </div>
 
         <div className="relative space-y-3.5 p-3.5 sm:p-5">
           <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.05] bg-black/15 p-1 sm:grid-cols-4">
@@ -335,15 +333,15 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
       <div className="pointer-events-none absolute -left-20 top-24 h-44 w-44 rounded-full bg-cyan-400/[0.07] blur-3xl" />
 
       <div className="relative border-b border-white/[0.07] bg-gradient-to-r from-cyan-400/[0.06] via-transparent to-violet-500/[0.08] p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3.5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-center sm:text-left">
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:gap-3.5">
             {step && (
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-500 text-sm font-black text-[#061018] shadow-lg shadow-cyan-950/40">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-sm font-black text-white shadow-lg shadow-rose-300/30 sm:h-11 sm:w-11 sm:text-base mx-auto sm:mx-0">
                 {step}
               </span>
             )}
-            <div>
-              <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-300/80">
+            <div className="flex flex-col items-center sm:items-start">
+              <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-300/80 justify-center sm:justify-start">
                 <Zap className="h-3.5 w-3.5" /> Instant digital delivery
               </div>
               <h2 id="package-selector-title" className="mt-1.5 text-xl font-black tracking-tight text-white sm:text-2xl">

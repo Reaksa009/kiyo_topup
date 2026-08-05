@@ -12,6 +12,13 @@ export const AdminLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  React.useEffect(() => {
+    document.body.classList.add('admin-active');
+    return () => {
+      document.body.classList.remove('admin-active');
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');

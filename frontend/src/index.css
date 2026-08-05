@@ -6,6 +6,38 @@
 
 @layer base {
   :root {
+    color-scheme: light;
+    --kiyo-bg: #fdf6fa;
+    --kiyo-surface: rgba(255, 255, 255, 0.78);
+    --kiyo-surface-strong: #ffffff;
+    --kiyo-line: rgba(244, 63, 94, 0.12);
+    --kiyo-muted: #826e8d;
+    --kiyo-cyan: #ff5a92;
+    --kiyo-blue: #38bdf8;
+    --kiyo-purple: #c084fc;
+    --kiyo-text: #45345c;
+    --kiyo-text-strong: #221330;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: Inter, "Noto Sans Khmer", "Khmer UI", "Khmer OS Battambang", "Khmer OS Siemreap", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-width: 320px;
+  }
+
+  body:not(.admin-active) {
+    background:
+      radial-gradient(circle at 10% -10%, rgba(255, 90, 146, 0.2), transparent 45rem),
+      radial-gradient(circle at 90% 0%, rgba(192, 132, 252, 0.18), transparent 40rem),
+      radial-gradient(circle at 50% 60%, rgba(56, 189, 248, 0.15), transparent 45rem),
+      var(--kiyo-bg);
+    color: var(--kiyo-text);
+  }
+
+  body.admin-active {
     color-scheme: dark;
     --kiyo-bg: #070a12;
     --kiyo-surface: rgba(18, 24, 43, 0.78);
@@ -15,20 +47,8 @@
     --kiyo-cyan: #62e6ff;
     --kiyo-blue: #3b82f6;
     --kiyo-purple: #8b5cf6;
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  body {
-    background:
-      radial-gradient(circle at 10% -10%, rgba(59, 130, 246, 0.16), transparent 34rem),
-      radial-gradient(circle at 90% 0%, rgba(139, 92, 246, 0.13), transparent 30rem),
-      var(--kiyo-bg);
-    color: #f3f6ff;
-    font-family: Inter, "Noto Sans Khmer", "Khmer UI", "Khmer OS Battambang", "Khmer OS Siemreap", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    min-width: 320px;
+    background: #05070C !important;
+    color: #f3f6ff !important;
   }
 
   * {
@@ -139,21 +159,505 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34), 0 0 24px rgba(59, 130, 246, 0.22);
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar styled like sweet strawberry candy */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #080B11;
+  background: var(--kiyo-bg) !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1F293D;
+  background: #f7cbd9 !important;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00F0FF;
+  background: var(--kiyo-cyan) !important;
 }
+
+/* ==========================================
+   LIGHT COLOR CANDY REDESIGN OVERRIDES
+   ========================================== */
+
+/* Global text conversions to deep plum for premium contrast on light background */
+h1, h2, h3, h4, h5, h6,
+/* Global text conversions to deep plum for premium contrast on light background */
+body:not(.admin-active) h1,
+body:not(.admin-active) h2,
+body:not(.admin-active) h3,
+body:not(.admin-active) h4,
+body:not(.admin-active) h5,
+body:not(.admin-active) h6,
+body:not(.admin-active) .text-white,
+body:not(.admin-active) .text-slate-100,
+body:not(.admin-active) .text-gray-100,
+body:not(.admin-active) .text-slate-200 {
+  color: var(--kiyo-text-strong);
+}
+
+body:not(.admin-active) .text-slate-300,
+body:not(.admin-active) .text-slate-400,
+body:not(.admin-active) .text-gray-300,
+body:not(.admin-active) .text-gray-400 {
+  color: var(--kiyo-muted);
+}
+
+body:not(.admin-active) .text-slate-500,
+body:not(.admin-active) .text-slate-600,
+body:not(.admin-active) .text-gray-500,
+body:not(.admin-active) .text-gray-600 {
+  color: #a392ab;
+}
+
+body:not(.admin-active) .border-white\/\[0\.08\], 
+body:not(.admin-active) .border-white\/\[0\.07\], 
+body:not(.admin-active) .border-white\/\[0\.09\], 
+body:not(.admin-active) .border-white\/\[0\.05\], 
+body:not(.admin-active) .border-gray-800, 
+body:not(.admin-active) .border-gray-700 {
+  border-color: var(--kiyo-line) !important;
+}
+
+/* Keep original text colors on elements like buttons, tags and badges */
+body:not(.admin-active) .btn-primary,
+body:not(.admin-active) .btn-primary *,
+body:not(.admin-active) .btn-secondary,
+body:not(.admin-active) button[class*="bg-gradient-to-r"],
+body:not(.admin-active) button[class*="bg-gradient-to-br"],
+body:not(.admin-active) a[class*="bg-gradient-to-r"],
+body:not(.admin-active) a[class*="bg-gradient-to-br"],
+body:not(.admin-active) [class*="text-emerald-"],
+body:not(.admin-active) [class*="bg-emerald-"],
+body:not(.admin-active) [class*="text-amber-"],
+body:not(.admin-active) [class*="bg-amber-"],
+body:not(.admin-active) [class*="text-rose-"],
+body:not(.admin-active) [class*="bg-rose-"],
+body:not(.admin-active) [class*="bg-violet-500"],
+body:not(.admin-active) .rounded-md.bg-violet-500\/95,
+body:not(.admin-active) .bg-cyan-200,
+body:not(.admin-active) .text-slate-950,
+body:not(.admin-active) [class*="text-[#03101d]"],
+body:not(.admin-active) [class*="text-[#061017]"] {
+  color: inherit;
+}
+
+body:not(.admin-active) button.btn-primary,
+body:not(.admin-active) a.btn-primary,
+body:not(.admin-active) button[class*="from-cyan-300"] {
+  background: linear-gradient(135deg, #ff5a92 0%, #ff8da1 50%, #c084fc 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 25px rgba(255, 90, 146, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: none !important;
+}
+
+body:not(.admin-active) button.btn-primary:hover,
+body:not(.admin-active) a.btn-primary:hover,
+body:not(.admin-active) button[class*="from-cyan-300"]:hover {
+  box-shadow: 0 12px 30px rgba(255, 90, 146, 0.4) !important;
+  transform: translateY(-1.5px) !important;
+}
+
+body:not(.admin-active) button.btn-secondary,
+body:not(.admin-active) a.btn-secondary {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.2) !important;
+  color: var(--kiyo-cyan) !important;
+  box-shadow: 0 4px 12px rgba(255, 90, 146, 0.05) !important;
+}
+
+body:not(.admin-active) button.btn-secondary:hover,
+body:not(.admin-active) a.btn-secondary:hover {
+  background-color: rgba(255, 90, 146, 0.05) !important;
+  border-color: var(--kiyo-cyan) !important;
+  color: var(--kiyo-cyan) !important;
+}
+
+/* Base structural pages background overrides */
+body:not(.admin-active) .min-h-screen, 
+body:not(.admin-active) .bg-\[\#071024\], 
+body:not(.admin-active) .bg-\[\#080B11\], 
+body:not(.admin-active) .bg-\[\#070a12\], 
+body:not(.admin-active) .bg-\[\#05070C\] {
+  background: transparent !important;
+}
+
+/* Navbar overrides */
+body:not(.admin-active) header.sticky {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(255, 90, 146, 0.15) !important;
+  box-shadow: 0 8px 32px rgba(255, 90, 146, 0.04) !important;
+}
+
+body:not(.admin-active) header.sticky .group span.text-white {
+  color: var(--kiyo-text-strong) !important;
+}
+
+body:not(.admin-active) header.sticky .group span.text-cyan-300 {
+  color: var(--kiyo-cyan) !important;
+}
+
+body:not(.admin-active) header.sticky .group span.bg-\[\#0a1b3a\] {
+  background: #ffeef3 !important;
+  border-color: rgba(255, 90, 146, 0.25) !important;
+  color: var(--kiyo-cyan) !important;
+  box-shadow: 0 4px 15px rgba(255, 90, 146, 0.1) !important;
+}
+
+body:not(.admin-active) header.sticky nav a,
+body:not(.admin-active) header.sticky .text-slate-300 {
+  color: var(--kiyo-text) !important;
+}
+
+body:not(.admin-active) header.sticky nav a:hover,
+body:not(.admin-active) header.sticky nav a.active {
+  color: var(--kiyo-cyan) !important;
+  background-color: rgba(255, 90, 146, 0.06) !important;
+}
+
+body:not(.admin-active) header.sticky .bg-\#081832,
+body:not(.admin-active) header.sticky .bg-\[\#081832\] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-top: 1px solid rgba(255, 90, 146, 0.1) !important;
+}
+
+/* Hero Banner Overrides */
+body:not(.admin-active) section[aria-label="Featured gaming banner"] {
+  background: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+  box-shadow: 0 15px 40px rgba(255, 90, 146, 0.06) !important;
+}
+
+body:not(.admin-active) section[aria-label="Featured gaming banner"] .absolute.inset-0.bg-gradient-to-r {
+  background: linear-gradient(to right, rgba(255, 247, 250, 0.5) 0%, transparent 60%, rgba(255, 247, 250, 0.3) 100%) !important;
+}
+
+body:not(.admin-active) section[aria-label="Featured gaming banner"] .text-white {
+  color: var(--kiyo-text-strong) !important;
+}
+
+body:not(.admin-active) section[aria-label="Featured gaming banner"] .text-slate-200 {
+  color: var(--kiyo-muted) !important;
+}
+
+body:not(.admin-active) section[aria-label="Featured gaming banner"] span.bg-cyan-200 {
+  background-color: var(--kiyo-cyan) !important;
+  color: #ffffff !important;
+}
+
+/* Highlights Section */
+body:not(.admin-active) .grid-cols-3.divide-x {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+  box-shadow: 0 10px 30px rgba(255, 90, 146, 0.04) !important;
+}
+
+body:not(.admin-active) .grid-cols-3.divide-x > div {
+  border-color: rgba(255, 90, 146, 0.1) !important;
+}
+
+/* Search input elements */
+body:not(.admin-active) input[placeholder*="Search"],
+body:not(.admin-active) input[placeholder*="Coupon"],
+body:not(.admin-active) input[placeholder*="Email"],
+body:not(.admin-active) input[placeholder*="coupon"],
+body:not(.admin-active) input[placeholder*="email"],
+body:not(.admin-active) input[type="search"],
+body:not(.admin-active) input[type="text"],
+body:not(.admin-active) input[type="email"] {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.15) !important;
+  color: var(--kiyo-text-strong) !important;
+}
+
+body:not(.admin-active) input[placeholder*="Search"]::placeholder,
+body:not(.admin-active) input[placeholder*="Coupon"]::placeholder,
+body:not(.admin-active) input[placeholder*="Email"]::placeholder {
+  color: #a894b3 !important;
+}
+
+body:not(.admin-active) input[placeholder*="Search"]:focus,
+body:not(.admin-active) input[placeholder*="Coupon"]:focus,
+body:not(.admin-active) input[placeholder*="Email"]:focus {
+  border-color: var(--kiyo-cyan) !important;
+  box-shadow: 0 0 0 2px rgba(255, 90, 146, 0.1) !important;
+}
+
+/* Category pills filter */
+body:not(.admin-active) button.whitespace-nowrap.rounded-lg.border {
+  border-color: rgba(255, 90, 146, 0.15) !important;
+  background-color: var(--kiyo-surface-strong) !important;
+  color: var(--kiyo-text) !important;
+}
+
+body:not(.admin-active) button.whitespace-nowrap.rounded-lg.border:hover {
+  color: var(--kiyo-cyan) !important;
+  background-color: rgba(255, 90, 146, 0.04) !important;
+  border-color: var(--kiyo-cyan) !important;
+}
+
+body:not(.admin-active) button.whitespace-nowrap.rounded-lg.border.border-cyan-300\/50,
+body:not(.admin-active) button.whitespace-nowrap.rounded-lg.border[class*="bg-cyan-300"] {
+  border-color: var(--kiyo-cyan) !important;
+  background-color: rgba(255, 90, 146, 0.12) !important;
+  color: var(--kiyo-cyan) !important;
+}
+
+/* Game Card redone */
+body:not(.admin-active) article.group {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(255, 90, 146, 0.04) !important;
+}
+
+body:not(.admin-active) article.group:hover {
+  border-color: var(--kiyo-cyan) !important;
+  box-shadow: 0 15px 35px rgba(255, 90, 146, 0.12), 0 8px 20px rgba(192, 132, 252, 0.08) !important;
+  transform: translateY(-3px) !important;
+}
+
+body:not(.admin-active) article.group h3 {
+  color: var(--kiyo-text-strong) !important;
+}
+
+body:not(.admin-active) article.group p.text-cyan-300\/70 {
+  color: var(--kiyo-cyan) !important;
+}
+
+body:not(.admin-active) article.group div.bg-\[\#071024\] {
+  background-color: #fff0f5 !important;
+}
+
+body:not(.admin-active) article.group .border-t {
+  border-color: rgba(255, 90, 146, 0.1) !important;
+}
+
+body:not(.admin-active) article.group span.bg-gradient-to-br.from-cyan-300 {
+  background: linear-gradient(135deg, #ff5a92 0%, #c084fc 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(255, 90, 146, 0.2) !important;
+}
+
+/* Updates & Events section */
+body:not(.admin-active) section.border-y.bg-\[\#09152d\] {
+  background-color: #ffeef4 !important;
+  border-color: rgba(255, 90, 146, 0.1) !important;
+}
+
+body:not(.admin-active) section.border-y.bg-\[\#09152d\] .text-cyan-200 {
+  color: var(--kiyo-cyan) !important;
+}
+
+body:not(.admin-active) section.border-y.bg-\[\#09152d\] a.group {
+  border-color: rgba(255, 90, 146, 0.15) !important;
+}
+
+body:not(.admin-active) section.border-y.bg-\[\#09152d\] a.group .absolute.inset-0.bg-gradient-to-r {
+  background: linear-gradient(to right, rgba(255, 238, 244, 0.95) 0%, rgba(255, 238, 244, 0.5) 60%, transparent 100%) !important;
+}
+
+/* General Card Containers */
+body:not(.admin-active) .bg-\[\#0a1730\], 
+body:not(.admin-active) .bg-\[\#09152d\], 
+body:not(.admin-active) .bg-\[\#061b2e\], 
+body:not(.admin-active) .bg-\[\#06182b\], 
+body:not(.admin-active) .bg-\[\#081a30\], 
+body:not(.admin-active) .bg-\[\#082536\], 
+body:not(.admin-active) .bg-\[\#081d30\], 
+body:not(.admin-active) .bg-\[\#06152b\], 
+body:not(.admin-active) .bg-\[\#061522\], 
+body:not(.admin-active) .bg-\[\#062131\]\/95, 
+body:not(.admin-active) .bg-\[\#081325\]\/95, 
+body:not(.admin-active) .bg-\[\#0c1c33\]\/80, 
+body:not(.admin-active) .bg-\[\#0B0F19\], 
+body:not(.admin-active) .bg-\[\#10151f\], 
+body:not(.admin-active) .bg-\[\#121a27\],
+body:not(.admin-active) .bg-\[\#0d1220\],
+body:not(.admin-active) .bg-\[\#0B0F19\] {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+}
+
+/* Glass panel */
+body:not(.admin-active) .glass-panel {
+  background-color: var(--kiyo-surface) !important;
+  border-color: rgba(255, 90, 146, 0.15) !important;
+  box-shadow: 0 10px 30px rgba(255, 90, 146, 0.05) !important;
+}
+
+body:not(.admin-active) .glass-panel-hover:hover {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: var(--kiyo-cyan) !important;
+  box-shadow: 0 15px 35px rgba(255, 90, 146, 0.1) !important;
+}
+
+/* Top Up Package Selector overrides */
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+  box-shadow: 0 15px 40px rgba(255, 90, 146, 0.05) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] .border-b {
+  border-color: rgba(255, 90, 146, 0.1) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] .bg-gradient-to-r.from-cyan-400\/\[0\.06\] {
+  background: linear-gradient(90deg, rgba(255, 90, 146, 0.05) 0%, rgba(192, 132, 252, 0.05) 100%) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] .bg-black\/20,
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] .bg-black\/15,
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] .bg-black\/25 {
+  background-color: rgba(255, 90, 146, 0.04) !important;
+  border-color: rgba(255, 90, 146, 0.1) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button[aria-pressed="true"] {
+  background-color: rgba(255, 90, 146, 0.12) !important;
+  color: var(--kiyo-cyan) !important;
+  border: 1px solid rgba(255, 90, 146, 0.2) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button[aria-pressed="false"] {
+  color: var(--kiyo-muted) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button[aria-pressed="false"] span.bg-black\/25 {
+  background-color: rgba(255, 90, 146, 0.08) !important;
+  color: var(--kiyo-muted) !important;
+}
+
+/* Individual Package Cards */
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group.relative {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group.relative:hover {
+  border-color: var(--kiyo-cyan) !important;
+  box-shadow: 0 10px 25px rgba(255, 90, 146, 0.08) !important;
+}
+
+/* Selected package card */
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group[aria-pressed="true"] {
+  background: linear-gradient(135deg, rgba(255, 90, 146, 0.08) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(192, 132, 252, 0.08) 100%) !important;
+  border-color: var(--kiyo-cyan) !important;
+  box-shadow: 0 12px 30px rgba(255, 90, 146, 0.12) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group[aria-pressed="true"] .via-cyan-200\/80 {
+  background: linear-gradient(90deg, transparent 0%, var(--kiyo-cyan) 50%, transparent 100%) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group[aria-pressed="true"] span.bg-cyan-200 {
+  background: var(--kiyo-cyan) !important;
+  color: #ffffff !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] span.text-emerald-300 {
+  color: #10b981 !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] .border-emerald-400\/25 {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  background-color: rgba(16, 185, 129, 0.05) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] .border-emerald-400\/25 span.text-white {
+  color: #10b981 !important;
+}
+
+/* Coupon and Payment detail boxes */
+body:not(.admin-active) .bg-\[\#061522\], body:not(.admin-active) .bg-\[\#06152b\], body:not(.admin-active) .bg-\[\#081a30\] {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+}
+
+/* Payment Option Button overrides */
+body:not(.admin-active) button[class*="border-white/"][class*="bg-[#061522]"],
+body:not(.admin-active) button[class*="border-white/"][class*="bg-black"] {
+  background-color: var(--kiyo-surface-strong) !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+  color: var(--kiyo-text) !important;
+}
+
+body:not(.admin-active) button[class*="border-white/"][class*="bg-[#061522]"]:hover {
+  border-color: var(--kiyo-cyan) !important;
+  background-color: rgba(255, 90, 146, 0.03) !important;
+}
+
+body:not(.admin-active) button[class*="border-amber-300"] {
+  border-color: var(--kiyo-cyan) !important;
+  background-color: rgba(255, 90, 146, 0.05) !important;
+}
+
+body:not(.admin-active) button[class*="border-amber-300"] span.text-white {
+  color: var(--kiyo-text-strong) !important;
+}
+
+/* Gradient text updates */
+body:not(.admin-active) .text-gradient {
+  background: linear-gradient(110deg, var(--kiyo-text-strong) 10%, var(--kiyo-cyan) 45%, var(--kiyo-purple) 90%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Footer Section Overrides */
+body:not(.admin-active) footer {
+  background-color: #fdf2f6 !important;
+  border-color: rgba(255, 90, 146, 0.15) !important;
+  color: #6b5c77 !important;
+}
+
+body:not(.admin-active) footer .text-white {
+  color: var(--kiyo-text-strong) !important;
+}
+
+body:not(.admin-active) footer .text-cyan-200, body:not(.admin-active) footer .text-cyan-300 {
+  color: var(--kiyo-cyan) !important;
+}
+
+body:not(.admin-active) footer .bg-\[\#0a1d3e\] {
+  background-color: #ffeef3 !important;
+  border-color: rgba(255, 90, 146, 0.2) !important;
+  color: var(--kiyo-cyan) !important;
+}
+
+body:not(.admin-active) footer a:hover {
+  color: var(--kiyo-cyan) !important;
+}
+
+body:not(.admin-active) footer .border-white\/\[0\.08\], body:not(.admin-active) footer .border-t {
+  border-color: rgba(255, 90, 146, 0.1) !important;
+}
+
+body:not(.admin-active) footer .bg-white\/\[0\.04\] {
+  background-color: #fff0f4 !important;
+  border-color: rgba(255, 90, 146, 0.12) !important;
+  color: #6b5c77 !important;
+}
+
+body:not(.admin-active) footer .bg-gradient-to-r {
+  background: linear-gradient(90deg, var(--kiyo-cyan), var(--kiyo-purple)) !important;
+}
+
+/* Bottom floating support button shadows */
+body:not(.admin-active) .floating-support {
+  box-shadow: 0 10px 25px rgba(255, 90, 146, 0.15) !important;
+}
+
+/* Support FAQ, Contact, Register and other custom page layouts */
+body:not(.admin-active) .text-gray-100 {
+  color: var(--kiyo-text-strong) !important;
+}
+body:not(.admin-active) .text-gray-300, body:not(.admin-active) .text-gray-400 {
+  color: var(--kiyo-muted) !important;
+}
+

@@ -76,6 +76,7 @@ export function GameDetail() {
         setErrorMsg(error.response?.data?.message || 'Game not found.');
       } finally {
         setLoading(false);
+        window.scrollTo({ top: 0 });
       }
     };
     fetchGame();
@@ -234,9 +235,12 @@ export function GameDetail() {
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-0 md:space-y-3">
             <section className="rounded-t-[24px] rounded-b-none border border-b-0 border-cyan-300/25 bg-[#082536] p-4 shadow-xl shadow-black/15 sm:p-5 md:rounded-2xl md:border-b">
-              <div className="flex items-center gap-3">
-                <span className="shrink-0 text-xl font-black text-amber-300 sm:text-2xl">1</span>
-                <div className="min-w-0"><h2 className="truncate text-base font-black text-white sm:text-lg">{t('customer.enterPlayer')}</h2><p className="mt-0.5 text-[9px] text-slate-500 sm:text-[10px]">Enter the account details used for delivery.</p></div>
+              <div className="flex flex-col items-center text-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-sm font-black text-white shadow-lg shadow-rose-300/30 sm:h-11 sm:w-11 sm:text-base">1</span>
+                <div className="min-w-0">
+                  <h2 className="text-base font-black text-white sm:text-lg">{t('customer.enterPlayer')}</h2>
+                  <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Enter the account details used for delivery.</p>
+                </div>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2.5">
@@ -270,7 +274,13 @@ export function GameDetail() {
 
           <aside>
             <section className="rounded-2xl border border-cyan-300/20 bg-[#081d30] p-3 shadow-xl shadow-black/15 md:sticky md:top-20 sm:p-4">
-              <div className="flex items-center gap-2.5 border-b border-white/[0.08] pb-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-300 text-[11px] font-black text-[#171006]">3</span><div><h2 className="text-xs font-black text-white sm:text-sm">Payment & Confirmation</h2><p className="mt-0.5 text-[7px] text-slate-500">Choose a secure payment method.</p></div></div>
+              <div className="flex flex-col items-center text-center gap-3 border-b border-white/[0.08] pb-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-sm font-black text-white shadow-lg shadow-rose-300/30 sm:h-11 sm:w-11 sm:text-base">3</span>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-black text-white sm:text-base">Payment & Confirmation</h2>
+                  <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Choose a secure payment method.</p>
+                </div>
+              </div>
 
               <div className="mt-3 space-y-2">
                 {paymentOptions.map((option) => {

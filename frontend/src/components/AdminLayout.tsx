@@ -71,6 +71,13 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [loadAlerts]);
 
   useEffect(() => {
+    document.body.classList.add('admin-active');
+    return () => {
+      document.body.classList.remove('admin-active');
+    };
+  }, []);
+
+  useEffect(() => {
     setMobileOpen(false);
     setNotificationsOpen(false);
   }, [location.pathname, location.search]);
