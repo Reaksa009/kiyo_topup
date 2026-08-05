@@ -277,7 +277,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                         <img
                           src={getPackageImage(pkg, gameSlug, sortedPackages)}
                           alt=""
-                          className="h-7 w-7 object-contain"
+                          className="h-10 w-10 object-contain sm:h-12 sm:w-12"
                         />
                         {selected && (
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-200 text-[#04101d] shadow-md shadow-cyan-950/40">
@@ -442,7 +442,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                     <img
                       src={getPackageImage(pkg, gameSlug, sortedPackages)}
                       alt=""
-                      className="h-10 w-10 object-contain"
+                      className="h-14 w-14 object-contain sm:h-16 sm:w-16"
                     />
                     {selected ? (
                       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-200 text-[#061017] shadow-lg shadow-cyan-950/40">
