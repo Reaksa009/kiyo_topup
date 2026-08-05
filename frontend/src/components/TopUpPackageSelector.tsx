@@ -125,61 +125,133 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
 
   if (compact) {
     return (
-      <section className={`overflow-hidden border border-cyan-300/20 bg-[#081d30] shadow-xl shadow-black/15 ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
-        <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] bg-[#0d2a43] px-3 py-3 sm:px-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            {step && <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-300 text-[11px] font-black text-[#04131f]">{step}</span>}
-            <div className="min-w-0"><h2 id="package-selector-title" className="text-xs font-black text-white sm:text-sm">Select Top-Up Package</h2><p className="mt-0.5 text-[7px] text-slate-500 sm:text-[8px]">{packages.length} choices available</p></div>
+      <section className={`relative overflow-hidden border border-white/[0.08] bg-[#081325]/95 shadow-2xl backdrop-blur-md ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
+        <div className="absolute -right-16 -top-16 pointer-events-none h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
+        <div className="absolute -left-16 bottom-0 pointer-events-none h-32 w-32 rounded-full bg-violet-500/5 blur-2xl" />
+
+        <div className="relative flex items-center justify-between gap-3 border-b border-white/[0.06] bg-[#0c1c33]/80 px-4 py-3.5 sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            {step && (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300 to-violet-500 text-xs font-black text-[#04101d] shadow-lg shadow-cyan-950/40">
+                {step}
+              </span>
+            )}
+            <div className="min-w-0">
+              <h2 id="package-selector-title" className="text-sm font-black tracking-tight text-white">Select Top-Up Package</h2>
+              <p className="mt-0.5 text-[8px] text-slate-500">{packages.length} choices available</p>
+            </div>
           </div>
-          <div className={`min-w-0 rounded-lg border px-2 py-1.5 text-right ${compactMobileLead ? 'hidden md:block' : ''} ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.07] bg-black/15'}`}>
-            <p className="max-w-[105px] truncate text-[7px] font-bold text-slate-500 sm:max-w-[150px]">{selectedPackage?.title || 'No package selected'}</p>
-            {selectedPackage && <p className="mt-0.5 text-[10px] font-black text-cyan-200">${selectedPackage.price.toFixed(2)}</p>}
+          <div className={`min-w-0 rounded-xl border px-3 py-1.5 text-right ${compactMobileLead ? 'hidden md:block' : ''} ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.06] bg-black/20'}`}>
+            <p className="max-w-[120px] truncate text-[8px] font-bold text-slate-500">{selectedPackage?.title || 'No package selected'}</p>
+            {selectedPackage && <p className="mt-0.5 text-[11px] font-black text-cyan-200">${selectedPackage.price.toFixed(2)}</p>}
           </div>
         </div>
 
-        <div className="space-y-3 p-2.5 sm:p-4">
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        <div className="relative space-y-3.5 p-3.5 sm:p-5">
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.05] bg-black/15 p-1 sm:grid-cols-4">
             {filters.map(({ id, shortLabel, icon: Icon }) => {
               const active = activeFilter === id;
               return (
-                <button key={id} type="button" onClick={() => setActiveFilter(id)} aria-pressed={active} className={`flex h-8 items-center justify-center gap-1 rounded-lg border px-1.5 text-[7px] font-black uppercase transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 sm:text-[8px] ${active ? 'border-cyan-300/35 bg-cyan-300/[0.11] text-cyan-100' : 'border-white/[0.07] bg-black/15 text-slate-500 hover:text-white'}`}>
-                  <Icon className="h-3 w-3" />{shortLabel}<span className="rounded bg-black/20 px-1 py-0.5 text-[6px]">{counts[id]}</span>
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActiveFilter(id)}
+                  aria-pressed={active}
+                  className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-[9px] font-black uppercase transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+                    active
+                      ? 'bg-white/[0.08] text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-300' : id === 'event' ? 'text-violet-300' : 'text-cyan-300' : 'text-slate-600'}`} />
+                  {shortLabel}
+                  <span className="rounded-md bg-black/20 px-1 py-0.5 text-[7px] text-slate-400">{counts[id]}</span>
                 </button>
               );
             })}
           </div>
 
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-600" />
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search diamonds or passes" className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#061522] pl-9 pr-9 text-[9px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/45" aria-label="Search top-up packages" />
-            {query && <button type="button" onClick={() => setQuery('')} className="absolute right-2.5 top-2.5 text-slate-600 hover:text-white" aria-label="Clear package search"><X className="h-3.5 w-3.5" /></button>}
+            <Search className="pointer-events-none absolute left-3 top-3 h-3.5 w-3.5 text-slate-600" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search diamonds or passes..."
+              className="h-9 w-full rounded-xl border border-white/[0.07] bg-black/20 pl-9 pr-9 text-[10px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40"
+              aria-label="Search top-up packages"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery('')} className="absolute right-2.5 top-2.5 text-slate-600 hover:text-white" aria-label="Clear package search">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           {compactMobileLead && <div className="md:hidden">{compactMobileLead}</div>}
 
           {visiblePackages.length > 0 ? (
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-2 gap-2 min-[390px]:grid-cols-3">
               {visiblePackages.map((pkg) => {
                 const selected = selectedPackage?._id === pkg._id;
                 const group = packageGroup(pkg);
+                const isPass = group === 'event';
                 return (
-                  <button key={pkg._id} type="button" onClick={() => onSelect(pkg)} aria-pressed={selected} className={`group relative flex min-h-[94px] min-w-0 flex-col overflow-hidden rounded-lg border text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 sm:min-h-[108px] ${selected ? 'border-cyan-200 bg-cyan-300/[0.12] shadow-md shadow-cyan-950/30' : 'border-white/[0.1] bg-[#3a4552]/75 hover:border-cyan-300/35 hover:bg-[#43505f]'}`}>
-                    <div className="flex flex-1 flex-col items-center justify-center px-1.5 py-2">
-                      <span className={`flex h-5 w-5 items-center justify-center rounded-md border sm:h-6 sm:w-6 ${groupTone[group]}`}>{selected ? <Check className="h-3 w-3" strokeWidth={3} /> : group === 'popular' ? <Flame className="h-3 w-3" /> : group === 'event' ? <Sparkles className="h-3 w-3" /> : <Gem className="h-3 w-3" />}</span>
-                      <h3 className="mt-1.5 line-clamp-2 min-h-6 text-[7px] font-black leading-3 text-white sm:min-h-7 sm:text-[9px] sm:leading-3.5">{pkg.title}</h3>
-                      <p className="mt-1 text-[6px] font-semibold text-slate-400 sm:text-[7px]">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
+                  <button
+                    key={pkg._id}
+                    type="button"
+                    onClick={() => onSelect(pkg)}
+                    aria-pressed={selected}
+                    className={`group relative flex min-h-[110px] min-w-0 flex-col justify-between overflow-hidden rounded-xl border text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+                      selected
+                        ? 'border-cyan-300/60 bg-gradient-to-br from-cyan-300/[0.12] via-[#091729] to-[#040e1b] shadow-lg shadow-cyan-950/30'
+                        : 'border-white/[0.06] bg-[#0c1626]/80 hover:border-white/[0.12] hover:bg-[#0f1d31]'
+                    }`}
+                  >
+                    <div className="p-2.5">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className={`flex h-6 w-6 items-center justify-center rounded-lg border text-[8px] ${groupTone[group]}`}>
+                          {group === 'popular' ? <Flame className="h-3.5 w-3.5" /> : group === 'event' ? <Sparkles className="h-3.5 w-3.5" /> : <Gem className="h-3.5 w-3.5" />}
+                        </span>
+                        {selected && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-200 text-[#04101d] shadow-md shadow-cyan-950/40">
+                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                          </span>
+                        )}
+                      </div>
+                      <h3 className={`mt-2 line-clamp-2 min-h-6 text-[9px] font-black leading-[1.3] ${selected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                        {pkg.title}
+                      </h3>
+                      {pkg.supportsBoth && (
+                        <span className="mt-1 inline-flex items-center gap-0.5 rounded border border-cyan-300/10 bg-cyan-300/[0.04] px-1 py-0.5 text-[6px] font-black uppercase text-cyan-300/85">
+                          <Globe2 className="h-2 w-2" /> Global & Regular
+                        </span>
+                      )}
                     </div>
-                    <div className={`py-1 text-[10px] font-black sm:text-xs ${selected ? 'bg-cyan-300 text-[#04131f]' : 'bg-[#07182a] text-cyan-200 group-hover:bg-cyan-300 group-hover:text-[#04131f]'}`}>${pkg.price.toFixed(2)}</div>
+                    <div className="flex items-center justify-between border-t border-white/[0.04] px-2.5 py-1.5 bg-black/10">
+                      <p className="text-[7px] font-bold text-slate-500">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
+                      <span className={`text-[10px] font-black ${selected ? 'text-cyan-200' : 'text-white'}`}>${pkg.price.toFixed(2)}</span>
+                    </div>
                   </button>
                 );
               })}
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-white/[0.09] bg-black/15 py-8 text-center"><PackageOpen className="mx-auto h-6 w-6 text-slate-700" /><p className="mt-2 text-[10px] font-black text-slate-300">No packages found</p><button type="button" onClick={() => { setActiveFilter('all'); setQuery(''); }} className="mt-2 text-[8px] font-black text-cyan-300">Show all packages</button></div>
+            <div className="rounded-xl border border-dashed border-white/[0.09] bg-black/15 py-8 text-center">
+              <PackageOpen className="mx-auto h-6 w-6 text-slate-700" />
+              <p className="mt-2 text-[10px] font-black text-slate-300">No packages found</p>
+              <button type="button" onClick={() => { setActiveFilter('all'); setQuery(''); }} className="mt-2 text-[8px] font-black text-cyan-300">Show all packages</button>
+            </div>
           )}
 
           {visiblePackages.length < filteredPackages.length && (
-            <button type="button" onClick={() => setVisibleCount((count) => count + initialVisibleCount)} className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] text-[8px] font-black uppercase text-cyan-200 hover:bg-cyan-300/[0.1]">Load more packages <span className="text-slate-500">({filteredPackages.length - visiblePackages.length})</span></button>
+            <button
+              type="button"
+              onClick={() => setVisibleCount((count) => count + initialVisibleCount)}
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] text-[8px] font-black uppercase text-slate-400 hover:border-cyan-300/20 hover:bg-cyan-300/[0.05] hover:text-cyan-200"
+            >
+              Load more packages <span className="text-slate-600">({filteredPackages.length - visiblePackages.length})</span>
+            </button>
           )}
         </div>
       </section>

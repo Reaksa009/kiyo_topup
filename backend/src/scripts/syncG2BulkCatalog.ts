@@ -487,8 +487,8 @@ export const syncG2BulkCatalog = async (options: CatalogSyncOptions = {}): Promi
         categoryName: 'MOBA',
         categorySlug: 'moba',
         categoryIcon: 'Swords',
-        thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=75',
-        bannerUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=75',
+        thumbnail: '/images/mlbb-card.png',
+        bannerUrl: '/images/mlbb-card.png',
         keywords: ['mobile legends', 'mlbb', 'diamond', 'starlight', 'weekly pass'],
         inputFields: [
           { name: 'playerId', label: 'Player ID', placeholder: 'e.g. 563087296', type: 'text', required: true, helpText: 'Found under avatar header' },

@@ -19,7 +19,7 @@ import type { PublicBannerDTO, PublicGameDTO } from '../types/catalog';
 import { useTranslation } from 'react-i18next';
 
 const curatedGames: Array<PublicGameDTO & { discount?: string; comingSoon?: boolean }> = [
-  { slug: 'mobile-legends', title: 'Mobile Legends', publisher: 'Moonton', thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'MOBA', slug: 'moba' }, discount: 'Up to 15% off' },
+  { slug: 'mobile-legends', title: 'Mobile Legends', publisher: 'Moonton', thumbnail: '/images/mlbb-card.png', categoryId: { name: 'MOBA', slug: 'moba' }, discount: 'Up to 15% off' },
   { slug: 'free-fire', title: 'Free Fire', publisher: 'Garena', thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'Battle Royale', slug: 'battle-royale' }, discount: 'Bonus diamonds' },
   { slug: 'pubg-mobile', title: 'PUBG Mobile', publisher: 'Tencent Games', thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'Battle Royale', slug: 'battle-royale' }, discount: 'Best value' },
   { slug: 'honor-of-kings', title: 'Honor of Kings', publisher: 'Level Infinite', thumbnail: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'MOBA', slug: 'moba' }, discount: 'New' },
