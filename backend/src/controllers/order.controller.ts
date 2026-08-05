@@ -12,6 +12,7 @@ import { orderQueue } from '../queues/orderQueue';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { AuditService } from '../services/audit.service';
 import { G2BulkAdapter } from '../services/providers/G2BulkAdapter';
+import { ProviderFactory } from '../services/providers/ProviderFactory';
 import { Settings } from '../models/System';
 import { CATALOG_SYNC_MESSAGE } from '../middleware/catalogSync.middleware';
 import mongoose from 'mongoose';
@@ -563,6 +564,16 @@ export class OrderController {
       const { orderId } = req.params;
       const order = await Order.findById(orderId);
       if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+      // Return items only if G2Bulk has balance
+      const provider = ProviderFactory.getProvider('G2BULK');
+      const balanceData = await provider.getBalance();
+      if (!balanceData || balanceData.balance <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot return item. G2Bulk provider has insufficient balance.'
+        });
+      }
 
       order.overallStatus = 'refunded';
       order.paymentStatus = 'refunded';
