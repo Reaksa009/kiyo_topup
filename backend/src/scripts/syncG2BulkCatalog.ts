@@ -27,12 +27,12 @@ export interface GameCatalogMatchDefinition {
 }
 
 export const GAME_IDENTITY_ALIASES: Record<string, string[]> = {
-  'mobile-legends': ['mobile legends', 'mobile legends global', 'mlbb'],
-  'pubg-mobile': ['pubg mobile', 'pubg'],
-  'free-fire': ['freefire global'],
+  'mobile-legends': ['mobile legends', 'mobile legends global', 'mlbb', 'mobilelegends', 'mobilelegend'],
+  'pubg-mobile': ['pubg mobile', 'pubg', 'pubgmobile'],
+  'free-fire': ['freefire global', 'freefire', 'free fire'],
   valorant: ['valorant'],
-  'honor-of-kings': ['honor of kings', 'hok'],
-  'cod-mobile': ['call of duty mobile', 'call of duty: mobile', 'cod mobile', 'codm'],
+  'honor-of-kings': ['honor of kings', 'hok', 'honorofkings'],
+  'cod-mobile': ['call of duty mobile', 'call of duty: mobile', 'cod mobile', 'codm', 'codmobile'],
   'blood-strike': ['blood strike', 'bloodstrike'],
   'delta-force': ['delta force', 'deltaforce']
 };
