@@ -12,6 +12,8 @@ const envSchema = z.object({
   CLIENT_URL: z.string().default('http://localhost:3000'),
   ADMIN_URL: z.string().default('http://localhost:3000/admin'),
   CORS_ORIGINS: z.string().default(''),
+  DEPLOYMENT_ENVIRONMENT: z.enum(['development', 'preview', 'production']).default('development'),
+  MONGODB_DATABASE_NAME: z.string().trim().min(1).default('kiyo_topup'),
 
   MONGODB_URI: z.string().default('mongodb://localhost:27017/kiyo_topup'),
   REDIS_URI: z.string().default('redis://localhost:6379'),
@@ -44,10 +46,12 @@ const envSchema = z.object({
   KHQR_MERCHANT_CITY: z.string().default('PHNOM PENH'),
   KHQR_CURRENCY: z.enum(['USD', 'KHR']).default('USD'),
 
-  G2BULK_API_URL: z.string().default('https://api.g2bulk.com/v1'),
-  G2BULK_API_KEY: z.string().default('g2bulk_api_key_sample'),
-  G2BULK_API_SECRET: z.string().default('g2bulk_secret_sample'),
-  G2BULK_USER_ID: z.string().default('kiyo_topup_user'),
+  G2BULK_API_URL: z.string().default(''),
+  G2BULK_API_KEY: z.string().default(''),
+  G2BULK_API_SECRET: z.string().default(''),
+  G2BULK_USER_ID: z.string().default(''),
+  MINIMUM_PROFIT_MINOR: z.coerce.number().int().min(0).default(0),
+  MAX_PROVIDER_PRICE_CHANGE_BPS: z.coerce.number().int().min(0).default(500),
   BAKONG_WEBHOOK_SECRET: z.string().default(''),
   G2BULK_WEBHOOK_SECRET: z.string().default(''),
 
@@ -58,6 +62,29 @@ const envSchema = z.object({
   SEED_ADMIN_PASSWORD: z.string().default('AdminKiyoTopUp2026!')
 }).superRefine((config, context) => {
   if (config.NODE_ENV !== 'production') return;
+
+  const vercelEnvironment = process.env.VERCEL_ENV;
+  if (vercelEnvironment === 'preview' && config.DEPLOYMENT_ENVIRONMENT !== 'preview') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['DEPLOYMENT_ENVIRONMENT'], message: 'Preview deployments must use DEPLOYMENT_ENVIRONMENT=preview.' });
+  }
+  if (vercelEnvironment === 'production' && config.DEPLOYMENT_ENVIRONMENT !== 'production') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['DEPLOYMENT_ENVIRONMENT'], message: 'Production deployments must use DEPLOYMENT_ENVIRONMENT=production.' });
+  }
+  if (config.DEPLOYMENT_ENVIRONMENT === 'preview' && !/preview|staging/i.test(config.MONGODB_DATABASE_NAME)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['MONGODB_DATABASE_NAME'], message: 'Preview deployments must use an explicitly preview/staging MongoDB database name.' });
+  }
+  if (config.DEPLOYMENT_ENVIRONMENT === 'production' && /preview|staging|test/i.test(config.MONGODB_DATABASE_NAME)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['MONGODB_DATABASE_NAME'], message: 'Production deployments cannot use a preview, staging, or test MongoDB database name.' });
+  }
+  for (const origin of [config.CLIENT_URL, config.ADMIN_URL, ...config.CORS_ORIGINS.split(',')].filter(Boolean)) {
+    try {
+      const url = new URL(origin);
+      if (url.protocol !== 'https:' || url.hostname === 'localhost') throw new Error('invalid origin');
+    } catch {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['CORS_ORIGINS'], message: 'Production CORS origins must be explicit HTTPS origins.' });
+      break;
+    }
+  }
 
   const rejectSecret = (field: keyof typeof config, value: string, minimumLength = 32) => {
     if (value.length < minimumLength || /sample|change|kiyo_topup_(secret|prod)|AdminKiyoTopUp2026/i.test(value)) {
@@ -102,10 +129,9 @@ const envSchema = z.object({
   } else {
     rejectSecret('BAKONG_API_TOKEN', config.BAKONG_API_TOKEN, 16);
   }
-  rejectSecret('G2BULK_API_KEY', config.G2BULK_API_KEY, 16);
-  rejectSecret('G2BULK_API_SECRET', config.G2BULK_API_SECRET, 16);
+  // G2Bulk catalogue integration is documentation-gated; credentials remain optional
+  // until that contract is officially verified and sync is explicitly enabled.
   rejectSecret('BAKONG_WEBHOOK_SECRET', config.BAKONG_WEBHOOK_SECRET);
-  rejectSecret('G2BULK_WEBHOOK_SECRET', config.G2BULK_WEBHOOK_SECRET);
   rejectSecret('SEED_ADMIN_PASSWORD', config.SEED_ADMIN_PASSWORD, 14);
 
   if (config.ALLOW_IN_MEMORY_DB) {
@@ -122,6 +148,9 @@ const envSchema = z.object({
       path: ['ENABLE_PAYMENT_SIMULATOR'],
       message: 'Payment simulation cannot be enabled in production'
     });
+  }
+  if (config.AUTO_SEED_DATABASE) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['AUTO_SEED_DATABASE'], message: 'Automatic database seeding cannot be enabled in production.' });
   }
 });
 

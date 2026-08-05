@@ -1,12 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { redisClient } from '../config/redis';
+import crypto from 'crypto';
 
 export const checkIdempotency = async (req: Request, res: Response, next: NextFunction) => {
-  const idempotencyKey = req.headers['x-idempotency-key'] as string || req.body.idempotencyKey;
-
-  if (!idempotencyKey) {
-    return next();
-  }
+  const idempotencyKey = req.headers['x-idempotency-key'] as string || req.body.idempotencyKey || crypto.randomUUID();
+  req.body.idempotencyKey = idempotencyKey;
 
   try {
     const redisKey = `idempotency:${idempotencyKey}`;
@@ -24,7 +22,10 @@ export const checkIdempotency = async (req: Request, res: Response, next: NextFu
     await redisClient.set(redisKey, 'LOCKED', 'EX', 60);
     next();
   } catch (error) {
-    // If Redis is unreachable, continue execution safely
-    next();
+    return res.status(503).json({
+      success: false,
+      message: 'Order processing is temporarily unavailable. Please retry shortly.',
+      code: 'IDEMPOTENCY_UNAVAILABLE'
+    });
   }
 };

@@ -14,6 +14,12 @@ import { AuditService } from '../services/audit.service';
 import { G2BulkAdapter } from '../services/providers/G2BulkAdapter';
 import { Settings } from '../models/System';
 import { CATALOG_SYNC_MESSAGE } from '../middleware/catalogSync.middleware';
+import mongoose from 'mongoose';
+import { toCustomerOrderDTO } from '../utils/publicCatalog';
+import { calculateLegacyOrderPrice } from '../services/pricing.service';
+import { majorToMinor } from '../utils/money';
+import { PriceReviewService } from '../services/priceReview.service';
+import { env } from '../config/env';
 
 export class OrderController {
   /**
@@ -21,6 +27,9 @@ export class OrderController {
    */
   static async createOrder(req: AuthenticatedRequest, res: Response) {
     try {
+      if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({ success: false, message: 'Catalogue is temporarily unavailable. Please try again shortly.' });
+      }
       // Check if catalog synchronization lock is enabled
       const settings = await Settings.findOne();
       if (settings?.isSyncing) {
@@ -50,7 +59,7 @@ export class OrderController {
       }
 
       const pkg = await Package.findById(packageId);
-      if (!pkg || pkg.status !== 'active') {
+      if (!pkg || pkg.gameId.toString() !== game._id.toString() || pkg.status !== 'active') {
         return res.status(400).json({ success: false, message: 'Selected package is out of stock or unavailable.' });
       }
 
@@ -80,7 +89,8 @@ export class OrderController {
         return res.status(503).json({ success: false, message: CATALOG_SYNC_MESSAGE });
       }
 
-      let finalPrice = pkg.price;
+      const authoritativePrice = calculateLegacyOrderPrice(pkg);
+      let finalPrice = authoritativePrice.amount;
       let discountAmount = 0;
 
       // Handle Coupon Code discount
@@ -100,7 +110,10 @@ export class OrderController {
         }
       }
 
-      const costPrice = pkg.costPrice;
+      const costPrice = authoritativePrice.costPrice;
+      if (majorToMinor(finalPrice, 'USD') < authoritativePrice.providerCostMinor + env.MINIMUM_PROFIT_MINOR) {
+        return res.status(400).json({ success: false, message: 'The selected discount cannot be applied to this package.' });
+      }
       const profit = finalPrice - costPrice;
       const orderNumber = `ORD-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
 
@@ -119,6 +132,9 @@ export class OrderController {
         amount: finalPrice,
         costPrice,
         profit,
+        providerCostMinor: authoritativePrice.providerCostMinor,
+        sellingPriceMinor: authoritativePrice.sellingPriceMinor,
+        paidPriceMinor: majorToMinor(finalPrice, 'USD'),
         paymentMethod,
         paymentStatus: 'pending',
         providerStatus: 'pending',
@@ -180,7 +196,7 @@ export class OrderController {
         return res.status(201).json({
           success: true,
           message: 'Order paid using wallet balance. Top-up in progress!',
-          data: { order, payment: { type: 'WALLET', paid: true } }
+          data: { order: toCustomerOrderDTO(order.toObject()), payment: { type: 'WALLET', paid: true } }
         });
       }
 
@@ -210,7 +226,7 @@ export class OrderController {
         success: true,
         message: 'Order created successfully. Please complete payment.',
         data: {
-          order,
+          order: toCustomerOrderDTO(order.toObject()),
           paymentDetails
         }
       });
@@ -221,6 +237,9 @@ export class OrderController {
 
   static async getOrderDetails(req: Request, res: Response) {
     try {
+      if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({ success: false, message: 'Catalogue is temporarily unavailable. Please try again shortly.' });
+      }
       const { orderNumber } = req.params;
       const order = await Order.findOne({ orderNumber }).populate('gameId', 'title thumbnail bannerUrl inputFields');
       if (!order) {
@@ -238,6 +257,15 @@ export class OrderController {
         couponCode: _couponCode,
         discountAmount: _discountAmount,
         metadata: _metadata,
+        providerType: _providerType,
+        providerProductId: _providerProductId,
+        supplierId: _supplierId,
+        idempotencyKey: _idempotencyKey,
+        providerCostMinor: _providerCostMinor,
+        sellingPriceMinor: _sellingPriceMinor,
+        paidPriceMinor: _paidPriceMinor,
+        observedProviderCostMinor: _observedProviderCostMinor,
+        priceReviewDecisionBy: _priceReviewDecisionBy,
         ...publicOrder
       } = order.toObject();
 
@@ -287,7 +315,7 @@ export class OrderController {
       }
 
       const pkg = await Package.findById(packageId);
-      if (!pkg || pkg.status !== 'active') {
+      if (!pkg || pkg.gameId.toString() !== game._id.toString() || pkg.status !== 'active') {
         return res.status(400).json({ success: false, message: 'Selected package is out of stock or unavailable.' });
       }
 
@@ -295,7 +323,8 @@ export class OrderController {
         return res.status(503).json({ success: false, message: CATALOG_SYNC_MESSAGE });
       }
 
-      let finalPricePerUnit = pkg.price;
+      const authoritativePrice = calculateLegacyOrderPrice(pkg);
+      let finalPricePerUnit = authoritativePrice.amount;
       let discountAmount = 0;
 
       // Handle Coupon Code discount
@@ -315,7 +344,10 @@ export class OrderController {
         }
       }
 
-      const totalCostPrice = pkg.costPrice * players.length;
+      if (majorToMinor(finalPricePerUnit, 'USD') < authoritativePrice.providerCostMinor + env.MINIMUM_PROFIT_MINOR) {
+        return res.status(400).json({ success: false, message: 'The selected discount cannot be applied to this package.' });
+      }
+      const totalCostPrice = authoritativePrice.costPrice * players.length;
       const totalAmount = finalPricePerUnit * players.length;
       const totalProfit = totalAmount - totalCostPrice;
 
@@ -337,6 +369,9 @@ export class OrderController {
         amount: totalAmount,
         costPrice: totalCostPrice,
         profit: totalProfit,
+        providerCostMinor: authoritativePrice.providerCostMinor * players.length,
+        sellingPriceMinor: authoritativePrice.sellingPriceMinor * players.length,
+        paidPriceMinor: majorToMinor(totalAmount, 'USD'),
         paymentMethod,
         paymentStatus: 'pending',
         providerStatus: 'pending',
@@ -383,8 +418,11 @@ export class OrderController {
           providerProductId: pkg.providerProductId,
           supplierId: pkg.supplierId,
           amount: finalPricePerUnit,
-          costPrice: pkg.costPrice,
-          profit: finalPricePerUnit - pkg.costPrice,
+          costPrice: authoritativePrice.costPrice,
+          profit: finalPricePerUnit - authoritativePrice.costPrice,
+          providerCostMinor: authoritativePrice.providerCostMinor,
+          sellingPriceMinor: authoritativePrice.sellingPriceMinor,
+          paidPriceMinor: majorToMinor(finalPricePerUnit, 'USD'),
           paymentMethod,
           paymentStatus: 'pending',
           providerStatus: 'pending',
@@ -423,7 +461,7 @@ export class OrderController {
         success: true,
         message: 'Bulk order batch created successfully',
         data: {
-          order: parentOrder,
+          order: toCustomerOrderDTO(parentOrder.toObject()),
           paymentDetails
         }
       });
@@ -437,7 +475,7 @@ export class OrderController {
       if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
       const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
-      res.json({ success: true, count: orders.length, data: orders });
+      res.json({ success: true, count: orders.length, data: orders.map((order) => toCustomerOrderDTO(order.toObject())) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -464,6 +502,29 @@ export class OrderController {
       res.json({ success: true, count: orders.length, data: orders });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async getPriceReviewOrders(_req: Request, res: Response) {
+    try {
+      const orders = await Order.find({ priceReviewStatus: 'required' }).sort({ createdAt: -1 }).limit(100);
+      res.json({ success: true, count: orders.length, data: orders });
+    } catch {
+      res.status(503).json({ success: false, message: 'Price review orders are temporarily unavailable.' });
+    }
+  }
+
+  static async decidePriceReview(req: AuthenticatedRequest, res: Response) {
+    try {
+      const decision = req.params.decision === 'approve' ? 'approved' : req.params.decision === 'reject' ? 'rejected' : null;
+      if (!decision) return res.status(400).json({ success: false, message: 'Invalid price review decision.' });
+      const orderId = Array.isArray(req.params.orderId) ? req.params.orderId[0] : req.params.orderId;
+      const order = await PriceReviewService.decide(orderId, decision, req.user!.id);
+      if (!order) return res.status(409).json({ success: false, message: 'This price review has already been decided or is unavailable.' });
+      await AuditService.log(`PRICE_REVIEW_${decision.toUpperCase()}`, 'admin', req.user?.id, req.ip, req.headers['user-agent'], { orderId: order._id });
+      return res.json({ success: true, message: `Price review ${decision}.`, data: order });
+    } catch {
+      return res.status(503).json({ success: false, message: 'Price review decision is temporarily unavailable.' });
     }
   }
 

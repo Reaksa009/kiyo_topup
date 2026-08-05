@@ -13,14 +13,6 @@ const PUBLIC_SETTING_FIELDS = [
 
 const ADMIN_EDITABLE_FIELDS = [
   ...PUBLIC_SETTING_FIELDS,
-  'abaPayWayMerchantId',
-  'abaPayWayApiUrl',
-  'bakongMerchantName',
-  'bakongMerchantId',
-  'bakongAccountId',
-  'g2bulkApiUrl',
-  'g2bulkUserId',
-  'telegramChatId'
 ] as const;
 
 const SECRET_SETTING_FIELDS = [
@@ -35,9 +27,6 @@ export const buildSettingsUpdate = (body: Record<string, any>) => {
   const update: Record<string, any> = {};
   for (const field of ADMIN_EDITABLE_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(body, field)) update[field] = body[field];
-  }
-  for (const field of SECRET_SETTING_FIELDS) {
-    if (typeof body[field] === 'string' && body[field].trim()) update[field] = body[field].trim();
   }
   return update;
 };
@@ -58,7 +47,7 @@ const buildMaskedAdminSettings = (settings: Record<string, any>) => {
   return safe;
 };
 
-const secretSelection = SECRET_SETTING_FIELDS.map((field) => `+${field}`).join(' ');
+const allEditableFields = new Set<string>(ADMIN_EDITABLE_FIELDS);
 
 export class SettingController {
   static async getPublicSettings(req: Request, res: Response) {
@@ -73,9 +62,11 @@ export class SettingController {
 
   static async getSettings(req: Request, res: Response) {
     try {
-      let settings = await Settings.findOne().select(secretSelection);
+      const authenticatedReq = req as AuthenticatedRequest;
+      let settings = await Settings.findOne();
       if (!settings) settings = await Settings.create({});
-      res.json({ success: true, data: buildMaskedAdminSettings(settings.toObject()) });
+      const masked = buildMaskedAdminSettings(settings.toObject());
+      res.json({ success: true, data: masked });
     } catch (error: any) {
       res.status(500).json({ success: false, message: 'Unable to load settings.' });
     }
@@ -83,7 +74,10 @@ export class SettingController {
 
   static async updateSettings(req: AuthenticatedRequest, res: Response) {
     try {
-      const update = buildSettingsUpdate(req.body || {});
+      const body = req.body || {};
+      const unknownFields = Object.keys(body).filter((field) => !allEditableFields.has(field));
+      if (unknownFields.length) return res.status(400).json({ success: false, message: 'Validation failed for request payload', errors: unknownFields.map((field) => ({ field, message: 'Unsupported settings field' })) });
+      const update = buildSettingsUpdate(body);
       if (Object.keys(update).length === 0) {
         return res.status(400).json({ success: false, message: 'No supported settings were provided.' });
       }
@@ -92,7 +86,7 @@ export class SettingController {
         {},
         { $set: update },
         { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-      ).select(secretSelection);
+      );
 
       await AuditService.log('SETTINGS_UPDATED', 'admin', req.user?.id, req.ip, req.headers['user-agent'], {
         fields: Object.keys(update)

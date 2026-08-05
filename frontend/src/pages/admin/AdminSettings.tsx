@@ -1,232 +1,30 @@
 import React, { useEffect, useState } from 'react';
+import { ExternalLink, Save, ShieldCheck } from 'lucide-react';
 import { AdminLayout } from '../../components/AdminLayout';
 import { apiClient } from '../../api/client';
-import { Save, ShieldCheck } from 'lucide-react';
+
+interface StorefrontSettings { platformName: string; logoUrl: string; contactEmail: string; contactTelegram: string; maintenanceMode: boolean; }
+const defaults: StorefrontSettings = { platformName: 'KIYO TOPUP', logoUrl: '/logo.png', contactEmail: 'support@kiyotopup.com', contactTelegram: '@kiyotopup_support', maintenanceMode: false };
+const inputClass = 'w-full rounded-xl border border-gray-700 bg-[#111625] px-4 py-2.5 text-sm text-white outline-none focus:border-cyan-400';
 
 export const AdminSettings: React.FC = () => {
-  const [form, setForm] = useState<any>({
-    platformName: 'KIYO TOPUP',
-    contactEmail: 'support@kiyotopup.com',
-    contactTelegram: '@VReaksa',
-    maintenanceMode: false,
-    abaPayWayMerchantId: '',
-    abaPayWayApiKey: '',
-    bakongMerchantName: 'KIYO TOPUP STORE',
-    bakongMerchantId: '',
-    bakongAccountId: '',
-    bakongApiToken: '',
-    g2bulkApiUrl: 'https://api.g2bulk.com/v1',
-    g2bulkApiKey: '',
-    g2bulkApiSecret: '',
-    telegramBotToken: '',
-    telegramChatId: ''
-  });
-
+  const [form, setForm] = useState<StorefrontSettings>(defaults);
   const [saving, setSaving] = useState(false);
-  const [configuredSecrets, setConfiguredSecrets] = useState<Record<string, boolean>>({});
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await apiClient.get('/settings');
-        if (res.data.data) {
-          setConfiguredSecrets(res.data.data.configuredSecrets || {});
-          setForm((prev: any) => ({ ...prev, ...res.data.data }));
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchSettings();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await apiClient.put('/settings', form);
-      alert('Platform settings updated successfully!');
-    } catch (err: any) {
-      alert('Error updating settings');
-    } finally {
-      setSaving(false);
-    }
+  useEffect(() => { apiClient.get('/settings').then((res) => setForm({ ...defaults, ...res.data.data })).catch(() => setError('Unable to load platform settings.')); }, []);
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); setSaving(true); setError('');
+    try { await apiClient.put('/settings', form); setNotice('Platform settings updated.'); }
+    catch (requestError: any) { setError(requestError.response?.data?.message || 'Unable to update platform settings.'); }
+    finally { setSaving(false); }
   };
 
-  return (
-    <AdminLayout>
-      <div className="space-y-6">
-        
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-black text-white">Platform Configurations & Gateways</h2>
-        </div>
-
-        <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-xs leading-5 text-emerald-100">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
-          <p>Secret values are never returned to the browser. A blank secret field keeps the current value; enter a new value only when rotating that credential.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          
-          {/* General Settings */}
-          <div className="glass-panel p-6 rounded-3xl space-y-4 border border-gray-800">
-            <h3 className="text-base font-bold text-cyan-400 border-b border-gray-800 pb-2">General Platform Configs</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">Platform Name</label>
-                <input
-                  type="text"
-                  value={form.platformName}
-                  onChange={(e) => setForm({ ...form, platformName: e.target.value })}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">Support Email</label>
-                <input
-                  type="email"
-                  value={form.contactEmail}
-                  onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">Maintenance Mode</label>
-                <select
-                  value={form.maintenanceMode ? 'true' : 'false'}
-                  onChange={(e) => setForm({ ...form, maintenanceMode: e.target.value === 'true' })}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white"
-                >
-                  <option value="false">Disabled (Platform Online)</option>
-                  <option value="true">Enabled (Maintenance Lock)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Gateways Config */}
-          <div className="glass-panel p-6 rounded-3xl space-y-4 border border-gray-800">
-            <h3 className="text-base font-bold text-purple-400 border-b border-gray-800 pb-2">Payment Gateway Keys</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">ABA PayWay Merchant ID</label>
-                <input
-                  type="text"
-                  value={form.abaPayWayMerchantId}
-                  onChange={(e) => setForm({ ...form, abaPayWayMerchantId: e.target.value })}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">ABA PayWay API Secret Key</label>
-                <input
-                  type="password"
-                  value={form.abaPayWayApiKey}
-                  onChange={(e) => setForm({ ...form, abaPayWayApiKey: e.target.value })}
-                  placeholder={configuredSecrets.abaPayWayApiKey ? 'Configured — leave blank to keep' : 'Not configured'}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">Bakong Account ID</label>
-                <input
-                  type="text"
-                  value={form.bakongAccountId}
-                  onChange={(e) => setForm({ ...form, bakongAccountId: e.target.value })}
-                  placeholder="kiyo@acleda"
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">Bakong Open API Token</label>
-                <input
-                  type="password"
-                  value={form.bakongApiToken}
-                  onChange={(e) => setForm({ ...form, bakongApiToken: e.target.value })}
-                  placeholder={configuredSecrets.bakongApiToken ? 'Configured — leave blank to keep' : 'Not configured'}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
-                />
-              </div>
-
-            </div>
-          </div>
-
-          {/* G2Bulk Provider Credentials */}
-          <div className="glass-panel p-6 rounded-3xl space-y-4 border border-gray-800">
-            <h3 className="text-base font-bold text-amber-400 border-b border-gray-800 pb-2">G2Bulk Automated Top-Up Provider API Credentials</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">G2Bulk API Key</label>
-                <input
-                  type="password"
-                  value={form.g2bulkApiKey}
-                  onChange={(e) => setForm({ ...form, g2bulkApiKey: e.target.value })}
-                  placeholder={configuredSecrets.g2bulkApiKey ? 'Configured — leave blank to keep' : 'Not configured'}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">G2Bulk API Secret</label>
-                <input
-                  type="password"
-                  value={form.g2bulkApiSecret}
-                  onChange={(e) => setForm({ ...form, g2bulkApiSecret: e.target.value })}
-                  placeholder={configuredSecrets.g2bulkApiSecret ? 'Configured — leave blank to keep' : 'Not configured'}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
-                />
-              </div>
-
-            </div>
-          </div>
-
-          {/* Telegram Bot Config */}
-          <div className="glass-panel p-6 rounded-3xl space-y-4 border border-gray-800">
-            <h3 className="text-base font-bold text-pink-400 border-b border-gray-800 pb-2">Telegram Bot Real-Time Alerts</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">Telegram Bot Token</label>
-                <input
-                  type="password"
-                  value={form.telegramBotToken}
-                  onChange={(e) => setForm({ ...form, telegramBotToken: e.target.value })}
-                  placeholder={configuredSecrets.telegramBotToken ? 'Configured — leave blank to keep' : 'Not configured'}
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-gray-300 font-bold">Telegram Chat / Channel ID</label>
-                <input
-                  type="text"
-                  value={form.telegramChatId}
-                  onChange={(e) => setForm({ ...form, telegramChatId: e.target.value })}
-                  placeholder="-100123456789"
-                  className="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-8 py-3.5 bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase text-xs rounded-2xl shadow-xl glow-cyan flex items-center space-x-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>{saving ? 'Saving Configs...' : 'Save All Settings'}</span>
-          </button>
-
-        </form>
-
-      </div>
-    </AdminLayout>
-  );
+  return <AdminLayout><div className="mx-auto max-w-3xl space-y-6"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">Platform</p><h1 className="mt-1 text-2xl font-black text-white">Storefront Settings</h1><p className="mt-2 text-sm text-gray-400">Customer-facing branding, support, and maintenance controls.</p></div>
+    <div className="flex gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-xs leading-5 text-amber-100"><ShieldCheck className="h-5 w-5 shrink-0 text-amber-300" /><p>Payment, provider, webhook, and notification credentials are managed only through Vercel environment variables. They cannot be viewed or edited in this dashboard.</p></div>
+    {notice && <div role="status" className="rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{notice}</div>}{error && <div role="alert" className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+    <form onSubmit={submit} className="glass-panel space-y-5 rounded-3xl border border-gray-800 p-6"><label className="block"><span className="mb-1.5 block text-xs font-bold text-gray-300">Platform name</span><input required value={form.platformName} onChange={(e) => setForm({ ...form, platformName: e.target.value })} className={inputClass} /></label><label className="block"><span className="mb-1.5 block text-xs font-bold text-gray-300">Logo URL</span><input value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} className={inputClass} /></label><div className="grid gap-5 sm:grid-cols-2"><label><span className="mb-1.5 block text-xs font-bold text-gray-300">Support email</span><input required type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} className={inputClass} /></label><label><span className="mb-1.5 block text-xs font-bold text-gray-300">Telegram contact</span><input value={form.contactTelegram} onChange={(e) => setForm({ ...form, contactTelegram: e.target.value })} className={inputClass} /></label></div><label className="flex items-center gap-3 rounded-xl border border-gray-700 p-3 text-sm text-gray-200"><input type="checkbox" checked={form.maintenanceMode} onChange={(e) => setForm({ ...form, maintenanceMode: e.target.checked })} />Enable maintenance mode</label><button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-xs font-black text-[#07111d] disabled:opacity-50"><Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save storefront settings'}</button></form>
+    <a href="https://vercel.com/docs/projects/environment-variables" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-cyan-300 hover:text-cyan-200">Manage production credentials in Vercel <ExternalLink className="h-3.5 w-3.5" /></a>
+  </div></AdminLayout>;
 };

@@ -53,6 +53,11 @@ interface GamePackage {
   providerType: string;
   providerProductId?: string;
   supplierId?: string;
+  pricingMode?: 'automatic' | 'fixed';
+  markupType?: 'percentage' | 'fixed';
+  markupPercentBasisPoints?: number;
+  markupValueMinor?: number;
+  fixedSellingPriceMinor?: number;
 }
 
 type PackageStatusFilter = 'all' | 'active' | 'inactive';
@@ -113,6 +118,9 @@ export const AdminGames: React.FC = () => {
   const [editPrice, setEditPrice] = useState(0);
   const [editBadge, setEditBadge] = useState('');
   const [editStatus, setEditStatus] = useState<GamePackage['status']>('active');
+  const [editPricingMode, setEditPricingMode] = useState<'automatic' | 'fixed'>('fixed');
+  const [editMarkupType, setEditMarkupType] = useState<'percentage' | 'fixed'>('percentage');
+  const [editMarkupValue, setEditMarkupValue] = useState(0);
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -217,6 +225,9 @@ export const AdminGames: React.FC = () => {
     setEditPrice(pkg.price);
     setEditBadge(pkg.badge || '');
     setEditStatus(pkg.status);
+    setEditPricingMode(pkg.pricingMode || 'fixed');
+    setEditMarkupType(pkg.markupType || 'percentage');
+    setEditMarkupValue(pkg.markupType === 'fixed' ? (pkg.markupValueMinor || 0) / 100 : (pkg.markupPercentBasisPoints || 0) / 100);
     setError('');
   };
 
@@ -230,7 +241,15 @@ export const AdminGames: React.FC = () => {
     setSaving(true);
     setError('');
     try {
-      const update = { price: editPrice, badge: editBadge, status: editStatus };
+      const update = {
+        price: editPrice, badge: editBadge, status: editStatus, pricingMode: editPricingMode,
+        markupType: editMarkupType,
+        ...(editPricingMode === 'fixed'
+          ? { fixedSellingPriceMinor: Math.round(editPrice * 100) }
+          : editMarkupType === 'percentage'
+            ? { markupPercentBasisPoints: Math.round(editMarkupValue * 100) }
+            : { markupValueMinor: Math.round(editMarkupValue * 100) })
+      };
       await apiClient.put(`/packages/${editingPackage._id}`, update);
       setPackages((current) => current.map((pkg) => pkg._id === editingPackage._id ? { ...pkg, ...update } : pkg));
       setNotice(`${editingPackage.title} was updated successfully.`);
@@ -390,6 +409,7 @@ export const AdminGames: React.FC = () => {
               <div className="grid grid-cols-3 gap-3"><div className="rounded-2xl border border-gray-800 bg-gray-950/50 p-3"><p className="text-[9px] uppercase tracking-wider text-gray-600">Supplier cost</p><p className="mt-2 text-lg font-black text-amber-300">{money(editingPackage.costPrice)}</p></div><div className="rounded-2xl border border-gray-800 bg-gray-950/50 p-3"><p className="text-[9px] uppercase tracking-wider text-gray-600">New profit</p><p className={`mt-2 text-lg font-black ${editedMargin >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>{signedMoney(editedMargin)}</p></div><div className="rounded-2xl border border-gray-800 bg-gray-950/50 p-3"><p className="text-[9px] uppercase tracking-wider text-gray-600">Margin</p><p className={`mt-2 text-lg font-black ${editedMargin >= 0 ? 'text-purple-300' : 'text-red-300'}`}>{editedMarginPercent.toFixed(1)}%</p></div></div>
               <label className="block"><span className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-gray-400"><CircleDollarSign className="h-4 w-4 text-cyan-400" /> Customer price</span><div className="relative"><span className="absolute left-4 top-3 text-sm font-black text-gray-500">$</span><input type="number" min={editingPackage.costPrice} step="0.01" value={editPrice} onChange={(event) => setEditPrice(Number(event.target.value))} className={`w-full rounded-2xl border bg-[#080c13] py-3 pl-8 pr-4 text-lg font-black text-white outline-none ${editPrice < editingPackage.costPrice ? 'border-red-500/60' : 'border-gray-700 focus:border-cyan-500'}`} /></div>{editPrice < editingPackage.costPrice && <p className="mt-2 text-[10px] font-bold text-red-300">Customer price cannot be below the supplier cost of {money(editingPackage.costPrice)}.</p>}</label>
               <div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-gray-400"><BadgeDollarSign className="h-4 w-4 text-purple-400" /> Store badge</span><select value={editBadge} onChange={(event) => setEditBadge(event.target.value)} className="w-full rounded-2xl border border-gray-700 bg-[#080c13] px-4 py-3 text-xs font-bold text-white outline-none focus:border-purple-500"><option value="">Normal package</option><option value="BEST SELLER">Best seller</option><option value="BEST VALUE">Best value</option><option value="EVENT / PASS">Event / Pass</option></select></label><label><span className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-gray-400"><PackageCheck className="h-4 w-4 text-emerald-400" /> Availability</span><select value={editStatus} onChange={(event) => setEditStatus(event.target.value as GamePackage['status'])} className="w-full rounded-2xl border border-gray-700 bg-[#080c13] px-4 py-3 text-xs font-bold text-white outline-none focus:border-emerald-500"><option value="active">Available</option><option value="inactive">Inactive</option><option value="out_of_stock">Out of stock</option></select></label></div>
+              <div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-2 text-[10px] font-black uppercase tracking-wider text-gray-400">Pricing mode</span><select value={editPricingMode} onChange={(event) => setEditPricingMode(event.target.value as 'automatic' | 'fixed')} className="w-full rounded-2xl border border-gray-700 bg-[#080c13] px-4 py-3 text-xs font-bold text-white"><option value="fixed">Fixed selling price</option><option value="automatic">Automatic markup</option></select></label>{editPricingMode === 'automatic' && <label><span className="mb-2 text-[10px] font-black uppercase tracking-wider text-gray-400">Markup</span><div className="flex gap-2"><select value={editMarkupType} onChange={(event) => setEditMarkupType(event.target.value as 'percentage' | 'fixed')} className="rounded-2xl border border-gray-700 bg-[#080c13] px-3 text-xs font-bold text-white"><option value="percentage">%</option><option value="fixed">$</option></select><input type="number" min="0" step="0.01" value={editMarkupValue} onChange={(event) => setEditMarkupValue(Number(event.target.value))} className="min-w-0 flex-1 rounded-2xl border border-gray-700 bg-[#080c13] px-4 py-3 text-xs font-bold text-white" /></div></label>}</div>
               <div className="flex flex-col-reverse gap-3 border-t border-gray-800 pt-5 sm:flex-row sm:justify-end"><button onClick={closeEditor} disabled={saving} className="rounded-xl border border-gray-700 px-5 py-2.5 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-40">Cancel</button><button onClick={savePackage} disabled={saving || editPrice < editingPackage.costPrice} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-purple-950/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40">{saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{saving ? 'Saving package…' : 'Save changes'}</button></div>
             </div>
           </div>

@@ -3,6 +3,9 @@ import { Package } from '../models/Game';
 import { Settings } from '../models/System';
 import { AuditService } from '../services/audit.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { packageUpdateSchema } from '../validation/catalog.schemas';
+import { toPublicPackageDTO } from '../utils/publicCatalog';
+import { calculateSellingPriceMinor } from '../services/pricing.service';
 
 export class PackageController {
   static async getPackagesByGame(req: Request, res: Response) {
@@ -17,8 +20,10 @@ export class PackageController {
       }
 
       const { gameId } = req.params;
-      const packages = await Package.find({ gameId, status: 'active' }).sort({ sortOrder: 1, price: 1 });
-      res.json({ success: true, count: packages.length, data: packages });
+      const packages = await Package.find({ gameId, status: 'active' })
+        .select('_id gameId title description icon price packageAmount packageType discountPercent badge stock status sortOrder supportsBoth')
+        .sort({ sortOrder: 1, price: 1 }).lean();
+      res.json({ success: true, count: packages.length, data: packages.map((pkg) => toPublicPackageDTO(pkg)) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -57,11 +62,13 @@ export class PackageController {
   static async updatePackage(req: AuthenticatedRequest, res: Response) {
     try {
       const { id } = req.params;
+      const parsed = packageUpdateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ success: false, message: 'Validation failed for request payload', errors: parsed.error.errors.map((error) => ({ field: error.path.join('.'), message: error.message })) });
       const pkg = await Package.findById(id);
       if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
 
-      if (req.body.price !== undefined) {
-        const newPrice = parseFloat(req.body.price);
+      if (parsed.data.price !== undefined) {
+        const newPrice = parsed.data.price;
         if (newPrice < pkg.costPrice) {
           return res.status(400).json({
             success: false,
@@ -70,7 +77,12 @@ export class PackageController {
         }
       }
 
-      Object.assign(pkg, req.body);
+      Object.assign(pkg, parsed.data);
+      if (parsed.data.isEnabled !== undefined) pkg.status = parsed.data.isEnabled ? 'active' : 'inactive';
+      if (parsed.data.pricingMode || parsed.data.markupType || parsed.data.markupPercentBasisPoints !== undefined || parsed.data.markupValueMinor !== undefined || parsed.data.fixedSellingPriceMinor !== undefined) {
+        const calculated = calculateSellingPriceMinor(pkg);
+        pkg.sellingPriceMinor = calculated.sellingPriceMinor;
+      }
       await pkg.save();
 
       await AuditService.log('PACKAGE_UPDATED', 'admin', req.user?.id, req.ip, req.headers['user-agent'], { packageId: pkg._id });

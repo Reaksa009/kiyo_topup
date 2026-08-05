@@ -18,7 +18,7 @@ export const connectDatabase = async (): Promise<typeof mongoose> => {
         maxPoolSize: 10,
         minPoolSize: 0,
         maxIdleTimeMS: 60000,
-        dbName: 'kiyo_topup'
+        dbName: env.MONGODB_DATABASE_NAME
       });
       (conn.connection as any).isInMemory = false;
       (conn.connection as any).actualUri = env.MONGODB_URI;
@@ -57,7 +57,7 @@ export const connectDatabase = async (): Promise<typeof mongoose> => {
     const inMemoryUri = mongoServer.getUri();
 
     const conn = await mongoose.connect(inMemoryUri, {
-      dbName: 'kiyo_topup'
+      dbName: env.MONGODB_DATABASE_NAME
     });
     (conn.connection as any).isInMemory = true;
     (conn.connection as any).actualUri = inMemoryUri;

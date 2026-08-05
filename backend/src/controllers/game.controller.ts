@@ -4,6 +4,8 @@ import { Game, Category, Package } from '../models/Game';
 import { AuditService } from '../services/audit.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { ProviderFactory } from '../services/providers/ProviderFactory';
+import { gameUpdateSchema } from '../validation/catalog.schemas';
+import { toPublicGameDTO, toPublicPackageDTO } from '../utils/publicCatalog';
 
 // Fallback Game Dataset for Instant Sub-5ms Responses
 const fallbackGames = [
@@ -187,7 +189,7 @@ export class GameController {
   static async getGames(req: Request, res: Response) {
     // Instant fast return if MongoDB is not connected
     if (mongoose.connection.readyState !== 1) {
-      return res.json({ success: true, count: fallbackGames.length, data: fallbackGames });
+      return res.json({ success: true, count: fallbackGames.length, data: fallbackGames.map((game) => toPublicGameDTO({ ...game, isPurchasable: false })) });
     }
 
     try {
@@ -224,11 +226,12 @@ export class GameController {
         games = fallbackGames as any[];
       }
 
-      if (cacheKey) setPublicCatalogCache(cacheKey, catalogVersion, games);
+      const publicGames = games.map((game) => toPublicGameDTO(game));
+      if (cacheKey) setPublicCatalogCache(cacheKey, catalogVersion, publicGames);
 
-      res.json({ success: true, count: games.length, data: games });
+      res.json({ success: true, count: publicGames.length, data: publicGames });
     } catch (error: any) {
-      res.json({ success: true, count: fallbackGames.length, data: fallbackGames });
+      res.json({ success: true, count: fallbackGames.length, data: fallbackGames.map((game) => toPublicGameDTO({ ...game, isPurchasable: false })) });
     }
   }
 
@@ -239,11 +242,11 @@ export class GameController {
     if (mongoose.connection.readyState !== 1) {
       const foundFallback = fallbackGames.find((g) => g.slug === targetSlug) || fallbackGames[0];
       const rawPackages = fallbackPackages[targetSlug] || fallbackPackages['mobile-legends'];
-      const packages = [...rawPackages].sort((a, b) => a.price - b.price);
+      const packages = [...rawPackages].sort((a, b) => a.price - b.price).map((pkg) => toPublicPackageDTO(pkg, false));
       return res.json({
         success: true,
         data: {
-          game: foundFallback,
+          game: toPublicGameDTO({ ...foundFallback, isPurchasable: false }),
           packages
         }
       });
@@ -262,7 +265,7 @@ export class GameController {
 
       if (game) {
         packages = await Package.find({ gameId: game._id, status: 'active' })
-          .select('_id title price badge supportsBoth discountPercent')
+          .select('_id gameId title description icon price packageAmount packageType discountPercent badge stock status sortOrder supportsBoth')
           .sort({ price: 1 })
           .lean();
       }
@@ -270,9 +273,9 @@ export class GameController {
       if (!game) {
         const foundFallback = fallbackGames.find((g) => g.slug === targetSlug);
         if (foundFallback) {
-          game = foundFallback as any;
+          game = { ...foundFallback, isPurchasable: false } as any;
           const rawPackages = fallbackPackages[targetSlug] || fallbackPackages['mobile-legends'];
-          packages = [...rawPackages].sort((a, b) => a.price - b.price);
+          packages = [...rawPackages].sort((a, b) => a.price - b.price).map((pkg) => toPublicPackageDTO(pkg, false));
         }
       }
 
@@ -280,7 +283,7 @@ export class GameController {
         return res.status(404).json({ success: false, message: 'Game not found.' });
       }
 
-      const detail = { game, packages };
+      const detail = { game: toPublicGameDTO(game), packages: packages.map((pkg) => toPublicPackageDTO(pkg, (game as any).isPurchasable !== false)) };
       setPublicCatalogCache(cacheKey, catalogVersion, detail);
 
       res.json({
@@ -290,12 +293,12 @@ export class GameController {
     } catch (error: any) {
       const foundFallback = fallbackGames.find((g) => g.slug === targetSlug) || fallbackGames[0];
       const rawPackages = fallbackPackages[targetSlug] || fallbackPackages['mobile-legends'];
-      const packages = [...rawPackages].sort((a, b) => a.price - b.price);
+      const packages = [...rawPackages].sort((a, b) => a.price - b.price).map((pkg) => toPublicPackageDTO(pkg, false));
 
       res.json({
         success: true,
         data: {
-          game: foundFallback,
+          game: toPublicGameDTO({ ...foundFallback, isPurchasable: false }),
           packages
         }
       });
@@ -350,8 +353,12 @@ export class GameController {
   static async updateGame(req: AuthenticatedRequest, res: Response) {
     try {
       const { id } = req.params;
-      const game = await Game.findByIdAndUpdate(id, req.body, { new: true });
+      const parsed = gameUpdateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ success: false, message: 'Validation failed for request payload', errors: parsed.error.errors.map((error) => ({ field: error.path.join('.'), message: error.message })) });
+      const game = await Game.findById(id);
       if (!game) return res.status(404).json({ success: false, message: 'Game not found' });
+      Object.assign(game, parsed.data);
+      await game.save();
       await AuditService.log('GAME_UPDATED', 'admin', req.user?.id, req.ip, req.headers['user-agent'], { gameId: game._id });
       res.json({ success: true, message: 'Game updated successfully', data: game });
     } catch (error: any) {

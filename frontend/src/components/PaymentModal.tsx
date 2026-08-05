@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { io } from 'socket.io-client';
 import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff } from 'lucide-react';
@@ -29,12 +29,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [simulating, setSimulating] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [qrImageError, setQrImageError] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
   }, []);
 
   // Listen to Socket.IO for real-time payment confirmation
@@ -108,12 +121,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="relative w-full max-w-md p-6 glass-panel rounded-3xl border border-cyan-500/30 shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" role="presentation">
+      <div role="dialog" aria-modal="true" aria-labelledby="payment-dialog-title" className="relative w-full max-w-md p-6 glass-panel rounded-3xl border border-cyan-500/30 shadow-2xl space-y-6">
         
         {/* Close Button */}
         <button
           onClick={onClose}
+          ref={closeButtonRef}
+          aria-label="Close payment dialog"
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors"
         >
           <X className="w-5 h-5" />
@@ -124,7 +139,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center glow-cyan">
               <CheckCircle2 className="w-10 h-10" />
             </div>
-            <h3 className="text-2xl font-black text-white">Payment Confirmed!</h3>
+            <h3 id="payment-dialog-title" className="text-2xl font-black text-white">Payment Confirmed!</h3>
             <p className="text-sm text-gray-300">Your top-up order <span className="font-mono text-cyan-400">{orderNumber}</span> has been paid successfully and is being fulfilled.</p>
           </div>
         ) : (
@@ -134,7 +149,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>{paymentMethod === 'ABA_PAYWAY' ? 'ABA PayWay KHQR' : 'Bakong KHQR Payment'}</span>
               </span>
-              <h3 className="text-2xl font-black text-white">Scan to Pay</h3>
+              <h3 id="payment-dialog-title" className="text-2xl font-black text-white">Scan to Pay</h3>
               <p className="text-xs text-gray-400">Order #{orderNumber}</p>
             </div>
 

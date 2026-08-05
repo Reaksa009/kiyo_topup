@@ -6,8 +6,10 @@ import {
   ArrowLeft,
   Bell,
   ChevronRight,
+  ClipboardList,
   Cpu,
   Gamepad2,
+  ImagePlus,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -26,10 +28,13 @@ const navItems = [
   { label: 'Operations Center', path: '/admin/operations', icon: Activity },
   { label: 'Orders', path: '/admin/orders', icon: ShoppingCart },
   { label: 'Games & Packages', path: '/admin/games', icon: Gamepad2 },
+  { label: 'Catalogue Sync', path: '/admin/catalogue-sync', icon: Activity },
+  { label: 'Price Reviews', path: '/admin/price-reviews', icon: ClipboardList },
   { label: 'Provider & Logs', path: '/admin/providers', icon: Cpu },
   { label: 'Customers & Wallets', path: '/admin/customers', icon: Users },
   { label: 'RBAC Roles', path: '/admin/rbac', icon: ShieldCheck },
   { label: 'Promotions & Coupons', path: '/admin/promotions', icon: Tag },
+  { label: 'Responsive Banners', path: '/admin/banners', icon: ImagePlus },
   { label: 'System Settings', path: '/admin/settings', icon: Settings }
 ];
 

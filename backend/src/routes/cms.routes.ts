@@ -14,6 +14,8 @@ router.get('/promotions/active', CMSController.getActivePromotions);
 
 // Admin
 router.post('/banners', authenticateJwt, requirePermission('cms:write'), CMSController.createBanner);
+router.get('/banners/admin', authenticateJwt, requirePermission('cms:read'), CMSController.getAdminBanners);
+router.put('/banners/:id', authenticateJwt, requirePermission('cms:write'), CMSController.updateBanner);
 router.post('/coupons', authenticateJwt, requirePermission('cms:write'), CMSController.createCoupon);
 router.get('/coupons', authenticateJwt, requirePermission('cms:read'), CMSController.getCoupons);
 router.put('/coupons/:id', authenticateJwt, requirePermission('cms:write'), CMSController.updateCoupon);

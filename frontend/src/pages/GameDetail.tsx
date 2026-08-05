@@ -17,6 +17,10 @@ import { PaymentModal } from '../components/PaymentModal';
 import { TopUpPackageSelector, type TopUpPackage } from '../components/TopUpPackageSelector';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { SeoMeta } from '../components/SeoMeta';
+import type { PublicBannerDTO, PublicGameDTO, PublicPackageDTO } from '../types/catalog';
+import { useTranslation } from 'react-i18next';
+import { resolveBannerImages } from '../utils/bannerPresentation';
 
 type PaymentMethod = 'ABA_PAYWAY' | 'BAKONG_KHQR' | 'WALLET';
 
@@ -27,12 +31,14 @@ const paymentOptions: Array<{ id: PaymentMethod; label: string; short: string; s
 ];
 
 export function GameDetail() {
+  const { t } = useTranslation();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [game, setGame] = useState<any>(null);
-  const [packages, setPackages] = useState<TopUpPackage[]>([]);
+  const [game, setGame] = useState<PublicGameDTO | null>(null);
+  const [packages, setPackages] = useState<Array<TopUpPackage & PublicPackageDTO>>([]);
+  const [detailBanners, setDetailBanners] = useState<PublicBannerDTO[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<TopUpPackage | null>(null);
   const [playerFields, setPlayerFields] = useState<Record<string, string>>({});
   const [verifyingPlayer, setVerifyingPlayer] = useState(false);
@@ -54,8 +60,17 @@ export function GameDetail() {
       try {
         setLoading(true);
         const response = await apiClient.get(`/games/${slug}`);
-        setGame(response.data.data.game);
-        setPackages(response.data.data.packages || []);
+        const loadedGame = response.data.data.game as PublicGameDTO;
+        setGame(loadedGame);
+        setPackages((response.data.data.packages || []) as Array<TopUpPackage & PublicPackageDTO>);
+        if (loadedGame._id) {
+          try {
+            const bannerResponse = await apiClient.get('/cms/banners', { params: { placement: 'game-detail', gameId: loadedGame._id } });
+            setDetailBanners(bannerResponse.data.data || []);
+          } catch {
+            setDetailBanners([]);
+          }
+        }
         setSelectedPackage(null);
         setPlayerFields({});
         setVerifiedPlayerInfo(null);
@@ -74,6 +89,7 @@ export function GameDetail() {
   };
 
   const handleVerifyPlayer = async () => {
+    if (!game?.isPurchasable) return;
     setVerifyingPlayer(true);
     setVerifiedPlayerInfo(null);
     try {
@@ -101,11 +117,15 @@ export function GameDetail() {
 
   const handleCheckout = async () => {
     setErrorMsg('');
+    if (!game?.isPurchasable || selectedPackage?.isPurchasable === false) {
+      setErrorMsg(t('customer.gameUnavailable'));
+      return;
+    }
     if (!selectedPackage) {
       setErrorMsg('Please select a top-up package.');
       return;
     }
-    for (const field of game.inputFields) {
+    for (const field of game.inputFields || []) {
       if (field.required && !playerFields[field.name]) {
         setErrorMsg(`Please enter your ${field.label}.`);
         return;
@@ -149,7 +169,13 @@ export function GameDetail() {
   const finalPrice = Math.max(0, basePrice - (basePrice * couponDiscount / 100));
   const selectedPayment = paymentOptions.find((option) => option.id === paymentMethod)!;
   const categoryName = typeof game.categoryId === 'object' ? game.categoryId?.name : 'Game Top-Up';
-  const hasRequiredPlayerFields = game.inputFields.every((field: any) => !field.required || playerFields[field.name]?.trim());
+  const hasRequiredPlayerFields = (game.inputFields || []).every((field) => !field.required || playerFields[field.name]?.trim());
+  const isPurchasable = game.isPurchasable !== false;
+  const activeDetailBanner = detailBanners[0];
+  const gameFallbackBanner = game.detailBannerDesktop || game.coverImageUrl || game.bannerUrl || game.thumbnail;
+  const { desktop: bannerDesktop, mobile: bannerMobile } = activeDetailBanner
+    ? resolveBannerImages(activeDetailBanner, gameFallbackBanner)
+    : { desktop: gameFallbackBanner, mobile: game.detailBannerMobile || gameFallbackBanner };
   const verificationPanel = (
     <>
       <div className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#061b2e] p-1.5 min-[360px]:p-2">
@@ -167,12 +193,13 @@ export function GameDetail() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#071024] pb-24 text-slate-100 md:pb-0">
+      <SeoMeta title={game.seoTitle || `${game.displayName || game.title} Top-Up | Kiyo Topup`} description={game.seoDescription || game.description || `Buy ${game.title} top-ups securely.`} image={bannerDesktop} canonicalPath={`/game/${game.slug}`} />
       <Navbar />
       <main className="section-shell flex-1 py-4 sm:py-6">
-        <Link to="/#games" className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/20 bg-[#081a30] px-3.5 text-[10px] font-black text-cyan-100 transition hover:border-cyan-300/45 hover:bg-cyan-300/[0.08] sm:h-9 sm:text-[9px]"><ArrowLeft className="h-4 w-4" />Back to Games</Link>
+        <Link to="/#games" className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/20 bg-[#081a30] px-3.5 text-[10px] font-black text-cyan-100 transition hover:border-cyan-300/45 hover:bg-cyan-300/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 sm:h-9 sm:text-[9px]"><ArrowLeft className="h-4 w-4" />{t('customer.backToGames')}</Link>
 
         <section className="relative mt-3 aspect-[3/2] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#081a30] shadow-xl shadow-black/20 sm:aspect-auto sm:h-52 lg:h-60">
-          <img src={game.bannerUrl || game.thumbnail} alt={game.title} fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
+          <picture><source media="(max-width: 639px)" srcSet={bannerMobile} /><img src={bannerDesktop} alt={`${game.title} banner`} fetchPriority="high" decoding="async" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.src = game.thumbnail; }} /></picture>
           <div className="absolute inset-0 bg-gradient-to-t from-[#061321]/85 via-transparent to-black/10" />
           <div className="absolute bottom-2.5 left-2.5 right-2.5 flex max-w-lg items-center gap-3 rounded-2xl border border-cyan-300/25 bg-[#062131]/95 p-3 shadow-2xl backdrop-blur-md sm:bottom-4 sm:left-4 sm:right-auto sm:p-3.5">
             <img src={game.thumbnail} alt="" decoding="async" className="h-12 w-12 shrink-0 rounded-xl border border-cyan-300/40 object-cover min-[380px]:h-14 min-[380px]:w-14 sm:h-16 sm:w-16" />
@@ -180,26 +207,27 @@ export function GameDetail() {
           </div>
         </section>
 
-        {errorMsg && <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/[0.08] px-3 py-2.5 text-[10px] font-bold text-rose-300"><AlertCircle className="h-4 w-4 shrink-0" />{errorMsg}</div>}
+        {!isPurchasable && <div role="status" className="mt-3 flex items-center gap-2 rounded-xl border border-amber-300/25 bg-amber-300/[0.08] px-3 py-2.5 text-[10px] font-bold text-amber-100"><AlertCircle className="h-4 w-4 shrink-0" />{t('customer.gameUnavailable')}</div>}
+        {errorMsg && <div id="checkout-error" role="alert" className="mt-3 flex items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/[0.08] px-3 py-2.5 text-[10px] font-bold text-rose-300"><AlertCircle className="h-4 w-4 shrink-0" />{errorMsg}</div>}
 
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-0 md:space-y-3">
             <section className="rounded-t-[24px] rounded-b-none border border-b-0 border-cyan-300/25 bg-[#082536] p-4 shadow-xl shadow-black/15 sm:p-5 md:rounded-2xl md:border-b">
               <div className="flex items-center gap-3">
                 <span className="shrink-0 text-xl font-black text-amber-300 sm:text-2xl">1</span>
-                <div className="min-w-0"><h2 className="truncate text-base font-black text-white sm:text-lg">Enter Player Information</h2><p className="mt-0.5 text-[9px] text-slate-500 sm:text-[10px]">Enter the account details used for delivery.</p></div>
+                <div className="min-w-0"><h2 className="truncate text-base font-black text-white sm:text-lg">{t('customer.enterPlayer')}</h2><p className="mt-0.5 text-[9px] text-slate-500 sm:text-[10px]">Enter the account details used for delivery.</p></div>
               </div>
 
               <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {game.inputFields.map((field: any) => (
-                  <label key={field.name} className="block"><span className="mb-2 block text-[10px] font-black text-cyan-200/70 sm:text-[11px]">{field.label}{field.required && <span className="text-amber-300"> *</span>}</span><input type={field.type || 'text'} placeholder={field.placeholder} value={playerFields[field.name] || ''} onChange={(event) => handleFieldChange(field.name, event.target.value)} className="h-14 w-full rounded-xl border border-amber-300/80 bg-[#06152b] px-4 text-base font-bold text-white outline-none placeholder:text-slate-600 focus:border-amber-200 focus:ring-2 focus:ring-amber-300/10 sm:h-12 sm:text-sm" />{field.helpText && <span className="mt-1.5 block text-[8px] text-slate-600">{field.helpText}</span>}</label>
+                {(game.inputFields || []).map((field) => (
+                  <label key={field.name} className="block"><span className="mb-2 block text-[10px] font-black text-cyan-200/70 sm:text-[11px]">{field.label}{field.required && <span className="text-amber-300"> *</span>}</span><input type={field.type || 'text'} placeholder={field.placeholder} value={playerFields[field.name] || ''} onChange={(event) => handleFieldChange(field.name, event.target.value)} aria-invalid={Boolean(errorMsg && field.required && !playerFields[field.name])} aria-describedby={errorMsg ? 'checkout-error' : undefined} className="h-14 w-full rounded-xl border border-amber-300/80 bg-[#06152b] px-4 text-base font-bold text-white outline-none placeholder:text-slate-600 focus:border-amber-200 focus:ring-2 focus:ring-amber-300/10 sm:h-12 sm:text-sm" />{field.helpText && <span className="mt-1.5 block text-[8px] text-slate-600">{field.helpText}</span>}</label>
                 ))}
               </div>
 
               <div className="mt-3 hidden md:block">{verificationPanel}</div>
             </section>
 
-            <TopUpPackageSelector packages={packages} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact compactJoined compactMobileLead={verificationPanel} initialVisibleCount={48} />
+            <TopUpPackageSelector packages={packages.filter((pkg) => pkg.isPurchasable !== false)} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact compactJoined compactMobileLead={verificationPanel} initialVisibleCount={48} />
           </div>
 
           <aside>
@@ -228,7 +256,7 @@ export function GameDetail() {
 
               <div className="mt-3 hidden items-start gap-2 rounded-lg border border-white/[0.07] bg-black/10 p-2 text-[7px] leading-3.5 text-slate-500 md:flex"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />By continuing, you agree to the terms. Completed digital orders cannot be refunded.</div>
 
-              <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage} className="mt-3 hidden h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 text-[10px] font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40 md:flex"><span>{submitting ? 'Processing Order...' : 'Pay & Top-Up Now'}</span><ArrowRight className="h-4 w-4" /></button>
+              <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage || !isPurchasable} className="mt-3 hidden h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 text-[10px] font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40 md:flex"><span>{submitting ? 'Processing Order...' : 'Pay & Top-Up Now'}</span><ArrowRight className="h-4 w-4" /></button>
             </section>
           </aside>
         </div>
@@ -239,7 +267,7 @@ export function GameDetail() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-300/20 bg-[#061522]/95 px-3 pt-2 shadow-[0_-14px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl md:hidden pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
           <div className="mx-auto flex w-full max-w-lg items-center gap-3">
             <div className="min-w-0 shrink-0"><p className="text-[7px] font-black uppercase tracking-[0.16em] text-slate-500">Total</p><p className="mt-0.5 text-lg font-black text-amber-300">${finalPrice.toFixed(2)}</p></div>
-            <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage} className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 px-4 text-xs font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"><span className="truncate">{submitting ? 'Processing...' : selectedPackage ? 'Buy Now' : 'Select Package'}</span><ArrowRight className="h-4 w-4 shrink-0" /></button>
+            <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage || !isPurchasable} className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 px-4 text-xs font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"><span className="truncate">{submitting ? 'Processing...' : selectedPackage ? 'Buy Now' : 'Select Package'}</span><ArrowRight className="h-4 w-4 shrink-0" /></button>
           </div>
         </div>
       )}

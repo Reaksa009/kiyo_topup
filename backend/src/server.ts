@@ -71,19 +71,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('combined', { stream: { write: (msg) => logger.info(msg.trim()) } }));
 
-// Health Check
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    service: 'KIYO TOPUP Backend API',
-    initialized: isInitialized,
-    time: new Date().toISOString()
-  });
-});
-
 // Middleware to ensure DB and Redis connection in serverless environment (Vercel)
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+// Deliberately minimal probes: no environment, dependency host, version, or secret details.
+app.get(['/health', '/health/live'], (_req, res) => res.status(200).json({ status: 'ok' }));
+app.get('/health/ready', (_req, res) => {
+  const ready = isInitialized && mongoose.connection.readyState === 1;
+  res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready' });
+});
 export const initApp = async () => {
   if (isInitialized && mongoose.connection.readyState === 1) return;
 

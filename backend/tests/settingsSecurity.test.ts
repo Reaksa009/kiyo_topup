@@ -27,22 +27,20 @@ describe('settings data exposure protection', () => {
     expect(Object.keys(result)).not.toContain('bakongApiToken');
   });
 
-  test('settings updates reject operational fields and ignore blank secrets', () => {
+  test('settings updates reject operational credentials and only retain storefront fields', () => {
     const result = buildSettingsUpdate({
       platformName: 'Kiyo Secure',
       maintenanceMode: true,
       isSyncing: false,
       catalogSyncStatus: 'success',
       catalogSyncToken: 'attacker-controlled',
-      g2bulkApiKey: '   ',
-      g2bulkApiSecret: 'new-secret',
+      g2bulkApiKey: 'new-secret',
       unknownField: 'ignored'
     });
 
     expect(result).toEqual({
       platformName: 'Kiyo Secure',
-      maintenanceMode: true,
-      g2bulkApiSecret: 'new-secret'
+      maintenanceMode: true
     });
   });
 });

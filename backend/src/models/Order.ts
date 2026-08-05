@@ -18,7 +18,15 @@ export interface IOrder extends Document {
   paymentMethod: 'ABA_PAYWAY' | 'BAKONG_KHQR' | 'WALLET';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   providerStatus: 'pending' | 'processing' | 'success' | 'failed';
-  overallStatus: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+  overallStatus: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'price_review_required';
+  providerCostMinor?: number;
+  sellingPriceMinor?: number;
+  paidPriceMinor?: number;
+  observedProviderCostMinor?: number;
+  priceReviewStatus?: 'none' | 'required' | 'approved' | 'rejected';
+  priceReviewReason?: string;
+  priceReviewDecisionBy?: Schema.Types.ObjectId;
+  priceReviewDecidedAt?: Date;
   idempotencyKey: string;
   couponCode?: string;
   discountAmount?: number;
@@ -61,13 +69,21 @@ const OrderSchema = new Schema<IOrder>(
     },
     overallStatus: {
       type: String,
-      enum: ['pending', 'processing', 'completed', 'failed', 'refunded'],
+      enum: ['pending', 'processing', 'completed', 'failed', 'refunded', 'price_review_required'],
       default: 'pending'
     },
     idempotencyKey: { type: String, required: true, unique: true },
     couponCode: { type: String, default: '' },
     discountAmount: { type: Number, default: 0 },
     failureReason: { type: String, default: '' },
+    providerCostMinor: { type: Number, min: 0 },
+    sellingPriceMinor: { type: Number, min: 0 },
+    paidPriceMinor: { type: Number, min: 0 },
+    observedProviderCostMinor: { type: Number, min: 0 },
+    priceReviewStatus: { type: String, enum: ['none', 'required', 'approved', 'rejected'], default: 'none' },
+    priceReviewReason: { type: String, maxlength: 500 },
+    priceReviewDecisionBy: { type: Schema.Types.ObjectId, ref: 'Admin' },
+    priceReviewDecidedAt: { type: Date },
     metadata: { type: Map, of: Schema.Types.Mixed }
   },
   { timestamps: true }
@@ -76,6 +92,7 @@ const OrderSchema = new Schema<IOrder>(
 OrderSchema.index({ overallStatus: 1, createdAt: -1 });
 OrderSchema.index({ paymentStatus: 1, createdAt: -1 });
 OrderSchema.index({ providerStatus: 1, updatedAt: -1 });
+OrderSchema.index({ priceReviewStatus: 1, createdAt: -1 });
 
 export const Order = model<IOrder>('Order', OrderSchema);
 

@@ -14,8 +14,11 @@ import { GameCard } from '../components/GameCard';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { apiClient } from '../api/client';
+import { SeoMeta } from '../components/SeoMeta';
+import type { PublicBannerDTO, PublicGameDTO } from '../types/catalog';
+import { useTranslation } from 'react-i18next';
 
-const curatedGames = [
+const curatedGames: Array<PublicGameDTO & { discount?: string; comingSoon?: boolean }> = [
   { slug: 'mobile-legends', title: 'Mobile Legends', publisher: 'Moonton', thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'MOBA', slug: 'moba' }, discount: 'Up to 15% off' },
   { slug: 'free-fire', title: 'Free Fire', publisher: 'Garena', thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'Battle Royale', slug: 'battle-royale' }, discount: 'Bonus diamonds' },
   { slug: 'pubg-mobile', title: 'PUBG Mobile', publisher: 'Tencent Games', thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'Battle Royale', slug: 'battle-royale' }, discount: 'Best value' },
@@ -24,7 +27,7 @@ const curatedGames = [
   { slug: 'valorant', title: 'Valorant', publisher: 'Riot Games', thumbnail: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'Shooter', slug: 'shooter' }, discount: 'Popular' },
   { slug: 'roblox', title: 'Roblox', publisher: 'Roblox Corporation', thumbnail: 'https://images.unsplash.com/photo-1605870445919-838d190e8e1b?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'Entertainment', slug: 'entertainment' }, discount: 'Coming soon', comingSoon: true },
   { slug: 'steam-wallet', title: 'Steam Wallet', publisher: 'Steam', thumbnail: 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?auto=format&fit=crop&w=640&q=78', categoryId: { name: 'Gift Cards', slug: 'gift-cards' }, discount: 'Coming soon', comingSoon: true }
-];
+].map((game) => ({ ...game, isPurchasable: false }));
 
 const HOME_GAMES_CACHE_KEY = 'kiyo-home-games-v1';
 
@@ -53,8 +56,12 @@ const highlights = [
 ];
 
 export const Home: React.FC = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const [games, setGames] = useState<any[]>(readCachedGames);
+  const [games, setGames] = useState<PublicGameDTO[]>(readCachedGames);
+  const [banners, setBanners] = useState<PublicBannerDTO[]>([]);
+  const [catalogueError, setCatalogueError] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [loading, setLoading] = useState(() => readCachedGames().length === 0);
@@ -63,12 +70,18 @@ export const Home: React.FC = () => {
     const controller = new AbortController();
     const fetchGames = async () => {
       try {
-        const response = await apiClient.get('/games', { signal: controller.signal });
-        const freshGames = response.data.data || [];
+        const [gamesResponse, bannersResponse] = await Promise.allSettled([
+          apiClient.get('/games', { signal: controller.signal }),
+          apiClient.get('/cms/banners', { signal: controller.signal })
+        ]);
+        if (gamesResponse.status !== 'fulfilled') throw gamesResponse.reason;
+        const freshGames: PublicGameDTO[] = gamesResponse.value.data.data || [];
         setGames(freshGames);
         sessionStorage.setItem(HOME_GAMES_CACHE_KEY, JSON.stringify(freshGames));
+        if (bannersResponse.status === 'fulfilled') setBanners(bannersResponse.value.data.data || []);
+        else setBannerError(true);
       } catch (error: any) {
-        if (error?.name !== 'CanceledError') console.error('Error loading games:', error);
+        if (error?.name !== 'CanceledError') setCatalogueError(true);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -90,15 +103,16 @@ export const Home: React.FC = () => {
   const categories = useMemo(() => getCategoriesFromGames(catalog), [catalog]);
   const filteredGames = catalog.filter((game) => {
     const matchesSearch = !search || game.title.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || game.categoryId?.slug === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || (typeof game.categoryId === 'object' && game.categoryId?.slug === selectedCategory);
     return matchesSearch && matchesCategory;
   });
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#071024] text-slate-100">
+      <SeoMeta title="Kiyo Topup | Instant Game Top-Up" description="Secure game top-ups for Cambodia." canonicalPath="/" />
       <Navbar />
       <main>
-        <div className="section-shell !px-2 sm:!px-6 lg:!px-8"><HeroBanner /></div>
+        <div className="section-shell !px-2 sm:!px-6 lg:!px-8"><HeroBanner banners={banners} loading={loading && banners.length === 0} hasError={bannerError} /></div>
 
         <section className="section-shell mt-3">
           <div className="grid grid-cols-3 divide-x divide-white/[0.08] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a1730] shadow-lg shadow-black/15">
@@ -114,18 +128,18 @@ export const Home: React.FC = () => {
         <section id="games" className="section-shell scroll-mt-20 py-10 sm:py-14">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <span className="eyebrow">GAME CATALOG</span>
-              <div className="mt-1.5 flex items-center gap-2"><h2 className="text-2xl font-black tracking-[-0.035em] text-white sm:text-3xl">Popular Games</h2><ArrowRight className="h-5 w-5 text-cyan-300" /></div>
-              <p className="mt-2 max-w-lg text-[11px] leading-5 text-slate-500 sm:text-xs">Choose a game and top up in a few simple steps.</p>
+              <span className="eyebrow">{t('customer.gameCatalog')}</span>
+              <div className="mt-1.5 flex items-center gap-2"><h2 className="text-2xl font-black tracking-[-0.035em] text-white sm:text-3xl">{t('customer.popularGames')}</h2><ArrowRight className="h-5 w-5 text-cyan-300" /></div>
+              <p className="mt-2 max-w-lg text-[11px] leading-5 text-slate-500 sm:text-xs">{t('customer.chooseGame')}</p>
             </div>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-600" />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search games" className="h-10 w-full rounded-xl border border-white/[0.09] bg-[#0a1730] pl-9 pr-3 text-[10px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/50" />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('customer.searchGames')} aria-label={t('customer.searchGames')} className="h-10 w-full rounded-xl border border-white/[0.09] bg-[#0a1730] pl-9 pr-3 text-[10px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/50" />
             </div>
           </div>
 
           <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-5">
-            {[{ slug: 'all', name: 'All Games' }, ...categories].map((category: any) => (
+            {[{ slug: 'all', name: t('customer.allGames') }, ...categories].map((category: any) => (
               <button key={category.slug} type="button" onClick={() => setSelectedCategory(category.slug)} className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-[8px] font-black transition sm:text-[9px] ${selectedCategory === category.slug ? 'border-cyan-300/50 bg-cyan-300/[0.12] text-cyan-100' : 'border-white/[0.08] bg-white/[0.025] text-slate-500 hover:text-white'}`}>{category.name}</button>
             ))}
           </div>
@@ -140,8 +154,10 @@ export const Home: React.FC = () => {
             </div>
           )}
 
+          {catalogueError && <div role="status" className="mt-4 rounded-xl border border-amber-300/25 bg-amber-300/[0.07] px-3 py-2 text-xs text-amber-100">{t('customer.catalogueUnavailable')}</div>}
+
           {!loading && filteredGames.length === 0 && (
-            <div className="mt-5 rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.025] py-10 text-center"><Search className="mx-auto h-6 w-6 text-slate-600" /><p className="mt-2 text-xs font-bold text-white">No games match your search</p><button type="button" onClick={() => { setSearch(''); setSelectedCategory('all'); }} className="mt-3 text-[10px] font-black text-cyan-200">Clear filters</button></div>
+            <div className="mt-5 rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.025] py-10 text-center"><Search className="mx-auto h-6 w-6 text-slate-600" /><p className="mt-2 text-xs font-bold text-white">{t('customer.noGames')}</p><button type="button" onClick={() => { setSearch(''); setSelectedCategory('all'); }} className="mt-3 text-[10px] font-black text-cyan-200">{t('customer.clearFilters')}</button></div>
           )}
         </section>
 

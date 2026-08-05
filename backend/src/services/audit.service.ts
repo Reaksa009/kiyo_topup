@@ -1,5 +1,6 @@
 import { ActivityLog } from '../models/System';
 import { logger } from '../utils/logger';
+import { redactSensitiveData } from '../utils/redaction';
 
 export class AuditService {
   static async log(
@@ -17,7 +18,7 @@ export class AuditService {
         action,
         ipAddress: ipAddress || '',
         userAgent: userAgent || '',
-        details: details || {}
+        details: redactSensitiveData(details || {})
       });
     } catch (error) {
       logger.error('Failed to log audit activity:', error);

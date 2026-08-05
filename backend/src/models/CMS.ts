@@ -61,6 +61,16 @@ export const Coupon = model<ICoupon>('Coupon', CouponSchema);
 export interface IBanner extends Document {
   title: string;
   imageUrl: string;
+  desktopImageUrl?: string;
+  mobileImageUrl?: string;
+  subtitle?: string;
+  buttonText?: string;
+  buttonUrl?: string;
+  placement?: 'home' | 'game-detail';
+  gameId?: Schema.Types.ObjectId;
+  enabled?: boolean;
+  startDate?: Date;
+  endDate?: Date;
   linkUrl: string;
   position: 'hero' | 'promo' | 'popup';
   active: boolean;
@@ -70,7 +80,18 @@ export interface IBanner extends Document {
 const BannerSchema = new Schema<IBanner>(
   {
     title: { type: String, required: true },
-    imageUrl: { type: String, required: true },
+    // imageUrl remains the legacy-compatible final image fallback.
+    imageUrl: { type: String, default: '' },
+    desktopImageUrl: { type: String, maxlength: 2048, default: '' },
+    mobileImageUrl: { type: String, maxlength: 2048, default: '' },
+    subtitle: { type: String, maxlength: 500, default: '' },
+    buttonText: { type: String, maxlength: 120, default: '' },
+    buttonUrl: { type: String, maxlength: 2048, default: '' },
+    placement: { type: String, enum: ['home', 'game-detail'], default: 'home' },
+    gameId: { type: Schema.Types.ObjectId, ref: 'Game' },
+    enabled: { type: Boolean, default: true },
+    startDate: { type: Date },
+    endDate: { type: Date },
     linkUrl: { type: String, default: '' },
     position: { type: String, enum: ['hero', 'promo', 'popup'], default: 'hero' },
     active: { type: Boolean, default: true },
@@ -78,6 +99,8 @@ const BannerSchema = new Schema<IBanner>(
   },
   { timestamps: true }
 );
+
+BannerSchema.index({ active: 1, enabled: 1, placement: 1, gameId: 1, startDate: 1, endDate: 1, sortOrder: 1 });
 
 export const Banner = model<IBanner>('Banner', BannerSchema);
 

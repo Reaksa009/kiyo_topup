@@ -49,9 +49,5 @@ KIYO TOPUP is a complete, enterprise-grade, secure, and scalable online game top
    npm test
    ```
 
-6. **Sync the live G2Bulk catalog**:
-   ```bash
-   cd backend
-   npm run sync-catalog
-   ```
-   This command performs a transaction-protected full replacement for every configured game. It visibly locks package and checkout APIs, removes all old/manual/hidden packages, imports the latest provider catalog in batches, chooses the lowest-cost supplier for each normalized package key, validates every stored field, and commits only when the database exactly matches the prepared catalog. Any error rolls the transaction back and releases the lock. Mobile Legends and Mobile Legends Global are normalized into one cheapest shared catalog.
+6. **Production deployment**:
+   Read [the production readiness runbook](docs/production-readiness-runbook.md) before configuring Vercel environment variables, migrating legacy Settings credentials, or changing indexes. Real G2Bulk catalogue synchronization remains disabled until official provider documentation is reviewed.

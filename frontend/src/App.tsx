@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SeoMeta } from './components/SeoMeta';
 
 import { Home } from './pages/Home';
 
@@ -25,12 +26,28 @@ const AdminRBAC = lazy(() => import('./pages/admin/AdminRBAC').then((module) => 
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then((module) => ({ default: module.AdminSettings })));
 const AdminOperations = lazy(() => import('./pages/admin/AdminOperations').then((module) => ({ default: module.AdminOperations })));
 const AdminPromotions = lazy(() => import('./pages/admin/AdminPromotions').then((module) => ({ default: module.AdminPromotions })));
+const AdminBanners = lazy(() => import('./pages/admin/AdminBanners').then((module) => ({ default: module.AdminBanners })));
+const AdminCatalogueSync = lazy(() => import('./pages/admin/AdminCatalogueSync').then((module) => ({ default: module.AdminCatalogueSync })));
+const AdminPriceReviews = lazy(() => import('./pages/admin/AdminPriceReviews').then((module) => ({ default: module.AdminPriceReviews })));
 
 const RouteLoading = () => (
   <div className="flex min-h-screen items-center justify-center bg-[#070a12]" role="status" aria-label="Loading page">
     <span className="h-9 w-9 animate-spin rounded-full border-2 border-cyan-300/25 border-t-cyan-300" />
   </div>
 );
+
+const CustomerRouteMeta = () => {
+  const { pathname } = useLocation();
+  if (pathname.startsWith('/admin') || pathname === '/' || pathname.startsWith('/game/')) return null;
+  const metadata = pathname.startsWith('/tracking')
+    ? { title: 'Track Order | Kiyo Topup', description: 'Check your Kiyo Topup order status.' }
+    : pathname.startsWith('/profile') || pathname.startsWith('/history')
+      ? { title: 'Profile & Order History | Kiyo Topup', description: 'Manage your Kiyo Topup profile and order history.' }
+      : pathname.startsWith('/bulk-topup')
+        ? { title: 'Checkout | Kiyo Topup', description: 'Complete your secure Kiyo Topup checkout.' }
+        : { title: 'Kiyo Topup', description: 'Secure game top-ups for Cambodia.' };
+  return <SeoMeta {...metadata} canonicalPath={pathname} />;
+};
 
 const ProtectedUserRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
@@ -50,6 +67,7 @@ export const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <CustomerRouteMeta />
         <Suspense fallback={<RouteLoading />}>
           <Routes>
           {/* Customer Routes */}
@@ -115,6 +133,8 @@ export const App: React.FC = () => {
               </ProtectedAdminRoute>
             }
           />
+          <Route path="/admin/catalogue-sync" element={<ProtectedAdminRoute><AdminCatalogueSync /></ProtectedAdminRoute>} />
+          <Route path="/admin/price-reviews" element={<ProtectedAdminRoute><AdminPriceReviews /></ProtectedAdminRoute>} />
           <Route
             path="/admin/providers"
             element={
@@ -147,6 +167,7 @@ export const App: React.FC = () => {
               </ProtectedAdminRoute>
             }
           />
+          <Route path="/admin/banners" element={<ProtectedAdminRoute><AdminBanners /></ProtectedAdminRoute>} />
           <Route
             path="/admin/settings"
             element={

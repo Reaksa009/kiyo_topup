@@ -20,6 +20,7 @@ export interface TopUpPackage {
   badge?: string;
   supportsBoth?: boolean;
   discountPercent?: number;
+  isPurchasable?: boolean;
 }
 
 type PackageFilter = 'all' | 'popular' | 'event' | 'standard';

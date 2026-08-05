@@ -8,6 +8,7 @@ import {
 import { env } from '../../config/env';
 import { ProviderLog } from '../../models/Provider';
 import { logger } from '../../utils/logger';
+import { redactProviderLogData, redactSensitiveUrl } from '../../utils/redaction';
 
 export const G2BULK_GAME_CODE_MAP: Record<string, string[]> = {
   'mobile-legends': ['mlbb', 'mlbb_global', 'mlbb_special', 'mlbb_exclusive', 'mlbb_ru', 'mlbb_tr', 'mlbb_br'],
@@ -38,9 +39,13 @@ export class G2BulkAdapter extends BaseProviderAdapter {
       const executionTimeMs = Date.now() - startTime;
       await ProviderLog.create({
         providerType: this.providerName,
-        endpoint,
-        requestPayload: typeof requestPayload === 'object' ? requestPayload : { raw: requestPayload },
-        responsePayload: typeof responsePayload === 'object' ? responsePayload : { raw: responsePayload },
+        endpoint: redactSensitiveUrl(endpoint),
+        requestPayload: redactProviderLogData(
+          typeof requestPayload === 'object' ? requestPayload : { raw: requestPayload }
+        ) as Record<string, any>,
+        responsePayload: redactProviderLogData(
+          typeof responsePayload === 'object' ? responsePayload : { raw: responsePayload }
+        ) as Record<string, any>,
         statusCode,
         executionTimeMs
       });

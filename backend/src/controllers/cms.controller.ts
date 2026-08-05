@@ -2,18 +2,58 @@ import { Request, Response } from 'express';
 import { Banner, Blog, Coupon, Promotion } from '../models/CMS';
 import { AuditService } from '../services/audit.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { bannerUpdateSchema, bannerWriteSchema } from '../validation/catalog.schemas';
 
 const discountIsInvalid = (discountType: string, discountValue: unknown) => {
   const value = Number(discountValue);
   return !Number.isFinite(value) || value <= 0 || (discountType === 'percentage' && value > 100);
 };
 
+type BannerRecord = Record<string, any>;
+
+export const toPublicBannerDTO = (banner: BannerRecord) => ({
+  _id: banner._id,
+  title: banner.title,
+  subtitle: banner.subtitle || '',
+  imageUrl: banner.imageUrl || '',
+  desktopImageUrl: banner.desktopImageUrl || '',
+  mobileImageUrl: banner.mobileImageUrl || '',
+  buttonText: banner.buttonText || '',
+  buttonUrl: banner.buttonUrl || banner.linkUrl || '',
+  placement: banner.placement || 'home',
+  gameId: banner.gameId || undefined,
+  sortOrder: banner.sortOrder || 0
+});
+
+export const buildActiveBannerFilter = (placement?: string, gameId?: string, now = new Date()) => {
+  const filter: Record<string, any> = {
+    active: true,
+    enabled: { $ne: false },
+    $and: [
+      { $or: [{ startDate: { $exists: false } }, { startDate: null }, { startDate: { $lte: now } }] },
+      { $or: [{ endDate: { $exists: false } }, { endDate: null }, { endDate: { $gt: now } }] }
+    ]
+  };
+  if (placement === 'game-detail') {
+    filter.placement = 'game-detail';
+    if (gameId) filter.gameId = gameId;
+  } else {
+    filter.$and.push({ $or: [{ placement: 'home' }, { placement: { $exists: false }, position: 'hero' }] });
+  }
+  return filter;
+};
+
+const toAdminBannerDTO = (banner: BannerRecord) => ({ ...toPublicBannerDTO(banner), enabled: banner.enabled !== false, startDate: banner.startDate, endDate: banner.endDate });
+
 export class CMSController {
   // Public
   static async getBanners(req: Request, res: Response) {
     try {
-      const banners = await Banner.find({ active: true }).sort({ sortOrder: 1 });
-      res.json({ success: true, data: banners });
+      const placement = req.query.placement === 'game-detail' ? 'game-detail' : 'home';
+      const gameId = typeof req.query.gameId === 'string' ? req.query.gameId : undefined;
+      if (placement === 'game-detail' && !gameId) return res.status(400).json({ success: false, message: 'gameId is required for game-detail banners.' });
+      const banners = await Banner.find(buildActiveBannerFilter(placement, gameId)).sort({ sortOrder: 1, createdAt: 1 }).lean();
+      res.json({ success: true, data: banners.map(toPublicBannerDTO) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -94,10 +134,46 @@ export class CMSController {
   // Admin CMS CRUD
   static async createBanner(req: AuthenticatedRequest, res: Response) {
     try {
-      const banner = await Banner.create(req.body);
-      res.status(201).json({ success: true, data: banner });
+      const parsed = bannerWriteSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || 'Invalid banner.' });
+      const banner = await Banner.create({ ...parsed.data, active: true, linkUrl: parsed.data.buttonUrl || '' });
+      await AuditService.log('BANNER_CREATED', 'admin', req.user?.id, req.ip, req.headers['user-agent'], { bannerId: banner._id, placement: banner.placement });
+      res.status(201).json({ success: true, data: toAdminBannerDTO(banner.toObject()) });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  static async getAdminBanners(req: Request, res: Response) {
+    try {
+      const banners = await Banner.find().sort({ sortOrder: 1, createdAt: 1 }).lean();
+      res.json({ success: true, data: banners.map(toAdminBannerDTO) });
+    } catch {
+      res.status(500).json({ success: false, message: 'Unable to load banners.' });
+    }
+  }
+
+  static async updateBanner(req: AuthenticatedRequest, res: Response) {
+    try {
+      const current = await Banner.findById(req.params.id);
+      if (!current) return res.status(404).json({ success: false, message: 'Banner not found.' });
+      const parsed = bannerUpdateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || 'Invalid banner.' });
+      const candidate = { ...current.toObject(), ...parsed.data };
+      const complete = bannerWriteSchema.safeParse({
+        title: candidate.title, subtitle: candidate.subtitle, imageUrl: candidate.imageUrl, desktopImageUrl: candidate.desktopImageUrl,
+        mobileImageUrl: candidate.mobileImageUrl, buttonText: candidate.buttonText, buttonUrl: parsed.data.buttonUrl ?? candidate.buttonUrl ?? candidate.linkUrl,
+        placement: candidate.placement, gameId: candidate.gameId?.toString(), enabled: candidate.enabled, sortOrder: candidate.sortOrder,
+        startDate: candidate.startDate, endDate: candidate.endDate
+      });
+      if (!complete.success) return res.status(400).json({ success: false, message: complete.error.issues[0]?.message || 'Invalid banner.' });
+      Object.assign(current, parsed.data);
+      if (parsed.data.buttonUrl !== undefined) current.linkUrl = parsed.data.buttonUrl;
+      await current.save();
+      await AuditService.log('BANNER_UPDATED', 'admin', req.user?.id, req.ip, req.headers['user-agent'], { bannerId: current._id, placement: current.placement });
+      res.json({ success: true, data: toAdminBannerDTO(current.toObject()) });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
     }
   }
 

@@ -9,6 +9,10 @@
     "start": "node dist/server.js",
     "seed": "tsx src/seed.ts",
     "sync-catalog": "tsx src/scripts/syncG2BulkCatalog.ts",
+    "backfill-provider-catalogue": "tsx src/scripts/backfillProviderCatalogue.ts",
+    "migrate-settings-credentials": "tsx src/scripts/migrateSettingsCredentialsToEnvironment.ts",
+    "sanitize-provider-logs": "tsx src/scripts/sanitizeHistoricProviderLogs.ts",
+    "verify-production-indexes": "tsx src/scripts/verifyProductionIndexes.ts",
     "test": "jest --passWithNoTests"
   },
   "dependencies": {

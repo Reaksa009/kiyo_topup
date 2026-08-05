@@ -61,6 +61,11 @@ export const processOrderFulfillment = async (orderId: string) => {
     return;
   }
 
+  if (order.priceReviewStatus === 'required' || order.overallStatus === 'price_review_required') {
+    logger.warn(`Order ${order.orderNumber} is awaiting price review. Aborting provider request.`);
+    return;
+  }
+
   // Mark status as processing
   order.providerStatus = 'processing';
   order.overallStatus = 'processing';

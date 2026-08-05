@@ -15,6 +15,7 @@ interface GameCardProps {
     startingPrice?: number;
     discount?: string;
     comingSoon?: boolean;
+    isPurchasable?: boolean;
   };
 }
 
@@ -30,6 +31,7 @@ const fallbackPrices: Record<string, number> = {
 };
 
 export const GameCard: React.FC<GameCardProps> = ({ game }) => {
+  const isPurchasable = game.isPurchasable !== false && !game.comingSoon;
   const startPrice = game.startingPrice ?? fallbackPrices[game.slug] ?? 0.99;
   const image = game.thumbnail || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80';
 
@@ -41,7 +43,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
           : 'border-[#1c4773]/80 hover:-translate-y-1 hover:border-cyan-300/45 hover:shadow-[0_15px_34px_rgba(5,30,56,0.45)]'
       }`}
     >
-      {!game.comingSoon && (
+      {isPurchasable && (
         <Link
           to={`/game/${game.slug}`}
           aria-label={`Top up ${game.title}`}
@@ -54,7 +56,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
       <div className="relative aspect-square overflow-hidden bg-[#071024] p-1 sm:p-1.5">
         <img
           src={image}
-          alt=""
+          alt={`${game.title} game artwork`}
           loading="lazy"
           decoding="async"
           sizes="(max-width: 639px) 33vw, (max-width: 1023px) 25vw, 16vw"
@@ -88,7 +90,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             <span className="block text-[5px] font-bold uppercase text-slate-600 sm:text-[7px]">From</span>
             <span className="block text-[10px] font-black text-white sm:text-sm">${startPrice.toFixed(2)}</span>
           </div>
-          {game.comingSoon ? (
+          {!isPurchasable ? (
             <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-slate-500 sm:h-8 sm:w-auto sm:px-2">
               <LockKeyhole className="h-3 w-3" />
               <span className="ml-1 hidden text-[7px] font-black uppercase sm:inline">Soon</span>

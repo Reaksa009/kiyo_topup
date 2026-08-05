@@ -11,6 +11,8 @@ const router = Router();
 router.post('/', catalogSyncGuard, orderRateLimiter, checkIdempotency, OrderController.createOrder);
 router.post('/bulk', catalogSyncGuard, checkIdempotency, OrderController.createBulkOrder);
 router.get('/my-orders', authenticateJwt, OrderController.getUserOrders);
+router.get('/admin/price-reviews', authenticateJwt, requirePermission('orders:read'), OrderController.getPriceReviewOrders);
+router.post('/admin/:orderId/price-review/:decision', authenticateJwt, requirePermission('orders:write'), OrderController.decidePriceReview);
 router.get('/:orderNumber', OrderController.getOrderDetails);
 
 // Admin

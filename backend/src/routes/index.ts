@@ -11,6 +11,7 @@ import cmsRoutes from './cms.routes';
 import adminRoutes from './admin.routes';
 import reportRoutes from './report.routes';
 import settingRoutes from './setting.routes';
+import providerSyncRoutes from './providerSync.routes';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/providers', providerRoutes);
 router.use('/customers', customerRoutes);
 router.use('/cms', cmsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/admin', providerSyncRoutes);
 router.use('/reports', reportRoutes);
 router.use('/settings', settingRoutes);
 
