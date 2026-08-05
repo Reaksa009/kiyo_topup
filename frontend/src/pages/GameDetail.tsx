@@ -25,9 +25,7 @@ import { resolveBannerImages } from '../utils/bannerPresentation';
 type PaymentMethod = 'ABA_PAYWAY' | 'BAKONG_KHQR' | 'WALLET';
 
 const paymentOptions: Array<{ id: PaymentMethod; label: string; short: string; subtitle: string; tone: string }> = [
-  { id: 'BAKONG_KHQR', label: 'Bakong KHQR', short: 'KHQR', subtitle: 'Scan with any Cambodian banking app', tone: 'from-rose-500/20 to-red-600/5 text-rose-300' },
-  { id: 'ABA_PAYWAY', label: 'ABA PayWay', short: 'ABA', subtitle: 'ABA Mobile, Visa or Mastercard', tone: 'from-cyan-500/20 to-blue-600/5 text-cyan-300' },
-  { id: 'WALLET', label: 'Kiyo Wallet', short: 'KIYO', subtitle: 'Use your available account balance', tone: 'from-violet-500/20 to-purple-600/5 text-violet-300' }
+  { id: 'BAKONG_KHQR', label: 'Bakong KHQR', short: 'KHQR', subtitle: 'Scan with any Cambodian banking app', tone: 'from-rose-500/20 to-red-600/5 text-rose-300' }
 ];
 
 export function GameDetail() {

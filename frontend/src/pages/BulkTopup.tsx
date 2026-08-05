@@ -463,22 +463,12 @@ export function BulkTopup() {
                 {/* Select Payment Method */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-gray-300">Payment Gateway</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1">
                     <button
                       onClick={() => setPaymentMethod('BAKONG_KHQR')}
-                      className={`p-2 rounded-xl border text-center text-[10px] font-black uppercase transition ${
-                        paymentMethod === 'BAKONG_KHQR' ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400' : 'border-gray-800 text-gray-500'
-                      }`}
+                      className="p-2.5 rounded-xl border text-center text-[10px] font-black uppercase border-emerald-500 bg-emerald-950/20 text-emerald-400"
                     >
                       Bakong KHQR
-                    </button>
-                    <button
-                      onClick={() => setPaymentMethod('ABA_PAYWAY')}
-                      className={`p-2 rounded-xl border text-center text-[10px] font-black uppercase transition ${
-                        paymentMethod === 'ABA_PAYWAY' ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400' : 'border-gray-800 text-gray-500'
-                      }`}
-                    >
-                      ABA PayWay
                     </button>
                   </div>
                 </div>
