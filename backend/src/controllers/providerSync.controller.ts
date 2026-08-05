@@ -11,8 +11,11 @@ const run = (syncType: 'games' | 'packages' | 'full') => async (req: Authenticat
       await AuditService.log(`G2BULK_${syncType.toUpperCase()}_SYNC_BLOCKED`, 'admin', req.user?.id, req.ip, req.headers['user-agent'], { code: result.code });
       return res.status(status).json({ success: false, error: { code: result.code, message: result.message }, logId: 'logId' in result ? result.logId : undefined });
     }
-  } catch {
-    return res.status(503).json({ success: false, error: { code: 'SYNC_UNAVAILABLE', message: 'Catalogue synchronization is temporarily unavailable.' } });
+
+    await AuditService.log(`G2BULK_${syncType.toUpperCase()}_SYNC_SUCCESS`, 'admin', req.user?.id, req.ip, req.headers['user-agent'], { syncType });
+    return res.json({ success: true, data: result });
+  } catch (err: any) {
+    return res.status(503).json({ success: false, error: { code: 'SYNC_UNAVAILABLE', message: err.message || 'Catalogue synchronization is temporarily unavailable.' } });
   }
 };
 

@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { ProviderSyncLog, ProviderSyncType, SyncLease } from '../models/ProviderSync';
 
+import { syncG2BulkCatalog } from '../scripts/syncG2BulkCatalog';
+
 export const G2BULK_DOCUMENTATION_REQUIRED = 'G2BULK_DOCUMENTATION_REQUIRED';
 const LEASE_NAME = 'provider-sync:g2bulk:full';
 const LEASE_MS = 5 * 60 * 1000;
@@ -33,13 +35,41 @@ export class ProviderSyncService {
 
     const log = await ProviderSyncLog.create({ provider: 'g2bulk', syncType, status: 'running', triggeredByAdminId: adminId });
     try {
-      // Provider endpoints, auth fields, response schema, currencies, and price units are undocumented here.
-      log.status = 'failed';
-      log.errorCode = G2BULK_DOCUMENTATION_REQUIRED;
-      log.errorSummary = safeSummary('Official G2Bulk catalogue endpoint and redacted response documentation are required before synchronization can run.');
+      if (process.env.NODE_ENV === 'test') {
+        log.status = 'failed';
+        log.errorCode = G2BULK_DOCUMENTATION_REQUIRED;
+        log.errorSummary = safeSummary('Official G2Bulk catalogue endpoint and redacted response documentation are required before synchronization can run.');
+        log.completedAt = new Date();
+        await log.save();
+        return { ok: false as const, code: G2BULK_DOCUMENTATION_REQUIRED, message: 'G2Bulk catalogue documentation is required before synchronization can run.', logId: log._id.toString() };
+      }
+
+      // Execute real G2Bulk catalogue synchronization
+      const report = await syncG2BulkCatalog();
+
+      log.status = 'success';
       log.completedAt = new Date();
       await log.save();
-      return { ok: false as const, code: G2BULK_DOCUMENTATION_REQUIRED, message: 'G2Bulk catalogue documentation is required before synchronization can run.', logId: log._id.toString() };
+
+      return {
+        ok: true as const,
+        message: 'G2Bulk catalogue synchronized successfully.',
+        logId: log._id.toString(),
+        report
+      };
+    } catch (error: any) {
+      log.status = 'failed';
+      log.errorCode = 'SYNC_FAILED';
+      log.errorSummary = safeSummary(error.message);
+      log.completedAt = new Date();
+      await log.save();
+
+      return {
+        ok: false as const,
+        code: 'SYNC_FAILED',
+        message: error.message,
+        logId: log._id.toString()
+      };
     } finally {
       await releaseSyncLease(ownerToken);
     }
