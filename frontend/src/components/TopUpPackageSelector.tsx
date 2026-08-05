@@ -193,15 +193,15 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
         <div className="absolute -right-16 -top-16 pointer-events-none h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
         <div className="absolute -left-16 bottom-0 pointer-events-none h-32 w-32 rounded-full bg-violet-500/5 blur-2xl" />
 
-         <div className="relative flex flex-col items-center text-center gap-3 border-b border-white/[0.06] bg-[#0c1c33]/80 px-4 py-4 sm:px-5">
+         <div className="relative flex flex-col items-center text-center gap-3 border-b border-white/[0.06] bg-[#0c1c33]/80 px-4 py-5 sm:px-5">
            {step && (
-             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-sm font-black text-white shadow-lg shadow-rose-300/30 sm:h-11 sm:w-11 sm:text-base">
+             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-base font-black text-white shadow-lg shadow-rose-300/30 sm:h-14 sm:w-14 sm:text-lg animate-bounce-subtle">
                {step}
              </span>
            )}
            <div className="min-w-0">
-             <h2 id="package-selector-title" className="text-base font-black tracking-tight text-white sm:text-lg">Select Top-Up Package</h2>
-             <p className="mt-1 text-[10px] font-bold text-rose-400 sm:text-xs">{packages.length} choices available</p>
+             <h2 id="package-selector-title" className="text-lg font-black tracking-tight text-white sm:text-2xl">Select Top-Up Package</h2>
+             <p className="mt-1 text-[11px] font-bold text-rose-400 sm:text-sm">{packages.length} choices available</p>
            </div>
            <div className={`mt-1 min-w-0 rounded-xl border px-4 py-1 text-center ${compactMobileLead ? 'hidden md:block' : ''} ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.06] bg-black/20'}`}>
              <p className="max-w-[180px] truncate text-[9px] font-bold text-slate-500">{selectedPackage?.title || 'No package selected'}</p>
@@ -332,40 +332,36 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
       <div className="pointer-events-none absolute -left-20 top-24 h-44 w-44 rounded-full bg-cyan-400/[0.07] blur-3xl" />
 
-      <div className="relative border-b border-white/[0.07] bg-gradient-to-r from-cyan-400/[0.06] via-transparent to-violet-500/[0.08] p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-center sm:text-left">
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:gap-3.5">
-            {step && (
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-sm font-black text-white shadow-lg shadow-rose-300/30 sm:h-11 sm:w-11 sm:text-base mx-auto sm:mx-0">
-                {step}
-              </span>
-            )}
-            <div className="flex flex-col items-center sm:items-start">
-              <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-300/80 justify-center sm:justify-start">
-                <Zap className="h-3.5 w-3.5" /> Instant digital delivery
-              </div>
-              <h2 id="package-selector-title" className="mt-1.5 text-xl font-black tracking-tight text-white sm:text-2xl">
-                Select Top-Up Package
-              </h2>
-              <p className="mt-1 text-[11px] leading-5 text-slate-500 sm:text-xs">
-                Choose the best value for your account. Prices are shown in USD and Khmer Riel.
+      <div className="relative flex flex-col items-center text-center gap-3.5 p-5 sm:p-6 border-b border-white/[0.07] bg-gradient-to-b from-cyan-400/[0.05] to-transparent">
+        {step && (
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-lg font-black text-white shadow-lg shadow-rose-300/30 sm:h-14 sm:w-14 sm:text-xl animate-bounce-subtle">
+            {step}
+          </span>
+        )}
+        <div className="space-y-1 max-w-lg">
+          <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
+            <Zap className="h-3.5 w-3.5 text-amber-300 animate-pulse" /> Instant digital delivery
+          </div>
+          <h2 id="package-selector-title" className="text-xl font-black tracking-tight text-white sm:text-3xl">
+            Select Top-Up Package
+          </h2>
+          <p className="text-[11px] leading-5 text-slate-400 sm:text-sm">
+            Choose the best value for your account. Prices are shown in USD and Khmer Riel.
+          </p>
+        </div>
+
+        <div className={`mt-2 min-w-0 rounded-2xl border px-5 py-2.5 w-full max-w-xs ${selectedPackage ? 'border-emerald-400/25 bg-emerald-400/[0.08]' : 'border-white/[0.07] bg-black/20'}`}>
+          <div className="flex items-center justify-center gap-2.5">
+            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${selectedPackage ? 'bg-emerald-300 text-[#06120e]' : 'bg-white/[0.05] text-slate-600'}`}>
+              {selectedPackage ? <Check className="h-4 w-4" strokeWidth={3} /> : <Gem className="h-4 w-4" />}
+            </span>
+            <div className="min-w-0 text-left">
+              <p className="text-[7px] font-black uppercase tracking-[0.18em] text-slate-500">{selectedPackage ? 'Selected package' : 'Nothing selected'}</p>
+              <p className={`mt-0.5 truncate text-[10px] font-black ${selectedPackage ? 'text-white' : 'text-slate-500'}`}>
+                {selectedPackage?.title || 'Tap a package below'}
               </p>
             </div>
-          </div>
-
-          <div className={`min-w-0 rounded-2xl border px-4 py-3 sm:max-w-[240px] ${selectedPackage ? 'border-emerald-400/25 bg-emerald-400/[0.08]' : 'border-white/[0.07] bg-black/20'}`}>
-            <div className="flex items-center gap-2">
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${selectedPackage ? 'bg-emerald-300 text-[#06120e]' : 'bg-white/[0.05] text-slate-600'}`}>
-                {selectedPackage ? <Check className="h-4 w-4" strokeWidth={3} /> : <Gem className="h-4 w-4" />}
-              </span>
-              <div className="min-w-0">
-                <p className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-500">{selectedPackage ? 'Selected package' : 'Nothing selected'}</p>
-                <p className={`mt-0.5 truncate text-[11px] font-black ${selectedPackage ? 'text-white' : 'text-slate-500'}`}>
-                  {selectedPackage?.title || 'Tap a package below'}
-                </p>
-              </div>
-              {selectedPackage && <span className="ml-auto shrink-0 text-sm font-black text-emerald-300">${selectedPackage.price.toFixed(2)}</span>}
-            </div>
+            {selectedPackage && <span className="ml-auto shrink-0 text-xs font-black text-emerald-300">${selectedPackage.price.toFixed(2)}</span>}
           </div>
         </div>
       </div>

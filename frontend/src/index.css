@@ -659,3 +659,70 @@ body:not(.admin-active) .text-gray-300, body:not(.admin-active) .text-gray-400 {
   color: var(--kiyo-muted) !important;
 }
 
+/* Redesign Select Package header details */
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] .animate-bounce-subtle {
+  animation: bounceSubtle 3s infinite ease-in-out;
+}
+
+@keyframes bounceSubtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Ensure text inside package cards is visible in light theme */
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group h3 {
+  color: var(--kiyo-text-strong) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group:hover h3 {
+  color: var(--kiyo-cyan) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group[aria-pressed="true"] h3 {
+  color: var(--kiyo-cyan) !important;
+}
+
+/* KHR and USD prices in package selector cards */
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group p.text-slate-500 {
+  color: var(--kiyo-muted) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group span.text-white,
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group span.text-cyan-200 {
+  color: var(--kiyo-text-strong) !important;
+}
+
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button.group[aria-pressed="true"] span.text-cyan-200 {
+  color: var(--kiyo-cyan) !important;
+}
+
+/* Package selector filter button hover styles */
+body:not(.admin-active) section[aria-labelledby="package-selector-title"] button[aria-pressed="false"]:hover {
+  color: var(--kiyo-cyan) !important;
+}
+
+/* Total Price & Mobile checkout bar overrides */
+body:not(.admin-active) .fixed.inset-x-0.bottom-0 {
+  background-color: #ffffff !important;
+  border-top: 1px solid rgba(255, 90, 146, 0.15) !important;
+  box-shadow: 0 -10px 40px rgba(255, 90, 146, 0.08) !important;
+}
+
+body:not(.admin-active) .fixed.inset-x-0.bottom-0 p.text-slate-500 {
+  color: var(--kiyo-muted) !important;
+  font-weight: 700 !important;
+}
+
+body:not(.admin-active) .fixed.inset-x-0.bottom-0 p.text-amber-300 {
+  color: #ff5a92 !important; /* Standout vibrant pink/rose total price */
+}
+
+/* Disabled mobile checkout button styling */
+body:not(.admin-active) .fixed.inset-x-0.bottom-0 button:disabled {
+  background: #f1ecf1 !important;
+  color: #a395b0 !important;
+  border: 1px solid rgba(255, 90, 146, 0.08) !important;
+  box-shadow: none !important;
+}
+
+
