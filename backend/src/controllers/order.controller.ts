@@ -557,4 +557,22 @@ export class OrderController {
       res.status(500).json({ success: false, message: error.message });
     }
   }
+
+  static async returnOrder(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { orderId } = req.params;
+      const order = await Order.findById(orderId);
+      if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+      order.overallStatus = 'refunded';
+      order.paymentStatus = 'refunded';
+      await order.save();
+
+      await AuditService.log('MANUAL_ORDER_RETURN', 'admin', req.user?.id, req.ip, req.headers['user-agent'], { orderId });
+
+      res.json({ success: true, message: 'Order successfully returned and marked as refunded' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 }

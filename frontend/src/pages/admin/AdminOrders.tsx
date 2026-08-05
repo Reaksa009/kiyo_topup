@@ -52,6 +52,19 @@ export const AdminOrders: React.FC = () => {
     }
   };
 
+  const handleReturn = async (orderId: string) => {
+    if (!window.confirm('Are you sure you want to return this item and mark it as refunded? This will permanently mark the order as refunded.')) return;
+    try {
+      await apiClient.post(`/orders/${orderId}/return`);
+      setMessage('Order successfully returned and marked as refunded.');
+      setError('');
+      fetchOrders();
+      setSelectedOrder(null);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error returning order');
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -82,6 +95,7 @@ export const AdminOrders: React.FC = () => {
               <option value="processing">Processing</option>
               <option value="completed">Completed</option>
               <option value="failed">Failed</option>
+              <option value="refunded">Refunded</option>
             </select>
             <select
               value={paymentFilter}
@@ -135,6 +149,8 @@ export const AdminOrders: React.FC = () => {
                             ? 'bg-emerald-500/20 text-emerald-400'
                             : ord.overallStatus === 'processing'
                             ? 'bg-amber-500/20 text-amber-400'
+                            : ord.overallStatus === 'refunded'
+                            ? 'bg-purple-500/20 text-purple-400'
                             : 'bg-red-500/20 text-red-400'
                         }`}
                       >
@@ -170,6 +186,13 @@ export const AdminOrders: React.FC = () => {
                 <p><strong className="text-white">Failure Reason:</strong> {selectedOrder.failureReason || 'N/A'}</p>
               </div>
               <div className="flex justify-end space-x-3 pt-2">
+                <button
+                  onClick={() => handleReturn(selectedOrder._id)}
+                  disabled={selectedOrder.overallStatus === 'refunded'}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Return Item
+                </button>
                 <button
                   onClick={() => handleRetry(selectedOrder._id)}
                   disabled={selectedOrder.paymentStatus !== 'paid' || selectedOrder.overallStatus === 'completed'}

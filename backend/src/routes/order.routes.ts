@@ -18,5 +18,6 @@ router.get('/:orderNumber', OrderController.getOrderDetails);
 // Admin
 router.get('/', authenticateJwt, requirePermission('orders:read'), OrderController.getAllOrders);
 router.post('/:orderId/retry', catalogSyncGuard, authenticateJwt, requirePermission('orders:write'), OrderController.retryOrder);
+router.post('/:orderId/return', catalogSyncGuard, authenticateJwt, requirePermission('orders:write'), OrderController.returnOrder);
 
 export default router;
