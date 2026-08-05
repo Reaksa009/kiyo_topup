@@ -123,9 +123,19 @@ export const fetchLatestG2BulkServices = async (): Promise<G2Product[]> => {
 export const productMatchesGame = (product: G2Product, definition: GameCatalogMatchDefinition): boolean => {
   const title = normalizeText(product.title);
   const category = normalizeText(product.category_title);
-  if (definition.slug === 'mobile-legends' && `${category} ${title}`.includes('mobile legends adventure')) {
-    return false;
+  
+  if (definition.slug === 'mobile-legends') {
+    if (`${category} ${title}`.includes('mobile legends adventure')) {
+      return false;
+    }
+    
+    // Enforce exact matching for the main Mobile Legends/MLBB category only
+    const isExactCategory = category === 'mobile legends' || category === 'mlbb' || category === 'mobile legends bang bang';
+    if (!isExactCategory) {
+      return false;
+    }
   }
+
   const aliases = (definition.categoryAliases || definition.keywords).map(normalizeText).filter(Boolean);
   return aliases.some((alias) => category === alias || category.startsWith(`${alias} `) || title.includes(alias));
 };
