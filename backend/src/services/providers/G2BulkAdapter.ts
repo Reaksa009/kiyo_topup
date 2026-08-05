@@ -392,17 +392,6 @@ export class G2BulkAdapter extends BaseProviderAdapter {
       }
     }
 
-    // Resilient ID Format Verification
-    if (/^[a-zA-Z0-9_-]{3,20}$/.test(userId)) {
-      const verifiedName = `Player_${userId}${zoneId ? ` (${zoneId})` : ''}`;
-      return {
-        valid: true,
-        username: verifiedName,
-        message: `Account ID Verified (${userId}${zoneId ? ` / Zone ${zoneId}` : ''})`,
-        rawResponse: { valid: true, formatVerified: true, userId, zoneId }
-      };
-    }
-
     return {
       valid: false,
       message: 'Player not found in G2Bulk database',
