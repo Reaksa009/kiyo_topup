@@ -1,7 +1,7 @@
 {
   "installCommand": "cd frontend && npm install --workspaces=false --include=dev && cd ../backend && npm install --workspaces=false --include=dev",
   "outputDirectory": "frontend/dist",
-  "regions": ["sin1"],
+  "regions": ["iad1"],
   "functions": {
     "api/index.ts": {
       "memory": 1024,
