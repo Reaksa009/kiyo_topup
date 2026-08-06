@@ -127,6 +127,10 @@ export const productMatchesGame = (product: G2Product, definition: GameCatalogMa
   const category = normalizeText(product.category_title);
   
   if (definition.slug === 'mobile-legends') {
+    const idStr = String(product.id);
+    if (idStr === '1559' || idStr === '1573' || idStr === '1946') {
+      return true;
+    }
     if (`${category} ${title}`.includes('mobile legends adventure')) {
       return false;
     }
