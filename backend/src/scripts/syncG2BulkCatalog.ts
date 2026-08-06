@@ -29,6 +29,7 @@ export interface GameCatalogMatchDefinition {
 
 export const GAME_IDENTITY_ALIASES: Record<string, string[]> = {
   'mobile-legends': ['mobile legends', 'mobile legends global', 'mlbb', 'mobilelegends', 'mobilelegend'],
+  'mobile-legends-special': ['mobile legends special', 'mlbb special', 'mobilelegendsspecial'],
   'pubg-mobile': ['pubg mobile', 'pubg', 'pubgmobile'],
   'free-fire': ['freefire global', 'freefire', 'free fire'],
   valorant: ['valorant'],
@@ -180,7 +181,7 @@ export const calculateSellingPrice = (product: G2Product): number => {
 
 export const selectCheapestProducts = (products: G2Product[], gameSlug: string): SelectedCatalogProduct[] => {
   let filteredProducts = products;
-  if (gameSlug === 'mobile-legends') {
+  if (gameSlug === 'mobile-legends-special') {
     filteredProducts = products.filter((p) => {
       const idStr = String(p.id);
       return idStr === '1559' || idStr === '1573' || idStr === '1946';
