@@ -205,7 +205,7 @@ export class GameController {
       }
 
       const { category, search, popular, flashSale } = req.query;
-      const query: any = { status: 'active' };
+      const query: any = {};
 
       const timedRes = res as any;
 

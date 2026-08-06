@@ -20,11 +20,11 @@ export const toPublicGameDTO = (game: CatalogRecord) => ({
   instructions: game.instructions,
   isPopular: game.isPopular,
   isFlashSale: game.isFlashSale,
-  status: game.status,
+  status: game.status || 'active',
   sortOrder: game.sortOrder,
   seoTitle: game.seoTitle,
   seoDescription: game.seoDescription,
-  isPurchasable: game.isPurchasable !== false
+  isPurchasable: game.isPurchasable !== false && (game.status || 'active') === 'active'
 });
 
 export const toPublicPackageDTO = (pkg: CatalogRecord, isPurchasable = true) => ({
