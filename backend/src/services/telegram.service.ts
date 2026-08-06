@@ -70,7 +70,34 @@ export class TelegramService {
       `<b>Amount:</b> $${amount.toFixed(2)}\n` +
       `<b>Gateway:</b> ${paymentMethod}\n` +
       `<b>Status:</b> ✅ Paid -> Processing Provider`;
-    return this.sendMessage(text);
+    return this.sendMessage(text, undefined, env.TELEGRAM_PAYMENT_RECEIVED_BOT_TOKEN);
+  }
+
+  /**
+   * Format & Send Order Sent to Provider alert (Waiting Provider)
+   */
+  static async notifyOrderProcessing(orderNumber: string, gameTitle: string, packageTitle: string) {
+    const text =
+      `⏳ <b>ORDER SENT TO SUPPLIER</b>\n` +
+      `--------------------------------\n` +
+      `<b>Order #:</b> <code>${orderNumber}</code>\n` +
+      `<b>Game:</b> ${gameTitle}\n` +
+      `<b>Package:</b> ${packageTitle}\n` +
+      `<b>Status:</b> ⏳ Waiting for Provider Fulfillment`;
+    return this.sendMessage(text, undefined, env.TELEGRAM_ORDER_WP_BOT_TOKEN);
+  }
+
+  /**
+   * Format & Send Supplier Low Balance Alert
+   */
+  static async notifyLowBalance(balance: number) {
+    const text =
+      `⚠️ <b>LOW PROVIDER BALANCE WARNING!</b>\n` +
+      `--------------------------------\n` +
+      `<b>Provider:</b> G2Bulk\n` +
+      `<b>Balance Remaining:</b> $${balance.toFixed(2)}\n` +
+      `<b>Status:</b> 🚨 Add funds immediately to prevent top-up disruptions`;
+    return this.sendMessage(text, undefined, env.TELEGRAM_PROVIDER_LOW_BALANCE_BOT_TOKEN);
   }
 
   /**

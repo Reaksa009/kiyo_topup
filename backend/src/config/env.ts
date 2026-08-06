@@ -63,6 +63,9 @@ const envSchema = z.object({
 
   TELEGRAM_BOT_TOKEN: z.string().default(''),
   TELEGRAM_FAILED_BOT_TOKEN: z.string().default('8609122116:AAEEiRYM-zfd0Kk0RZalnnoXPeeOWwOiFSc'),
+  TELEGRAM_ORDER_WP_BOT_TOKEN: z.string().default('8901048774:AAG_IUboKFh-LBZ9QPQbmxArurX7RcKnGLs'),
+  TELEGRAM_PAYMENT_RECEIVED_BOT_TOKEN: z.string().default('7905738025:AAEcvK_hSE2CfxDM5FACZ8yXfSVSbikBJ7Q'),
+  TELEGRAM_PROVIDER_LOW_BALANCE_BOT_TOKEN: z.string().default('8984621483:AAEXT72GVBU-nPZifJRahykUPF93-o0TjyA'),
   TELEGRAM_CHAT_ID: z.string().default(''),
 
   SEED_ADMIN_EMAIL: z.string().default('admin@kiyotopup.com'),

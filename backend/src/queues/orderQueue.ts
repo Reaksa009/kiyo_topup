@@ -71,6 +71,8 @@ export const processOrderFulfillment = async (orderId: string) => {
   order.overallStatus = 'processing';
   await order.save();
 
+  await TelegramService.notifyOrderProcessing(order.orderNumber, order.gameTitle, order.packageTitle);
+
   if (ioInstance) {
     ioInstance.emit(`order_update_${order.orderNumber}`, {
       orderNumber: order.orderNumber,
@@ -128,6 +130,16 @@ export const processOrderFulfillment = async (orderId: string) => {
 
     // Notify Telegram & WebSockets
     await TelegramService.notifyOrderCompleted(order.orderNumber, order.gameTitle, order.profit);
+
+    // Check supplier balance and warn if low
+    try {
+      const balanceData = await provider.getBalance();
+      if (balanceData && balanceData.balance < 50) {
+        await TelegramService.notifyLowBalance(balanceData.balance);
+      }
+    } catch (balErr: any) {
+      logger.error('Failed to check provider balance after fulfillment:', balErr.message);
+    }
 
     if (ioInstance) {
       ioInstance.emit(`order_update_${order.orderNumber}`, {
