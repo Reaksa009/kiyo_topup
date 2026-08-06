@@ -33,7 +33,15 @@ export const AdminBanners: React.FC = () => {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const payload = useMemo(() => ({ ...form, gameId: form.placement === 'game-detail' ? form.gameId || undefined : undefined, startDate: form.startDate || undefined, endDate: form.endDate || undefined }), [form]);
+  const payload = useMemo(() => {
+    const { _id, createdAt, updatedAt, __v, ...cleanForm } = form as any;
+    return {
+      ...cleanForm,
+      gameId: form.placement === 'game-detail' ? form.gameId || undefined : undefined,
+      startDate: form.startDate || undefined,
+      endDate: form.endDate || undefined
+    };
+  }, [form]);
   const edit = (banner: Banner) => { setEditingId(banner._id); setForm({ ...emptyBanner(), ...banner, gameId: banner.gameId || '', startDate: dateValue(banner.startDate), endDate: dateValue(banner.endDate) }); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); setSaving(true); setError('');
