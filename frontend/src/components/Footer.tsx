@@ -9,7 +9,7 @@ export const Footer: React.FC = () => (
       <div className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-[1.4fr_.8fr_.8fr_1fr]">
         <div className="col-span-2 md:col-span-1">
           <Link to="/" className="inline-flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/30 bg-[#0a1d3e] text-cyan-200"><Gamepad2 className="h-5 w-5" /></span>
+            <img src="/images/logo.jpg" alt="Kiyo Topup Logo" className="h-10 w-10 shrink-0 rounded-xl border border-cyan-300/30 object-cover" />
             <span className="text-base font-black tracking-[0.13em] text-white">KIYO<span className="text-cyan-300"> TOPUP</span></span>
           </Link>
           <p className="mt-3 max-w-sm text-[11px] leading-5 text-slate-500">Fast, secure game top-ups with transparent prices and payment methods made for Cambodia.</p>

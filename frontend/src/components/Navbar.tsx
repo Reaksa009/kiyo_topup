@@ -33,9 +33,7 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-50 w-full max-w-[100vw] overflow-x-clip border-b border-cyan-300/20 bg-[#07152d]/95 shadow-[0_10px_35px_rgba(0,0,0,0.18)] backdrop-blur-xl">
       <div className="section-shell flex h-16 min-w-0 items-center justify-between gap-3">
         <Link to="/" onClick={closeMobileMenu} className="group flex min-w-0 items-center gap-2.5" aria-label="Kiyo Topup home">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-[#0a1b3a] text-cyan-200 shadow-[0_0_22px_rgba(98,230,255,0.15)] transition group-hover:border-cyan-200/60">
-            <Gamepad2 className="h-5 w-5" />
-          </span>
+          <img src="/images/logo.jpg" alt="Kiyo Topup Logo" className="h-10 w-10 shrink-0 rounded-xl border border-cyan-300/30 object-cover shadow-[0_0_22px_rgba(98,230,255,0.15)] transition group-hover:border-cyan-200/60" />
           <span className="min-w-0">
             <span className="block whitespace-nowrap text-[14px] font-black tracking-[0.12em] text-white sm:text-base">KIYO<span className="text-cyan-300"> TOPUP</span></span>
             <span className="hidden text-[7px] font-bold uppercase tracking-[0.2em] text-slate-500 sm:block">Fast credits for every game</span>
