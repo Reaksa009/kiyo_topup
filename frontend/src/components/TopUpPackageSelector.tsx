@@ -133,7 +133,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
     const title = pkg.title.toLowerCase();
     const cleanSlug = slug.toLowerCase();
 
-    if (cleanSlug === 'mobile-legends') {
+    if (cleanSlug.startsWith('mobile-legends')) {
       if (title.includes('weekly')) return '/images/daimond/weekly.png';
       if (title.includes('monthly')) return '/images/daimond/monthly.png';
       
