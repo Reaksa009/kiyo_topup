@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { AdminLayout } from '../../components/AdminLayout';
+import { ImageUploader } from '../../components/ImageUploader';
 import { apiClient } from '../../api/client';
 
 interface Category {
@@ -484,14 +485,8 @@ export const AdminGames: React.FC = () => {
                 <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Publisher</span>
                 <input required type="text" value={gameForm.publisher} onChange={(e) => setGameForm({ ...gameForm, publisher: e.target.value })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-3.5 py-2 text-sm text-white outline-none focus:border-cyan-500" />
               </label>
-              <label className="block">
-                <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Thumbnail Image URL (300x300 recommended)</span>
-                <input required type="text" value={gameForm.thumbnail} onChange={(e) => setGameForm({ ...gameForm, thumbnail: e.target.value })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-3.5 py-2 text-sm text-white outline-none focus:border-cyan-500" />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Banner Image URL (1200x400 recommended)</span>
-                <input type="text" value={gameForm.bannerUrl} onChange={(e) => setGameForm({ ...gameForm, bannerUrl: e.target.value })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-3.5 py-2 text-sm text-white outline-none focus:border-cyan-500" />
-              </label>
+              <ImageUploader label="Thumbnail Image (300x300 recommended)" value={gameForm.thumbnail} onChange={(val) => setGameForm({ ...gameForm, thumbnail: val })} maxWidth={300} maxHeight={300} />
+              <ImageUploader label="Banner Image (1200x400 recommended)" value={gameForm.bannerUrl} onChange={(val) => setGameForm({ ...gameForm, bannerUrl: val })} maxWidth={1200} maxHeight={400} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Status</span>
