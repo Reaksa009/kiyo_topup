@@ -24,8 +24,8 @@ export const serverTimingMiddleware = (req: Request, res: Response, next: NextFu
   // Measure total request duration automatically
   const startTotal = performance.now();
 
-  const originalSend = res.send;
-  res.send = function (body) {
+  const originalWriteHead = res.writeHead;
+  res.writeHead = function (statusCode: any, ...args: any[]) {
     // Record final total duration
     const totalDur = performance.now() - startTotal;
     timings.push({ key: 'total', desc: 'Total Request Duration', start: startTotal, duration: totalDur });
@@ -38,7 +38,7 @@ export const serverTimingMiddleware = (req: Request, res: Response, next: NextFu
     if (headerValue) {
       res.setHeader('Server-Timing', headerValue);
     }
-    return originalSend.call(this, body);
+    return (originalWriteHead as any).apply(this, [statusCode, ...args]);
   };
 
   next();
