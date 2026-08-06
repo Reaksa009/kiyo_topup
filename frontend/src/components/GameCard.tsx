@@ -16,6 +16,7 @@ interface GameCardProps {
     discount?: string;
     comingSoon?: boolean;
     isPurchasable?: boolean;
+    status?: 'active' | 'maintenance' | 'inactive';
   };
 }
 
@@ -93,10 +94,17 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             <span className="block text-[10px] font-black text-white sm:text-sm">${startPrice.toFixed(2)}</span>
           </div>
           {!isPurchasable ? (
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-slate-500 sm:h-8 sm:w-auto sm:px-2">
-              <LockKeyhole className="h-3 w-3" />
-              <span className="ml-1 hidden text-[7px] font-black uppercase sm:inline">Soon</span>
-            </span>
+            game.status === 'maintenance' || game.comingSoon ? (
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400 sm:h-8 sm:w-auto sm:px-2" title="Maintenance">
+                <LockKeyhole className="h-3 w-3 shrink-0" />
+                <span className="ml-1 hidden text-[7px] font-black uppercase tracking-wider sm:inline">Maintenance</span>
+              </span>
+            ) : (
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 sm:h-8 sm:w-auto sm:px-2" title="Inactive">
+                <LockKeyhole className="h-3 w-3 shrink-0" />
+                <span className="ml-1 hidden text-[7px] font-black uppercase tracking-wider sm:inline">Inactive</span>
+              </span>
+            )
           ) : (
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-300 to-blue-500 text-[#03101d] shadow-md shadow-cyan-950/30 sm:h-8 sm:w-auto sm:px-2.5">
               <span className="hidden text-[8px] font-black uppercase sm:inline">Top Up</span>
