@@ -40,6 +40,9 @@ interface Game {
   categoryId?: Category | string;
   status: 'active' | 'maintenance' | 'inactive';
   inputFields?: Array<{ name: string; label: string }>;
+  isPopular?: boolean;
+  isFlashSale?: boolean;
+  sortOrder?: number;
 }
 
 interface GamePackage {
@@ -125,6 +128,49 @@ export const AdminGames: React.FC = () => {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [gameForm, setGameForm] = useState({
+    title: '',
+    publisher: '',
+    thumbnail: '',
+    bannerUrl: '',
+    status: 'active' as Game['status'],
+    isPopular: false,
+    isFlashSale: false,
+    sortOrder: 0
+  });
+
+  const openGameEditor = (game: Game) => {
+    setEditingGame(game);
+    setGameForm({
+      title: game.title,
+      publisher: game.publisher,
+      thumbnail: game.thumbnail,
+      bannerUrl: game.bannerUrl || '',
+      status: game.status,
+      isPopular: game.isPopular || false,
+      isFlashSale: game.isFlashSale || false,
+      sortOrder: (game as any).sortOrder || 0
+    });
+    setError('');
+  };
+
+  const saveGame = async () => {
+    if (!editingGame) return;
+    setSaving(true);
+    setError('');
+    try {
+      await apiClient.put(`/games/${editingGame._id}`, gameForm);
+      setGames((current) => current.map((g) => g._id === editingGame._id ? { ...g, ...gameForm } : g));
+      setSelectedGame((current) => current && current._id === editingGame._id ? { ...current, ...gameForm } : current);
+      setNotice(`${gameForm.title} details updated successfully.`);
+      setEditingGame(null);
+    } catch (requestError: any) {
+      setError(requestError.response?.data?.message || 'Unable to update game settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const loadCatalog = async () => {
     setCatalogLoading(true);
@@ -335,7 +381,7 @@ export const AdminGames: React.FC = () => {
                   <div className="absolute inset-0"><img src={selectedGame.bannerUrl || selectedGame.thumbnail} alt="" className="h-full w-full object-cover opacity-20" /><div className="absolute inset-0 bg-gradient-to-r from-[#090d15] via-[#090d15]/95 to-[#090d15]/55" /></div>
                   <div className="relative p-5 sm:p-7">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                      <div className="flex min-w-0 items-center gap-4"><img src={selectedGame.thumbnail} alt={selectedGame.title} className="h-16 w-16 rounded-2xl object-cover ring-1 ring-cyan-400/30 sm:h-20 sm:w-20" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-purple-400/25 bg-purple-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-purple-300">{categoryName(selectedGame)}</span><span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-emerald-300">{selectedGame.status}</span></div><h2 className="mt-2 truncate text-xl font-black text-white sm:text-2xl">{selectedGame.title}</h2><p className="mt-1 text-xs text-gray-400">{selectedGame.publisher}</p></div></div>
+                      <div className="flex min-w-0 items-center gap-4"><img src={selectedGame.thumbnail} alt={selectedGame.title} className="h-16 w-16 rounded-2xl object-cover ring-1 ring-cyan-400/30 sm:h-20 sm:w-20" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-purple-400/25 bg-purple-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-purple-300">{categoryName(selectedGame)}</span><span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-emerald-300">{selectedGame.status}</span><button onClick={() => openGameEditor(selectedGame)} className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-cyan-300 hover:bg-cyan-500/25 transition inline-flex items-center gap-1"><PencilLine className="h-2.5 w-2.5" /> Edit Game</button></div><h2 className="mt-2 truncate text-xl font-black text-white sm:text-2xl">{selectedGame.title}</h2><p className="mt-1 text-xs text-gray-400">{selectedGame.publisher}</p></div></div>
                       <div className="flex flex-wrap gap-2">{(selectedGame.inputFields || []).map((field) => <span key={field.name} className="rounded-xl border border-gray-700/80 bg-black/25 px-3 py-2 text-[10px] font-bold text-gray-300">{field.label}</span>)}{!selectedGame.inputFields?.length && <span className="rounded-xl border border-gray-700/80 bg-black/25 px-3 py-2 text-[10px] font-bold text-gray-400">Player account ID</span>}</div>
                     </div>
                   </div>
@@ -411,6 +457,72 @@ export const AdminGames: React.FC = () => {
               <div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-gray-400"><BadgeDollarSign className="h-4 w-4 text-purple-400" /> Store badge</span><select value={editBadge} onChange={(event) => setEditBadge(event.target.value)} className="w-full rounded-2xl border border-gray-700 bg-[#080c13] px-4 py-3 text-xs font-bold text-white outline-none focus:border-purple-500"><option value="">Normal package</option><option value="BEST SELLER">Best seller</option><option value="BEST VALUE">Best value</option><option value="EVENT / PASS">Event / Pass</option></select></label><label><span className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-gray-400"><PackageCheck className="h-4 w-4 text-emerald-400" /> Availability</span><select value={editStatus} onChange={(event) => setEditStatus(event.target.value as GamePackage['status'])} className="w-full rounded-2xl border border-gray-700 bg-[#080c13] px-4 py-3 text-xs font-bold text-white outline-none focus:border-emerald-500"><option value="active">Available</option><option value="inactive">Inactive</option><option value="out_of_stock">Out of stock</option></select></label></div>
               <div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-2 text-[10px] font-black uppercase tracking-wider text-gray-400">Pricing mode</span><select value={editPricingMode} onChange={(event) => setEditPricingMode(event.target.value as 'automatic' | 'fixed')} className="w-full rounded-2xl border border-gray-700 bg-[#080c13] px-4 py-3 text-xs font-bold text-white"><option value="fixed">Fixed selling price</option><option value="automatic">Automatic markup</option></select></label>{editPricingMode === 'automatic' && <label><span className="mb-2 text-[10px] font-black uppercase tracking-wider text-gray-400">Markup</span><div className="flex gap-2"><select value={editMarkupType} onChange={(event) => setEditMarkupType(event.target.value as 'percentage' | 'fixed')} className="rounded-2xl border border-gray-700 bg-[#080c13] px-3 text-xs font-bold text-white"><option value="percentage">%</option><option value="fixed">$</option></select><input type="number" min="0" step="0.01" value={editMarkupValue} onChange={(event) => setEditMarkupValue(Number(event.target.value))} className="min-w-0 flex-1 rounded-2xl border border-gray-700 bg-[#080c13] px-4 py-3 text-xs font-bold text-white" /></div></label>}</div>
               <div className="flex flex-col-reverse gap-3 border-t border-gray-800 pt-5 sm:flex-row sm:justify-end"><button onClick={closeEditor} disabled={saving} className="rounded-xl border border-gray-700 px-5 py-2.5 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-40">Cancel</button><button onClick={savePackage} disabled={saving || editPrice < editingPackage.costPrice} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-purple-950/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40">{saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{saving ? 'Saving package…' : 'Save changes'}</button></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingGame && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="game-editor-title">
+          <button className="absolute inset-0" onClick={() => setEditingGame(null)} aria-label="Close game editor" />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-cyan-500/25 bg-[#0b1019] shadow-2xl shadow-black/70">
+            <div className="border-b border-gray-800 bg-gradient-to-r from-cyan-500/[0.08] to-purple-500/[0.08] p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">Game settings</p>
+                  <h2 id="game-editor-title" className="mt-2 truncate text-xl font-black text-white">{editingGame.title}</h2>
+                </div>
+                <button onClick={() => setEditingGame(null)} disabled={saving} className="rounded-xl border border-gray-700 bg-gray-900 p-2 text-gray-500 hover:text-white disabled:opacity-40" aria-label="Close"><X className="h-4 w-4" /></button>
+              </div>
+            </div>
+            <div className="space-y-4 p-6 overflow-y-auto max-h-[70vh]">
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Game Title</span>
+                <input required type="text" value={gameForm.title} onChange={(e) => setGameForm({ ...gameForm, title: e.target.value })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-3.5 py-2 text-sm text-white outline-none focus:border-cyan-500" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Publisher</span>
+                <input required type="text" value={gameForm.publisher} onChange={(e) => setGameForm({ ...gameForm, publisher: e.target.value })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-3.5 py-2 text-sm text-white outline-none focus:border-cyan-500" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Thumbnail Image URL (300x300 recommended)</span>
+                <input required type="text" value={gameForm.thumbnail} onChange={(e) => setGameForm({ ...gameForm, thumbnail: e.target.value })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-3.5 py-2 text-sm text-white outline-none focus:border-cyan-500" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Banner Image URL (1200x400 recommended)</span>
+                <input type="text" value={gameForm.bannerUrl} onChange={(e) => setGameForm({ ...gameForm, bannerUrl: e.target.value })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-3.5 py-2 text-sm text-white outline-none focus:border-cyan-500" />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Status</span>
+                  <select value={gameForm.status} onChange={(e) => setGameForm({ ...gameForm, status: e.target.value as Game['status'] })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-4 py-2 text-xs font-bold text-white outline-none focus:border-cyan-500">
+                    <option value="active">Active</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-400">Sort Order</span>
+                  <input type="number" min="0" value={gameForm.sortOrder} onChange={(e) => setGameForm({ ...gameForm, sortOrder: Number(e.target.value) })} className="w-full rounded-xl border border-gray-700 bg-[#080c13] px-3.5 py-2 text-sm text-white outline-none focus:border-cyan-500" />
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-4 pt-2">
+                <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                  <input type="checkbox" checked={gameForm.isPopular} onChange={(e) => setGameForm({ ...gameForm, isPopular: e.target.checked })} className="rounded border-gray-700 bg-[#080c13] text-cyan-500 focus:ring-0" />
+                  Popular Game
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                  <input type="checkbox" checked={gameForm.isFlashSale} onChange={(e) => setGameForm({ ...gameForm, isFlashSale: e.target.checked })} className="rounded border-gray-700 bg-[#080c13] text-cyan-500 focus:ring-0" />
+                  Special Deal
+                </label>
+              </div>
+              <div className="flex flex-col-reverse gap-3 border-t border-gray-800 pt-5 sm:flex-row sm:justify-end">
+                <button onClick={() => setEditingGame(null)} disabled={saving} className="rounded-xl border border-gray-700 px-5 py-2.5 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-40">Cancel</button>
+                <button onClick={saveGame} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-purple-950/30 transition hover:brightness-110 disabled:opacity-40">
+                  {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {saving ? 'Saving changes…' : 'Save changes'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

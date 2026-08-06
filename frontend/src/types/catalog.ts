@@ -24,6 +24,8 @@ export interface PublicGameDTO {
   seoTitle?: string;
   seoDescription?: string;
   isPurchasable: boolean;
+  sortOrder?: number;
+  status?: 'active' | 'maintenance' | 'inactive';
 }
 
 export interface PublicPackageDTO {

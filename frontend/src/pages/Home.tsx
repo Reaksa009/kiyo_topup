@@ -90,15 +90,31 @@ export const Home: React.FC = () => {
     return () => controller.abort();
   }, []);
 
-  const catalog = useMemo(() => curatedGames.map((curated) => {
-    const liveGame = games.find((game) => game.slug === curated.slug);
-    return {
+  const catalog = useMemo(() => {
+    if (games.length > 0) {
+      const sortedGames = [...games].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      return sortedGames.map((game) => {
+        const curated = curatedGames.find((c) => c.slug === game.slug);
+        return {
+          ...curated,
+          ...game,
+          title: game.title,
+          slug: game.slug,
+          publisher: game.publisher,
+          thumbnail: game.thumbnail,
+          categoryId: typeof game.categoryId === 'object' ? game.categoryId : curated?.categoryId || { name: 'Game', slug: 'game' },
+          discount: (game as any).discount || curated?.discount,
+          comingSoon: game.status === 'maintenance',
+          isPurchasable: game.status === 'active'
+        };
+      });
+    }
+    return curatedGames.map((curated) => ({
       ...curated,
-      ...(liveGame || {}),
-      categoryId: liveGame && typeof liveGame.categoryId === 'object' ? liveGame.categoryId : curated.categoryId,
-      comingSoon: curated.comingSoon && !liveGame
-    };
-  }), [games]);
+      comingSoon: curated.comingSoon || false,
+      isPurchasable: false
+    }));
+  }, [games]);
 
   const categories = useMemo(() => getCategoriesFromGames(catalog), [catalog]);
   const filteredGames = catalog.filter((game) => {
