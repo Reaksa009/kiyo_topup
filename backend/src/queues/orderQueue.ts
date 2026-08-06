@@ -184,9 +184,11 @@ export const orderQueue = {
 
     // Direct background sync execution
     logger.info(`[Queue Manager] Processing order ${data.orderId} synchronously (Vercel/Offline Fallback)`);
-    processOrderFulfillment(data.orderId).catch(err => {
+    try {
+      await processOrderFulfillment(data.orderId);
+    } catch (err: any) {
       logger.error(`[Queue Manager Fallback] Sync fulfillment failed for order ${data.orderId}:`, err.message);
-    });
+    }
   }
 };
 
