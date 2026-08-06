@@ -253,7 +253,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
           {compactMobileLead && <div className="md:hidden">{compactMobileLead}</div>}
 
           {visiblePackages.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2 min-[390px]:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3">
               {visiblePackages.map((pkg) => {
                 const selected = selectedPackage?._id === pkg._id;
                 const group = packageGroup(pkg);
@@ -264,41 +264,41 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                     type="button"
                     onClick={() => onSelect(pkg)}
                     aria-pressed={selected}
-                    className={`group relative flex min-h-[110px] min-w-0 flex-col justify-between overflow-hidden rounded-xl border text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+                    className={`group relative flex min-h-[136px] min-w-0 flex-col justify-between overflow-hidden rounded-2xl border text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                       selected
-                        ? 'border-cyan-300/60 bg-gradient-to-br from-cyan-300/[0.12] via-[#091729] to-[#040e1b] shadow-lg shadow-cyan-950/30'
-                        : 'border-white/[0.06] bg-[#0c1626]/80 hover:border-white/[0.12] hover:bg-[#0f1d31]'
+                        ? 'border-cyan-300/60 bg-gradient-to-br from-cyan-300/[0.15] via-[#091729] to-[#040e1b] shadow-xl shadow-cyan-950/40 scale-[1.02]'
+                        : 'border-white/[0.06] bg-[#0c1626]/80 hover:border-white/[0.15] hover:bg-[#0f1d31]'
                     }`}
                   >
-                    <div className="p-2.5">
-                      <div className="flex items-center justify-between gap-1.5">
+                    <div className="p-3">
+                      <div className="flex items-center justify-between gap-2">
                         <img
                           src={getPackageImage(pkg, gameSlug, sortedPackages)}
                           alt=""
-                          width="48"
-                          height="48"
+                          width="56"
+                          height="56"
                           loading="lazy"
                           decoding="async"
-                          className="h-10 w-10 object-contain sm:h-12 sm:w-12"
+                          className="h-14 w-14 object-contain transition-transform duration-300 group-hover:scale-110"
                         />
                         {selected && (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-200 text-[#04101d] shadow-md shadow-cyan-950/40">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-[#04101d] shadow-md shadow-cyan-950/40">
                             <Check className="h-3.5 w-3.5" strokeWidth={3} />
                           </span>
                         )}
                       </div>
-                      <h3 className={`mt-2 line-clamp-2 min-h-6 text-[9px] font-black leading-[1.3] ${selected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                      <h3 className={`mt-3.5 line-clamp-2 min-h-[30px] text-[11px] font-black leading-tight sm:text-xs ${selected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
                         {pkg.title}
                       </h3>
                       {pkg.supportsBoth && (
-                        <span className="mt-1 inline-flex items-center gap-0.5 rounded border border-cyan-300/10 bg-cyan-300/[0.04] px-1 py-0.5 text-[6px] font-black uppercase text-cyan-300/85">
+                        <span className="mt-1.5 inline-flex items-center gap-0.5 rounded border border-cyan-300/10 bg-cyan-300/[0.04] px-1 py-0.5 text-[6px] font-black uppercase text-cyan-300/85">
                           <Globe2 className="h-2 w-2" /> Global & Regular
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between border-t border-white/[0.04] px-2.5 py-1.5 bg-black/10">
-                      <p className="text-[7px] font-bold text-slate-500">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
-                      <span className={`text-[10px] font-black ${selected ? 'text-cyan-200' : 'text-white'}`}>${pkg.price.toFixed(2)}</span>
+                    <div className="flex items-center justify-between border-t border-white/[0.04] px-3 py-2 bg-black/10">
+                      <p className="text-[7.5px] font-bold text-slate-500">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
+                      <span className={`text-xs font-black ${selected ? 'text-cyan-200' : 'text-white'}`}>${pkg.price.toFixed(2)}</span>
                     </div>
                   </button>
                 );
@@ -428,56 +428,56 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                   key={pkg._id}
                   type="button"
                   onClick={() => onSelect(pkg)}
-                  className={`group relative min-h-[168px] overflow-hidden rounded-2xl border p-3.5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 sm:p-4 ${
+                  className={`group relative min-h-[195px] overflow-hidden rounded-3xl border p-4 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                     selected
-                      ? 'border-cyan-300/65 bg-gradient-to-br from-cyan-300/[0.14] via-[#101827] to-violet-500/[0.14] shadow-xl shadow-cyan-950/30 ring-1 ring-cyan-300/20'
-                      : 'border-white/[0.07] bg-[#10151f] hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-[#121a27] hover:shadow-lg hover:shadow-black/20'
+                      ? 'border-cyan-300/65 bg-gradient-to-br from-cyan-300/[0.15] via-[#101827] to-violet-500/[0.15] shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-300/25 scale-[1.02]'
+                      : 'border-white/[0.07] bg-[#10151f] hover:-translate-y-1 hover:border-white/[0.16] hover:bg-[#121a27] hover:shadow-xl hover:shadow-black/30'
                   }`}
                   aria-pressed={selected}
                 >
                   <div className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${selected ? 'via-cyan-200/80' : 'via-white/10'} to-transparent`} />
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-2.5">
                     <img
                       src={getPackageImage(pkg, gameSlug, sortedPackages)}
                       alt=""
-                      className="h-14 w-14 object-contain sm:h-16 sm:w-16"
+                      className="h-18 w-18 object-contain transition-transform duration-300 group-hover:scale-110 sm:h-20 sm:w-20"
                     />
                     {selected ? (
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-200 text-[#061017] shadow-lg shadow-cyan-950/40">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-[#061017] shadow-lg shadow-cyan-950/40">
                         <Check className="h-4 w-4" strokeWidth={3} />
                       </span>
                     ) : pkg.badge ? (
-                      <span className={`max-w-[96px] truncate rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-wider ${groupTone[group]}`} title={pkg.badge}>
+                      <span className={`max-w-[96px] shrink-0 truncate rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-wider ${groupTone[group]}`} title={pkg.badge}>
                         {pkg.badge}
                       </span>
                     ) : null}
                   </div>
 
-                  <div className="mt-3 min-h-[42px]">
-                    <h3 className={`text-[11px] font-black leading-[1.35] sm:text-xs ${selected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                  <div className="mt-4 min-h-[46px]">
+                    <h3 className={`text-xs font-black leading-snug sm:text-[13px] ${selected ? 'text-white' : 'text-slate-100 group-hover:text-white'}`}>
                       {pkg.title}
                     </h3>
                     {pkg.supportsBoth && (
-                      <span className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-cyan-300/15 bg-cyan-300/[0.06] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider text-cyan-300/80">
+                      <span className="mt-2 inline-flex items-center gap-1 rounded-md border border-cyan-300/15 bg-cyan-300/[0.06] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider text-cyan-300/80">
                         <Globe2 className="h-2.5 w-2.5" /> Global & Regular
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-3 flex items-end justify-between gap-2 border-t border-white/[0.06] pt-3">
+                  <div className="mt-4 flex items-end justify-between gap-2 border-t border-white/[0.06] pt-3">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-base font-black tracking-tight sm:text-lg ${selected ? 'text-cyan-200' : 'text-white'}`}>${pkg.price.toFixed(2)}</span>
-                        {originalPrice && <span className="text-[8px] text-slate-600 line-through">${originalPrice.toFixed(2)}</span>}
+                        <span className={`text-lg font-black tracking-tight sm:text-xl ${selected ? 'text-cyan-200' : 'text-white'}`}>${pkg.price.toFixed(2)}</span>
+                        {originalPrice && <span className="text-[9px] text-slate-600 line-through">${originalPrice.toFixed(2)}</span>}
                       </div>
-                      <p className="mt-0.5 text-[8px] font-semibold text-slate-600">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
+                      <p className="mt-0.5 text-[8.5px] font-semibold text-slate-500">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
                     </div>
                     {pkg.discountPercent && pkg.discountPercent > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-300/10 px-1.5 py-1 text-[8px] font-black text-emerald-300">
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-300/10 px-1.5 py-1 text-[8.5px] font-black text-emerald-300">
                         <BadgePercent className="h-3 w-3" /> -{pkg.discountPercent}%
                       </span>
                     ) : (
-                      <span className="text-[7px] font-black uppercase tracking-wider text-slate-700">Instant</span>
+                      <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-600">Instant</span>
                     )}
                   </div>
                 </button>
