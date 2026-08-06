@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { io } from 'socket.io-client';
-import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff } from 'lucide-react';
+import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff, Download } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 interface PaymentModalProps {
@@ -111,6 +111,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
+  const handleDownloadQr = () => {
+    const canvas = document.getElementById('khqr-download-canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `KHQR-${orderNumber}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else if (qrImageUrl) {
+      const a = document.createElement('a');
+      a.href = qrImageUrl;
+      a.target = '_blank';
+      a.download = `KHQR-${orderNumber}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
   const qrImageUrl = paymentDetails?.qrImageUrl || paymentDetails?.qr;
   const rawQrPayload = paymentDetails?.qrString;
 
@@ -184,6 +205,28 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <p className="text-2xl font-black text-gray-900">${amount.toFixed(2)} USD</p>
               </div>
             </div>
+
+            {/* Download Button */}
+            <button
+              onClick={handleDownloadQr}
+              type="button"
+              className="w-full flex items-center justify-center space-x-2 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download KHQR Image</span>
+            </button>
+
+            {rawQrPayload && (
+              <div style={{ display: 'none' }}>
+                <QRCodeCanvas
+                  id="khqr-download-canvas"
+                  value={rawQrPayload}
+                  size={512}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+            )}
 
             {/* Timer & Copy Section */}
             <div className="flex items-center justify-between text-xs px-2">
