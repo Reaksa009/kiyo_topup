@@ -131,4 +131,6 @@ const BlogSchema = new Schema<IBlog>(
   { timestamps: true }
 );
 
+BlogSchema.index({ status: 1, createdAt: -1 });
+
 export const Blog = model<IBlog>('Blog', BlogSchema);

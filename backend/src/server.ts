@@ -14,6 +14,7 @@ import { errorHandler } from './middleware/error.middleware';
 import { apiRateLimiter } from './middleware/rateLimiter.middleware';
 import { setSocketInstance, initOrderWorker } from './queues/orderQueue';
 import { seedDatabase } from './seed';
+import { serverTimingMiddleware } from './middleware/serverTiming.middleware';
 
 const app = express();
 const server = http.createServer(app);
@@ -66,6 +67,7 @@ if (env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 app.use(helmet());
+app.use(serverTimingMiddleware);
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

@@ -275,6 +275,10 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                         <img
                           src={getPackageImage(pkg, gameSlug, sortedPackages)}
                           alt=""
+                          width="48"
+                          height="48"
+                          loading="lazy"
+                          decoding="async"
                           className="h-10 w-10 object-contain sm:h-12 sm:w-12"
                         />
                         {selected && (

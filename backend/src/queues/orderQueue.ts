@@ -1,7 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { redisClient } from '../config/redis';
 import { Order } from '../models/Order';
-import { Package } from '../models/Game';
+import { Package } from '../models/Package';
 import { ProviderOrder } from '../models/Provider';
 import { ProviderFactory } from '../services/providers/ProviderFactory';
 import { TelegramService } from '../services/telegram.service';

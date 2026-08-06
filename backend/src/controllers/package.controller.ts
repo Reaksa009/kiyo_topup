@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Package } from '../models/Game';
+import { Package } from '../models/Package';
 import { Settings } from '../models/System';
 import { AuditService } from '../services/audit.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
@@ -10,19 +10,17 @@ import { calculateSellingPriceMinor } from '../services/pricing.service';
 export class PackageController {
   static async getPackagesByGame(req: Request, res: Response) {
     try {
-      // Check if catalog synchronization lock is enabled
-      const settings = await Settings.findOne();
-      if (settings?.isSyncing) {
-        return res.status(503).json({
-          success: false,
-          message: "Catalog is updating. Please try again in a few minutes."
-        });
-      }
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
 
       const { gameId } = req.params;
+      const timedRes = res as any;
+      if (timedRes.startTime) timedRes.startTime('db_packages_by_game', 'Fetch Game Packages');
       const packages = await Package.find({ gameId, status: 'active' })
         .select('_id gameId title description icon price packageAmount packageType discountPercent badge stock status sortOrder supportsBoth')
         .sort({ sortOrder: 1, price: 1 }).lean();
+      if (timedRes.endTime) timedRes.endTime('db_packages_by_game');
+
       res.json({ success: true, count: packages.length, data: packages.map((pkg) => toPublicPackageDTO(pkg)) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

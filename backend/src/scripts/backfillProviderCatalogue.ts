@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { connectDatabase } from '../config/database';
-import { Game, Package } from '../models/Game';
+import { Game } from '../models/Game';
+import { Package } from '../models/Package';
 import { majorToMinor } from '../utils/money';
 import { logger } from '../utils/logger';
 

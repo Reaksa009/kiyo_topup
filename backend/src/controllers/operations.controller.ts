@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { Order } from '../models/Order';
-import { Package } from '../models/Game';
+import { Package } from '../models/Package';
 import { Settings } from '../models/System';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { ProviderFactory } from '../services/providers/ProviderFactory';

@@ -49,12 +49,32 @@ const buildMaskedAdminSettings = (settings: Record<string, any>) => {
 
 const allEditableFields = new Set<string>(ADMIN_EDITABLE_FIELDS);
 
+let publicSettingsCache: any = null;
+let publicSettingsCacheExpiresAt = 0;
+const PUBLIC_SETTINGS_TTL_MS = 30000;
+
 export class SettingController {
   static async getPublicSettings(req: Request, res: Response) {
     try {
+      const now = Date.now();
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+
+      if (publicSettingsCache && now < publicSettingsCacheExpiresAt) {
+        return res.json({ success: true, data: publicSettingsCache });
+      }
+
+      const timedRes = res as any;
+      if (timedRes.startTime) timedRes.startTime('db_settings', 'Fetch Settings');
       const selection = PUBLIC_SETTING_FIELDS.join(' ');
       const settings = await Settings.findOne().select(selection).lean();
-      res.json({ success: true, data: buildPublicSettings(settings as any) });
+      if (timedRes.endTime) timedRes.endTime('db_settings');
+
+      const data = buildPublicSettings(settings as any);
+      publicSettingsCache = data;
+      publicSettingsCacheExpiresAt = now + PUBLIC_SETTINGS_TTL_MS;
+
+      res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: 'Unable to load public platform settings.' });
     }

@@ -3,8 +3,8 @@ import type { PublicBannerDTO } from '../types/catalog';
 import { resolveBannerImages } from '../utils/bannerPresentation';
 
 const fallbackBanners: PublicBannerDTO[] = [
-  { _id: 'fallback-1', title: 'Kiyo Topup gaming promotion', imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1600&q=82' },
-  { _id: 'fallback-2', title: 'Kiyo Topup gaming promotion', imageUrl: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=1600&q=82' }
+  { _id: 'fallback-1', title: 'Kiyo Topup gaming promotion', imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1600&q=82&fm=webp' },
+  { _id: 'fallback-2', title: 'Kiyo Topup gaming promotion', imageUrl: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=1600&q=82&fm=webp' }
 ];
 
 interface HeroBannerProps {
@@ -37,6 +37,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ banners = [], loading = 
         <picture><source media="(max-width: 639px)" srcSet={imageFailed ? fallbackBanners[0].imageUrl : mobileImage} /><img
           src={imageFailed ? fallbackBanners[0].imageUrl : desktopImage}
           alt={banner.title || 'Kiyo Topup gaming promotion'} fetchPriority={current === 0 ? 'high' : 'auto'} decoding="async"
+          width="1600" height="610" loading={current === 0 ? 'eager' : 'lazy'}
           onError={() => setImageFailed(true)} className="h-full w-full object-cover"
         /></picture>
       )}

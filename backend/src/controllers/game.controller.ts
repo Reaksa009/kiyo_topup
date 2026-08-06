@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { Game, Category, Package } from '../models/Game';
+import { Game, Category } from '../models/Game';
+import { Package } from '../models/Package';
 import { AuditService } from '../services/audit.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { ProviderFactory } from '../services/providers/ProviderFactory';
@@ -193,6 +194,9 @@ export class GameController {
     }
 
     try {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+
       const catalogVersion = String(res.locals.catalogVersion || 'unknown');
       const cacheKey = Object.keys(req.query).length === 0 ? 'games:all' : '';
       const cachedGames = cacheKey ? getPublicCatalogCache(cacheKey, catalogVersion) : null;
@@ -203,8 +207,12 @@ export class GameController {
       const { category, search, popular, flashSale } = req.query;
       const query: any = { status: 'active' };
 
+      const timedRes = res as any;
+
       if (category) {
+        if (timedRes.startTime) timedRes.startTime('db_games_cat', 'Find Category By Slug');
         const cat = await Category.findOne({ slug: category as string });
+        if (timedRes.endTime) timedRes.endTime('db_games_cat');
         if (cat) query.categoryId = cat._id;
       }
 
@@ -220,7 +228,9 @@ export class GameController {
         query.isFlashSale = true;
       }
 
+      if (timedRes.startTime) timedRes.startTime('db_games', 'Fetch Games List');
       let games = await Game.find(query).sort({ sortOrder: 1, createdAt: -1 }).populate('categoryId', 'name slug icon').lean();
+      if (timedRes.endTime) timedRes.endTime('db_games');
       
       if (!games || games.length === 0) {
         games = fallbackGames as any[];
@@ -253,6 +263,9 @@ export class GameController {
     }
 
     try {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+
       const catalogVersion = String(res.locals.catalogVersion || 'unknown');
       const cacheKey = `game:${targetSlug}`;
       const cachedDetail = getPublicCatalogCache(cacheKey, catalogVersion);
@@ -260,14 +273,20 @@ export class GameController {
         return res.json({ success: true, data: cachedDetail });
       }
 
-      let game = await Game.findOne({ slug: targetSlug }).populate('categoryId').lean();
+      const timedRes = res as any;
+      if (timedRes.startTime) timedRes.startTime('db_game_detail', 'Fetch Game Detail');
+      let game = await Game.findOne({ slug: targetSlug }).populate('categoryId', 'name slug icon').lean();
+      if (timedRes.endTime) timedRes.endTime('db_game_detail');
+
       let packages: any[] = [];
 
       if (game) {
+        if (timedRes.startTime) timedRes.startTime('db_packages', 'Fetch Game Packages');
         packages = await Package.find({ gameId: game._id, status: 'active' })
           .select('_id gameId title description icon price packageAmount packageType discountPercent badge stock status sortOrder supportsBoth')
-          .sort({ price: 1 })
+          .sort({ sortOrder: 1, price: 1 })
           .lean();
+        if (timedRes.endTime) timedRes.endTime('db_packages');
       }
 
       if (!game) {
@@ -318,7 +337,14 @@ export class GameController {
     }
 
     try {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+
+      const timedRes = res as any;
+      if (timedRes.startTime) timedRes.startTime('db_categories', 'Fetch Categories');
       let categories = await Category.find({ status: 'active' }).sort({ sortOrder: 1 }).lean();
+      if (timedRes.endTime) timedRes.endTime('db_categories');
+
       if (!categories || categories.length === 0) {
         categories = [
           { name: 'MOBA', slug: 'moba', icon: 'Swords' },

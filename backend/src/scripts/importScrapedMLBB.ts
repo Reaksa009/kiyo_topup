@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { connectDatabase } from '../config/database';
-import { Game, Package, Category } from '../models/Game';
+import { Game, Category } from '../models/Game';
+import { Package } from '../models/Package';
 import { logger } from '../utils/logger';
 
 interface DenomItem {

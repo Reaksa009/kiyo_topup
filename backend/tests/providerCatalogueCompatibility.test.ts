@@ -1,4 +1,5 @@
-import { Game, Package } from '../src/models/Game';
+import { Game } from '../src/models/Game';
+import { Package } from '../src/models/Package';
 import { majorToMinor, minorToMajor, readProviderBasePriceMinor, readSellingPriceMinor } from '../src/utils/money';
 import { providerPricingConfigurationSchema } from '../src/validation/catalog.schemas';
 import { buildGameBackfill, buildPackageBackfill } from '../src/scripts/backfillProviderCatalogue';
@@ -9,8 +10,10 @@ describe('provider catalogue compatibility', () => {
     const packageIndexes = Package.schema.indexes().map(([keys]) => keys);
     expect(gameIndexes).toContainEqual({ provider: 1, providerGameId: 1 });
     expect(gameIndexes).toContainEqual({ provider: 1, providerStatus: 1, isEnabled: 1, sortOrder: 1 });
+    expect(gameIndexes).toContainEqual({ status: 1, sortOrder: 1, createdAt: -1 });
     expect(packageIndexes).toContainEqual({ provider: 1, providerPackageId: 1 });
     expect(packageIndexes).toContainEqual({ gameId: 1, providerStatus: 1, isEnabled: 1, sortOrder: 1 });
+    expect(packageIndexes).toContainEqual({ gameId: 1, status: 1, sortOrder: 1, price: 1 });
   });
 
   test('converts money exactly to minor units and prefers new authoritative values', () => {

@@ -49,10 +49,18 @@ export class CMSController {
   // Public
   static async getBanners(req: Request, res: Response) {
     try {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+
       const placement = req.query.placement === 'game-detail' ? 'game-detail' : 'home';
       const gameId = typeof req.query.gameId === 'string' ? req.query.gameId : undefined;
       if (placement === 'game-detail' && !gameId) return res.status(400).json({ success: false, message: 'gameId is required for game-detail banners.' });
+
+      const timedRes = res as any;
+      if (timedRes.startTime) timedRes.startTime('db_banners', 'Fetch Banners');
       const banners = await Banner.find(buildActiveBannerFilter(placement, gameId)).sort({ sortOrder: 1, createdAt: 1 }).lean();
+      if (timedRes.endTime) timedRes.endTime('db_banners');
+
       res.json({ success: true, data: banners.map(toPublicBannerDTO) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
@@ -61,7 +69,14 @@ export class CMSController {
 
   static async getBlogs(req: Request, res: Response) {
     try {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+
+      const timedRes = res as any;
+      if (timedRes.startTime) timedRes.startTime('db_blogs', 'Fetch Blogs List');
       const blogs = await Blog.find({ status: 'published' }).sort({ createdAt: -1 });
+      if (timedRes.endTime) timedRes.endTime('db_blogs');
+
       res.json({ success: true, data: blogs });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
@@ -70,8 +85,15 @@ export class CMSController {
 
   static async getBlogBySlug(req: Request, res: Response) {
     try {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+
       const { slug } = req.params;
+      const timedRes = res as any;
+      if (timedRes.startTime) timedRes.startTime('db_blog_detail', 'Fetch Blog Detail');
       const blog = await Blog.findOne({ slug, status: 'published' });
+      if (timedRes.endTime) timedRes.endTime('db_blog_detail');
+
       if (!blog) return res.status(404).json({ success: false, message: 'Article not found' });
       res.json({ success: true, data: blog });
     } catch (error: any) {
@@ -120,11 +142,18 @@ export class CMSController {
 
   static async getActivePromotions(req: Request, res: Response) {
     try {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.setHeader('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+
       const now = new Date();
+      const timedRes = res as any;
+      if (timedRes.startTime) timedRes.startTime('db_promotions', 'Fetch Active Promotions');
       const promotions = await Promotion.find({ active: true, startDate: { $lte: now }, endDate: { $gt: now } })
         .sort({ endDate: 1 })
         .select('title bannerUrl targetGameIds discountType discountValue startDate endDate')
         .lean();
+      if (timedRes.endTime) timedRes.endTime('db_promotions');
+
       res.json({ success: true, data: promotions });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

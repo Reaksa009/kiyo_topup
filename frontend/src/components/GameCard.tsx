@@ -59,6 +59,8 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
           alt={`${game.title} game artwork`}
           loading="lazy"
           decoding="async"
+          width="300"
+          height="300"
           sizes="(max-width: 639px) 33vw, (max-width: 1023px) 25vw, 16vw"
           className="h-full w-full rounded-lg object-cover transition duration-500 motion-safe:group-hover:scale-[1.04] sm:rounded-xl"
         />
