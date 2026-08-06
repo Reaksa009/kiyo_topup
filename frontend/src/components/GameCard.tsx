@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Flame, LockKeyhole } from 'lucide-react';
 
 interface GameCardProps {
   game: {
@@ -20,99 +19,78 @@ interface GameCardProps {
   };
 }
 
-const fallbackPrices: Record<string, number> = {
-  'mobile-legends': 1.25,
-  'free-fire': 0.99,
-  'pubg-mobile': 0.99,
-  'honor-of-kings': 0.99,
-  valorant: 4.8,
-  'genshin-impact': 0.99,
-  roblox: 4.99,
-  'steam-wallet': 5
-};
-
 export const GameCard: React.FC<GameCardProps> = ({ game }) => {
-  const isPurchasable = game.isPurchasable !== false && !game.comingSoon;
-  const startPrice = game.startingPrice ?? fallbackPrices[game.slug] ?? 0.99;
+  const isPurchasable = game.isPurchasable !== false && !game.comingSoon && game.status === 'active';
   const image = game.thumbnail || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80';
+  const isMaintenance = game.status === 'maintenance' || game.comingSoon;
 
-  return (
-    <article
-      className={`group relative min-w-0 overflow-hidden rounded-xl border bg-[#0d1a36] shadow-[0_10px_28px_rgba(0,0,0,0.2)] transition duration-300 sm:rounded-2xl ${
-        game.comingSoon
-          ? 'border-white/[0.06] opacity-70'
-          : 'border-[#1c4773]/80 hover:-translate-y-1 hover:border-cyan-300/45 hover:shadow-[0_15px_34px_rgba(5,30,56,0.45)]'
-      }`}
-    >
-      {isPurchasable && (
-        <Link
-          to={`/game/${game.slug}`}
-          aria-label={`Top up ${game.title}`}
-          className="absolute inset-0 z-20 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300 sm:rounded-2xl"
-        >
-          <span className="sr-only">Top up {game.title}</span>
-        </Link>
-      )}
-
-      <div className="relative aspect-square overflow-hidden bg-[#071024] p-1 sm:p-1.5">
+  const cardContent = (
+    <div className={`relative flex flex-col h-full rounded-2xl border p-2 bg-[#0d1a36] shadow-md transition-all duration-300 ${
+      isPurchasable 
+        ? 'border-[#1c4773]/60 hover:-translate-y-1 hover:border-cyan-400/40 hover:shadow-cyan-950/20' 
+        : 'border-white/[0.04] bg-[#0c1322]'
+    }`}>
+      {/* Thumbnail Container */}
+      <div className="relative aspect-square overflow-hidden rounded-xl bg-[#071024]">
         <img
           src={image}
-          alt={`${game.title} game artwork`}
+          alt={game.title}
           loading="lazy"
           decoding="async"
-          width="300"
-          height="300"
-          sizes="(max-width: 639px) 33vw, (max-width: 1023px) 25vw, 16vw"
-          className="h-full w-full rounded-lg object-cover transition duration-500 motion-safe:group-hover:scale-[1.04] sm:rounded-xl"
+          className={`h-full w-full object-cover transition duration-300 group-hover:scale-105 ${
+            !isPurchasable ? 'filter grayscale contrast-75 brightness-75' : ''
+          }`}
         />
-        <div className="pointer-events-none absolute inset-1 rounded-lg bg-gradient-to-t from-[#071024]/65 via-transparent to-transparent sm:inset-1.5 sm:rounded-xl" />
-
-        {game.discount && (
-          <span className="absolute left-1.5 top-1.5 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-emerald-300 px-1.5 py-0.5 text-[5px] font-black uppercase tracking-wide text-emerald-950 shadow sm:left-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[7px]">
-            {game.discount}
-          </span>
+        
+        {/* Diagonal Ribbon on top right if not purchasable */}
+        {!isPurchasable && (
+          <div className="absolute right-0 top-0 overflow-hidden w-14 h-14 pointer-events-none">
+            <div className="absolute top-2.5 -right-5 w-[70px] rotate-45 bg-[#ff6a00] text-center text-[5px] font-black uppercase tracking-wider text-white py-0.5 shadow-sm">
+              Soon
+            </div>
+          </div>
         )}
 
-        {(game.isPopular || game.isFlashSale) && (
-          <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-md bg-violet-500/95 px-1.5 py-0.5 text-[5px] font-black uppercase text-white sm:bottom-2 sm:left-2 sm:text-[7px]">
-            <Flame className="h-2 w-2 text-amber-200" /> {game.isFlashSale ? 'Deal' : 'Popular'}
+        {/* Discount Badge */}
+        {isPurchasable && game.discount && (
+          <span className="absolute left-1.5 top-1.5 rounded bg-emerald-300 px-1.5 py-0.5 text-[6px] font-black uppercase text-emerald-950 shadow">
+            {game.discount}
           </span>
         )}
       </div>
 
-      <div className="p-1.5 sm:p-2.5">
-        <p className="truncate text-[6px] font-bold uppercase tracking-[0.1em] text-cyan-300/70 sm:text-[8px]">
-          {game.publisher || 'Kiyo Store'}
-        </p>
-        <h3 className="mt-0.5 line-clamp-2 min-h-7 text-[9px] font-black leading-3.5 text-white sm:mt-1 sm:min-h-9 sm:text-xs sm:leading-[1.15rem]">
+      {/* Info Area */}
+      <div className="flex flex-col flex-1 mt-2 text-center">
+        <h3 className="line-clamp-2 min-h-[28px] text-[10px] font-black leading-tight text-slate-100 sm:text-xs">
           {game.title}
         </h3>
-
-        <div className="mt-1.5 flex items-center justify-between border-t border-white/[0.07] pt-1.5 sm:mt-2 sm:pt-2">
-          <div className="min-w-0">
-            <span className="block text-[5px] font-bold uppercase text-slate-600 sm:text-[7px]">From</span>
-            <span className="block text-[10px] font-black text-white sm:text-sm">${startPrice.toFixed(2)}</span>
-          </div>
-          {!isPurchasable ? (
-            game.status === 'maintenance' || game.comingSoon ? (
-              <span className="flex h-7 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 px-2 text-amber-400 sm:h-8" title="Maintenance">
-                <LockKeyhole className="h-3 w-3 shrink-0" />
-                <span className="ml-1 text-[7px] font-black uppercase tracking-wider">maintenance</span>
-              </span>
-            ) : (
-              <span className="flex h-7 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 px-2 text-red-400 sm:h-8" title="Inactive">
-                <LockKeyhole className="h-3 w-3 shrink-0" />
-                <span className="ml-1 text-[7px] font-black uppercase tracking-wider">inactive</span>
-              </span>
-            )
+        
+        <div className="mt-2.5">
+          {isPurchasable ? (
+            <span className="block w-full rounded-lg bg-[#ffcd45] py-1.5 text-center text-[10px] font-black uppercase tracking-wide text-black transition-colors duration-200 group-hover:bg-[#ffb700]">
+              Top Up
+            </span>
           ) : (
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-300 to-blue-500 text-[#03101d] shadow-md shadow-cyan-950/30 sm:h-8 sm:w-auto sm:px-2.5">
-              <span className="hidden text-[8px] font-black uppercase sm:inline">Top Up</span>
-              <ArrowUpRight className="h-3 w-3 sm:ml-1" />
+            <span className="block w-full py-1.5 text-center text-[10px] font-black uppercase tracking-wide text-slate-500">
+              {isMaintenance ? 'maintenance' : 'inactive'}
             </span>
           )}
         </div>
       </div>
-    </article>
+    </div>
+  );
+
+  if (isPurchasable) {
+    return (
+      <Link to={`/game/${game.slug}`} className="group cursor-pointer block h-full">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="group block h-full">
+      {cardContent}
+    </div>
   );
 };

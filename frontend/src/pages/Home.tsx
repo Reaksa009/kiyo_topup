@@ -161,11 +161,11 @@ export const Home: React.FC = () => {
           </div>
 
           {loading ? (
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6 xl:grid-cols-8">
-              {Array.from({ length: 8 }).map((_, index) => <div key={index} className="aspect-[.58/1] animate-pulse rounded-xl bg-white/[0.04] sm:rounded-2xl" />)}
+            <div className="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6 sm:gap-3.5">
+              {Array.from({ length: 12 }).map((_, index) => <div key={index} className="aspect-square animate-pulse rounded-2xl bg-white/[0.04]" />)}
             </div>
           ) : (
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6 xl:grid-cols-8">
+            <div className="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6 sm:gap-3.5">
               {filteredGames.map((game) => <GameCard key={game.slug} game={game} />)}
             </div>
           )}
