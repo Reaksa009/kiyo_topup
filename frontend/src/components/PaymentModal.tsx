@@ -29,6 +29,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [simulating, setSimulating] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [qrImageError, setQrImageError] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -88,6 +89,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     };
   }, [orderNumber, onSuccess]);
 
+  const qrImageUrl = paymentDetails?.qrImageUrl || paymentDetails?.qr;
+  const rawQrPayload = paymentDetails?.qrString;
+
+  // Convert raw payload to base64 PNG data URL so mobile users can long-press and save to Photos
+  useEffect(() => {
+    if (rawQrPayload) {
+      const timer = setTimeout(() => {
+        const canvas = document.getElementById('khqr-download-canvas') as HTMLCanvasElement;
+        if (canvas) {
+          try {
+            setQrDataUrl(canvas.toDataURL('image/png'));
+          } catch (err) {
+            console.error('Failed to convert canvas to data URL:', err);
+          }
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [rawQrPayload]);
+
   const handleSimulatePayment = async () => {
     setSimulating(true);
     try {
@@ -104,8 +125,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   const copyQrText = () => {
-    if (paymentDetails?.qrString) {
-      navigator.clipboard.writeText(paymentDetails.qrString);
+    if (rawQrPayload) {
+      navigator.clipboard.writeText(rawQrPayload);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -131,9 +152,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       document.body.removeChild(a);
     }
   };
-
-  const qrImageUrl = paymentDetails?.qrImageUrl || paymentDetails?.qr;
-  const rawQrPayload = paymentDetails?.qrString;
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -184,8 +202,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   height={220}
                   className="h-[220px] w-[220px] object-contain"
                   referrerPolicy="no-referrer"
-                  draggable={false}
                   onError={() => setQrImageError(true)}
+                />
+              ) : qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="KHQR payment code"
+                  width={220}
+                  height={220}
+                  className="h-[220px] w-[220px] object-contain"
                 />
               ) : rawQrPayload ? (
                 <QRCodeSVG
@@ -204,6 +229,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <span className="text-xs font-bold text-gray-600 uppercase">Total Amount</span>
                 <p className="text-2xl font-black text-gray-900">${amount.toFixed(2)} USD</p>
               </div>
+            </div>
+
+            {/* Save to Phone Help Tip (Khmer & English) */}
+            <div className="text-center bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 rounded-xl">
+              <p className="text-[9.5px] font-black text-amber-300">
+                📱 រក្សាទុកក្នុងទូរស័ព្ទ៖ ចុចសង្កត់លើរូប QR ខាងលើ រួចជ្រើសរើស "រក្សាទុកក្នុងរូបភាព"
+              </p>
+              <p className="text-[8.5px] text-slate-400 mt-1">
+                Tip: Long-press the QR image to save directly to your phone's Photo Library / Gallery
+              </p>
             </div>
 
             {/* Download Button */}
