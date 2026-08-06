@@ -92,7 +92,8 @@ export const Home: React.FC = () => {
 
   const catalog = useMemo(() => {
     if (games.length > 0) {
-      const sortedGames = [...games].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      const activeGames = games.filter((g) => g.status !== 'inactive');
+      const sortedGames = [...activeGames].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
       return sortedGames.map((game) => {
         const curated = curatedGames.find((c) => c.slug === game.slug);
         return {
