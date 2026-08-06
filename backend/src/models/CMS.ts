@@ -82,8 +82,8 @@ const BannerSchema = new Schema<IBanner>(
     title: { type: String, required: true },
     // imageUrl remains the legacy-compatible final image fallback.
     imageUrl: { type: String, default: '' },
-    desktopImageUrl: { type: String, maxlength: 2048, default: '' },
-    mobileImageUrl: { type: String, maxlength: 2048, default: '' },
+    desktopImageUrl: { type: String, default: '' },
+    mobileImageUrl: { type: String, default: '' },
     subtitle: { type: String, maxlength: 500, default: '' },
     buttonText: { type: String, maxlength: 120, default: '' },
     buttonUrl: { type: String, maxlength: 2048, default: '' },

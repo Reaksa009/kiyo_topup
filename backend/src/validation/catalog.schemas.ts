@@ -3,12 +3,28 @@ import { z } from 'zod';
 const finiteNumber = z.coerce.number().finite();
 const optionalText = z.string().trim().max(2000).optional();
 
+export const imageUrlSchema = z.string().trim().max(5 * 1024 * 1024).refine(
+  (val) => {
+    if (val.startsWith('http://') || val.startsWith('https://')) {
+      return val.length <= 2048;
+    }
+    if (val.startsWith('data:image/')) {
+      return true;
+    }
+    if (val === '') {
+      return true;
+    }
+    return false;
+  },
+  { message: 'Must be a valid HTTP URL or an uploaded image' }
+);
+
 export const gameUpdateSchema = z.object({
   title: z.string().trim().min(1).max(160).optional(),
   slug: z.string().trim().min(1).max(160).optional(),
   publisher: z.string().trim().min(1).max(160).optional(),
-  thumbnail: z.string().trim().max(2048).optional(),
-  bannerUrl: z.string().trim().max(2048).optional(),
+  thumbnail: imageUrlSchema.optional(),
+  bannerUrl: imageUrlSchema.optional(),
   categoryId: z.string().trim().optional(),
   inputFields: z.array(z.object({
     name: z.string().trim().min(1).max(100), label: z.string().trim().min(1).max(160),
@@ -56,15 +72,14 @@ export const providerPricingConfigurationSchema = z.object({
 });
 
 const bannerUrl = z.string().trim().url().max(2048);
-const optionalBannerUrl = bannerUrl.optional().or(z.literal(''));
 const bannerDate = z.coerce.date();
 
 const bannerFields = {
   title: z.string().trim().min(1).max(160),
   subtitle: z.string().trim().max(500).optional(),
-  imageUrl: optionalBannerUrl,
-  desktopImageUrl: optionalBannerUrl,
-  mobileImageUrl: optionalBannerUrl,
+  imageUrl: imageUrlSchema.optional(),
+  desktopImageUrl: imageUrlSchema.optional(),
+  mobileImageUrl: imageUrlSchema.optional(),
   buttonText: z.string().trim().max(120).optional(),
   buttonUrl: bannerUrl.optional().or(z.literal('')),
   placement: z.enum(['home', 'game-detail']).default('home'),
