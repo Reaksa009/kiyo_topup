@@ -224,25 +224,25 @@ export const OrderTracking: React.FC = () => {
             </div>
 
             {/* Receipt Item Breakdown */}
-            <div className="bg-[#111625] p-6 rounded-2xl space-y-3 border border-gray-800 text-xs">
-              <h4 className="font-bold text-white uppercase tracking-wider text-xs border-b border-gray-800 pb-2">Receipt Details</h4>
-              <div className="flex justify-between text-gray-300">
+            <div className="bg-white/90 p-6 rounded-2xl space-y-3 border border-pink-100/80 shadow-sm text-xs">
+              <h4 className="font-bold text-slate-800 uppercase tracking-wider text-xs border-b border-pink-100/80 pb-2">Receipt Details</h4>
+              <div className="flex justify-between text-slate-600">
                 <span>Game:</span>
-                <span className="font-bold text-white">{order.gameTitle}</span>
+                <span className="font-bold text-slate-800">{order.gameTitle}</span>
               </div>
-              <div className="flex justify-between text-gray-300">
+              <div className="flex justify-between text-slate-600">
                 <span>Package:</span>
-                <span className="font-bold text-white">{order.packageTitle}</span>
+                <span className="font-bold text-slate-800">{order.packageTitle}</span>
               </div>
-              <div className="flex justify-between text-gray-300">
+              <div className="flex justify-between text-slate-600">
                 <span>Player Credentials:</span>
-                <span className="font-mono font-bold text-cyan-400">
+                <span className="font-mono font-bold text-cyan-600">
                   {order.playerFields ? JSON.stringify(order.playerFields) : 'Hidden for security'}
                 </span>
               </div>
-              <div className="flex justify-between text-gray-300 pt-2 border-t border-gray-800">
-                <span className="font-bold text-white">Amount Paid:</span>
-                <span className="font-black text-cyan-400 text-sm">${order.amount.toFixed(2)} USD</span>
+              <div className="flex justify-between text-slate-600 pt-2 border-t border-pink-100/80">
+                <span className="font-bold text-slate-800">Amount Paid:</span>
+                <span className="font-black text-cyan-600 text-sm">${order.amount.toFixed(2)} USD</span>
               </div>
             </div>
 
