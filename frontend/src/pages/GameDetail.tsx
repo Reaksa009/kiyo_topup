@@ -190,9 +190,11 @@ export function GameDetail() {
           type="button"
           onClick={handleVerifyPlayer}
           disabled={verifyingPlayer || !hasRequiredPlayerFields}
-          className={`mt-1.5 flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-lg px-3 text-xs font-black transition ${
-            verifiedPlayerInfo?.valid ? 'bg-emerald-400 text-[#041910]' : 'bg-gradient-to-r from-cyan-400 to-blue-500 text-[#041523]'
-          } disabled:cursor-not-allowed disabled:grayscale disabled:opacity-45`}
+          className={`mt-2 flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 ${
+            verifiedPlayerInfo?.valid
+              ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/10'
+              : 'bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-300 hover:to-blue-400 text-white shadow-lg shadow-blue-500/15 active:scale-[0.98]'
+          } disabled:pointer-events-none disabled:opacity-45`}
         >
           <Zap className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{verifyingPlayer ? 'Verifying ID...' : verifiedPlayerInfo?.valid ? 'ID Verified' : 'Verify ID First'}</span>
@@ -304,7 +306,19 @@ export function GameDetail() {
 
               <div className="mt-3 hidden items-start gap-2 rounded-lg border border-white/[0.07] bg-black/10 p-2 text-[7px] leading-3.5 text-slate-500 md:flex"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />By continuing, you agree to the terms. Completed digital orders cannot be refunded.</div>
 
-              <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage || !isPurchasable} className="mt-3 hidden h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 text-[10px] font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40 md:flex"><span>{submitting ? 'Processing Order...' : 'Pay & Top-Up Now'}</span><ArrowRight className="h-4 w-4" /></button>
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={submitting || !selectedPackage || !isPurchasable}
+                className={`mt-3 hidden h-11 w-full items-center justify-center gap-2 rounded-xl text-xs font-extrabold uppercase tracking-wide transition-all duration-300 ${
+                  (!selectedPackage || submitting || !isPurchasable)
+                    ? 'bg-[#13283c] border border-white/[0.05] text-slate-500 cursor-not-allowed opacity-50'
+                    : 'bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 hover:from-sky-300 hover:via-blue-400 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 active:scale-[0.98]'
+                } md:flex`}
+              >
+                <span>{submitting ? 'Processing Order...' : 'Pay & Top-Up Now'}</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </section>
           </aside>
         </div>
@@ -315,7 +329,19 @@ export function GameDetail() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-300/20 bg-[#061522]/95 px-3 pt-2 shadow-[0_-14px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl md:hidden pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
           <div className="mx-auto flex w-full max-w-lg items-center gap-3">
             <div className="min-w-0 shrink-0"><p className="text-[7px] font-black uppercase tracking-[0.16em] text-slate-500">Total</p><p className="mt-0.5 text-lg font-black text-amber-300">${finalPrice.toFixed(2)}</p></div>
-            <button type="button" onClick={handleCheckout} disabled={submitting || !selectedPackage || !isPurchasable} className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-blue-500 to-violet-500 px-4 text-xs font-black uppercase text-[#03101d] shadow-lg shadow-cyan-950/30 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"><span className="truncate">{submitting ? 'Processing...' : selectedPackage ? 'Buy Now' : 'Select Package'}</span><ArrowRight className="h-4 w-4 shrink-0" /></button>
+            <button
+              type="button"
+              onClick={handleCheckout}
+              disabled={submitting || !selectedPackage || !isPurchasable}
+              className={`flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-xs font-extrabold uppercase tracking-wide transition-all duration-300 ${
+                (!selectedPackage || submitting || !isPurchasable)
+                  ? 'bg-[#13283c] border border-white/[0.05] text-slate-500 cursor-not-allowed opacity-50'
+                  : 'bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 hover:from-sky-300 hover:via-blue-400 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 active:scale-[0.98]'
+              }`}
+            >
+              <span className="truncate">{submitting ? 'Processing...' : selectedPackage ? 'Buy Now' : 'Select Package'}</span>
+              <ArrowRight className="h-4 w-4 shrink-0" />
+            </button>
           </div>
         </div>
       )}
