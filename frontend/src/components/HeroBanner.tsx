@@ -42,7 +42,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ banners = [], loading = 
         /></picture>
       )}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#06132b]/35 via-transparent to-[#06132b]/20" />
-      {(banner.subtitle || banner.buttonText) && <div className="pointer-events-none absolute bottom-5 left-5 max-w-[70%] text-white sm:bottom-8 sm:left-8"><p className="text-base font-black sm:text-2xl">{banner.title}</p>{banner.subtitle && <p className="mt-1 text-xs text-slate-200 sm:text-sm">{banner.subtitle}</p>}{banner.buttonText && <span className="mt-3 inline-block rounded-lg bg-cyan-200 px-3 py-1.5 text-[10px] font-black text-[#06132b]">{banner.buttonText}</span>}</div>}
+      {banner.subtitle && <div className="pointer-events-none absolute bottom-5 left-5 max-w-[70%] text-white sm:bottom-8 sm:left-8"><p className="text-base font-black sm:text-2xl">{banner.title}</p><p className="mt-1 text-xs text-slate-200 sm:text-sm">{banner.subtitle}</p>{banner.buttonText && <span className="mt-3 inline-block rounded-lg bg-cyan-200 px-3 py-1.5 text-[10px] font-black text-[#06132b]">{banner.buttonText}</span>}</div>}
       {hasError && <p className="absolute bottom-3 left-4 rounded-lg bg-[#06132b]/85 px-2 py-1 text-[10px] font-bold text-slate-300">Showing featured games</p>}
     </>
   );
