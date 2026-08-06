@@ -179,8 +179,16 @@ export const calculateSellingPrice = (product: G2Product): number => {
 };
 
 export const selectCheapestProducts = (products: G2Product[], gameSlug: string): SelectedCatalogProduct[] => {
+  let filteredProducts = products;
+  if (gameSlug === 'mobile-legends') {
+    filteredProducts = products.filter((p) => {
+      const idStr = String(p.id);
+      return idStr === '1559' || idStr === '1573' || idStr === '1946';
+    });
+  }
+
   const grouped = new Map<string, G2Product[]>();
-  for (const product of products) {
+  for (const product of filteredProducts) {
     const normalized = normalizePackage(product.title, gameSlug);
     const list = grouped.get(normalized.uniqueKey) || [];
     list.push(product);
