@@ -95,12 +95,14 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
           </div>
           {!isPurchasable ? (
             game.status === 'maintenance' || game.comingSoon ? (
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400 sm:h-8 sm:w-8" title="Maintenance">
-                <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+              <span className="flex h-7 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 px-2 text-amber-400 sm:h-8" title="Maintenance">
+                <LockKeyhole className="h-3 w-3 shrink-0" />
+                <span className="ml-1 text-[7px] font-black uppercase tracking-wider">maintenance</span>
               </span>
             ) : (
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 sm:h-8 sm:w-8" title="Inactive">
-                <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+              <span className="flex h-7 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 px-2 text-red-400 sm:h-8" title="Inactive">
+                <LockKeyhole className="h-3 w-3 shrink-0" />
+                <span className="ml-1 text-[7px] font-black uppercase tracking-wider">inactive</span>
               </span>
             )
           ) : (
