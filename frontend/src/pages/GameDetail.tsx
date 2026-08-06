@@ -258,7 +258,7 @@ export function GameDetail() {
                         onChange={(event) => handleFieldChange(field.name, event.target.value)}
                         aria-invalid={Boolean(errorMsg && field.required && !playerFields[field.name])}
                         aria-describedby={errorMsg ? 'checkout-error' : undefined}
-                        className="h-10 w-full rounded-lg border border-amber-300/80 bg-[#06152b] px-3.5 text-xs font-bold text-white outline-none placeholder:text-slate-600 focus:border-amber-200 focus:ring-2 focus:ring-amber-300/10 sm:h-11 sm:text-sm"
+                        className="h-10 w-full rounded-lg border border-amber-300/80 bg-[#06152b] px-3.5 text-[16px] font-bold text-white outline-none placeholder:text-slate-600 focus:border-amber-200 focus:ring-2 focus:ring-amber-300/10 sm:h-11 md:text-sm"
                       />
                       {field.helpText && <span className="mt-1 block text-[8px] text-slate-600 leading-normal">{field.helpText}</span>}
                     </label>
