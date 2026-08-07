@@ -23,7 +23,7 @@ export interface TopUpPackage {
   isPurchasable?: boolean;
 }
 
-type PackageFilter = 'all' | 'popular' | 'event' | 'standard';
+type PackageFilter = 'all' | 'popular' | 'standard';
 
 interface TopUpPackageSelectorProps {
   packages: TopUpPackage[];
@@ -44,11 +44,11 @@ const packageGroup = (pkg: TopUpPackage): Exclude<PackageFilter, 'all'> => {
   const badge = (pkg.badge || '').toLowerCase();
   const combined = `${badge} ${pkg.title}`.toLowerCase();
 
-  if (combined.includes('event') || combined.includes('pass')) {
-    return 'event';
-  }
-
   if (
+    combined.includes('event') ||
+    combined.includes('pass') ||
+    combined.includes('weekly') ||
+    combined.includes('monthly') ||
     combined.includes('best') ||
     combined.includes('seller') ||
     combined.includes('value') ||
@@ -68,10 +68,9 @@ const filters: Array<{
   shortLabel: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { id: 'all', label: 'All Packages', shortLabel: 'All', icon: Layers3 },
-  { id: 'popular', label: 'Popular', shortLabel: 'Popular', icon: Flame },
-  { id: 'event', label: 'Events & Passes', shortLabel: 'Events', icon: Sparkles },
-  { id: 'standard', label: 'Standard', shortLabel: 'Standard', icon: PackageOpen }
+  { id: 'all', label: 'ទាំងអស់ / All', shortLabel: 'All', icon: Layers3 },
+  { id: 'popular', label: 'លក់ដាច់បំផុត / Best Selling', shortLabel: 'Best Selling', icon: Flame },
+  { id: 'standard', label: 'ធម្មតា / Normal', shortLabel: 'Normal', icon: PackageOpen }
 ];
 
 export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
@@ -101,7 +100,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
   }, [activeFilter, query, initialVisibleCount]);
 
   const counts = useMemo(() => {
-    const result = { all: packages.length, popular: 0, event: 0, standard: 0 };
+    const result = { all: packages.length, popular: 0, standard: 0 };
     packages.forEach((pkg) => {
       result[packageGroup(pkg)] += 1;
     });
@@ -213,7 +212,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-500' : id === 'event' ? 'text-violet-500' : 'text-sky-500' : 'text-slate-400'}`} />
+                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-500' : 'text-sky-500' : 'text-slate-400'}`} />
                   {shortLabel}
                   <span className="rounded-md bg-slate-200/80 px-1 py-0.5 text-[7px] text-slate-500">{counts[id]}</span>
                 </button>
@@ -353,7 +352,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                   }`}
                   aria-pressed={active}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-500' : id === 'event' ? 'text-violet-500' : 'text-sky-500' : 'text-slate-400'}`} />
+                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-500' : 'text-sky-500' : 'text-slate-400'}`} />
                   <span className="sm:hidden">{shortLabel}</span>
                   <span className="hidden sm:inline">{label}</span>
                   <span className="rounded-md bg-slate-200/80 px-1.5 py-0.5 text-[8px] text-slate-500">{counts[id]}</span>
