@@ -25,6 +25,7 @@ import { resolveBannerImages } from '../utils/bannerPresentation';
 type PaymentMethod = 'ABA_PAYWAY' | 'BAKONG_KHQR' | 'WALLET';
 
 const paymentOptions: Array<{ id: PaymentMethod; label: string; short: string; subtitle: string; tone: string }> = [
+  { id: 'ABA_PAYWAY', label: 'ABA Pay', short: 'ABA', subtitle: 'Pay with ABA Mobile app', tone: 'from-sky-500 to-blue-600 text-white font-extrabold shadow-sm' },
   { id: 'BAKONG_KHQR', label: 'Bakong KHQR', short: 'KHQR', subtitle: 'Scan with any Cambodian banking app', tone: 'from-rose-500 to-red-600 text-white font-extrabold shadow-sm' }
 ];
 
@@ -41,7 +42,7 @@ export function GameDetail() {
   const [playerFields, setPlayerFields] = useState<Record<string, string>>({});
   const [verifyingPlayer, setVerifyingPlayer] = useState(false);
   const [verifiedPlayerInfo, setVerifiedPlayerInfo] = useState<{ valid: boolean; username?: string; message?: string } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BAKONG_KHQR');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('ABA_PAYWAY');
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponMsg, setCouponMsg] = useState('');
