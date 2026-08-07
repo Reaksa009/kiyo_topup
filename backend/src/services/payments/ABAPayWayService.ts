@@ -56,9 +56,6 @@ export class ABAPayWayService {
     return crypto.createHash('sha1').update(rawString).digest('hex');
   }
 
-  /**
-   * Generate KHQRcc Checkout redirect URL for an order
-   */
   static async createPaymentCheckout(
     orderNumber: string,
     amount: number,
@@ -66,8 +63,8 @@ export class ABAPayWayService {
   ) {
     const { merchantId, apiUrl } = this.getCredentials();
     const formattedAmount = amount.toFixed(2);
-    const remark = `Order ${orderNumber}`;
-    const successUrl = `${env.CLIENT_URL}/tracking?orderNumber=${orderNumber}`;
+    const remark = orderNumber;
+    const successUrl = `${env.CLIENT_URL}/tracking`;
 
     const hash = this.generateHash(
       orderNumber,
