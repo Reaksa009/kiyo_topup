@@ -102,6 +102,30 @@ export function GameDetail() {
     }
   };
 
+  // Auto-verify player account details when all fields are populated with valid lengths
+  useEffect(() => {
+    if (!game || !game.isPurchasable) return;
+    
+    const requiredFields = game.inputFields || [];
+    if (requiredFields.length === 0) return;
+
+    const canAutoVerify = requiredFields.every((field) => {
+      const value = playerFields[field.name]?.trim() || '';
+      const isZone = field.name.toLowerCase().includes('zone') || field.name.toLowerCase().includes('server') || field.label.toLowerCase().includes('zone') || field.label.toLowerCase().includes('server');
+      const minLength = isZone ? 3 : 5;
+      return value.length >= minLength;
+    });
+
+    if (canAutoVerify) {
+      const timer = setTimeout(() => {
+        if (!verifyingPlayer) {
+          handleVerifyPlayer();
+        }
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [playerFields, game]);
+
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
     try {
@@ -213,6 +237,9 @@ export function GameDetail() {
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {(game.inputFields || []).map((field, idx, arr) => {
                   const isSolo = arr.length === 1;
+                  const isZone = field.name.toLowerCase().includes('zone') || field.name.toLowerCase().includes('server') || field.label.toLowerCase().includes('zone') || field.label.toLowerCase().includes('server');
+                  const customPlaceholder = isZone ? "Zone ID" : (field.name.toLowerCase().includes('id') || field.label.toLowerCase().includes('id') ? "Enter your id" : field.placeholder);
+
                   return (
                     <label key={field.name} className={`block ${isSolo ? 'col-span-2' : 'col-span-1'}`}>
                       <span className="mb-1.5 block text-[10px] font-black text-slate-700 sm:text-[11px]">
@@ -220,7 +247,7 @@ export function GameDetail() {
                       </span>
                       <input
                         type={field.type || 'text'}
-                        placeholder={field.placeholder}
+                        placeholder={customPlaceholder}
                         value={playerFields[field.name] || ''}
                         onChange={(event) => handleFieldChange(field.name, event.target.value)}
                         aria-invalid={Boolean(errorMsg && field.required && !playerFields[field.name])}
