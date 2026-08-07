@@ -72,8 +72,28 @@ export class ABAPayWayService {
       remark
     );
 
-    // Build the final gateway redirection checkout URL
-    const checkoutUrl = `${apiUrl}/${merchantId}?transaction_id=${orderNumber}&amount=${formattedAmount}&success_url=${encodeURIComponent(successUrl)}&remark=${encodeURIComponent(remark)}&hash=${hash}`;
+    // Build the initial gateway redirection checkout URL
+    const initialUrl = `${apiUrl}/${merchantId}?transaction_id=${orderNumber}&amount=${formattedAmount}&success_url=${encodeURIComponent(successUrl)}&remark=${encodeURIComponent(remark)}&hash=${hash}`;
+
+    // Pre-resolve the direct checkout URL to bypass intermediate redirect (helping mobile auto-open launch successfully)
+    let checkoutUrl = initialUrl;
+    try {
+      const response = await axios.get(initialUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
+        },
+        timeout: 4000
+      });
+      if (typeof response.data === 'string') {
+        const match = response.data.match(/url='([^']+)'/);
+        if (match && match[1]) {
+          checkoutUrl = match[1];
+          logger.info(`[ABA PayWay] Pre-resolved direct checkout URL: ${checkoutUrl}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error(`[ABA PayWay] Pre-resolve direct checkout URL failed: ${error.message}`);
+    }
 
     return {
       merchantId,
