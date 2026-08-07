@@ -69,7 +69,7 @@ export class ABAPayWayService {
     customerEmail: string = 'customer@kiyotopup.com'
   ) {
     const { merchantId, apiUrl } = this.getCredentials();
-    const formattedAmount = this.formatAmount(amount);
+    const formattedAmount = amount.toFixed(2);
     const remark = orderNumber;
     const successUrl = `${env.CLIENT_URL}/tracking`;
 
