@@ -43,6 +43,13 @@ export class ABAPayWayService {
   }
 
   /**
+   * Format amount number to match PHP float string conversion (e.g. 0.30 -> "0.3", 1.00 -> "1")
+   */
+  static formatAmount(amount: number): string {
+    return String(Number(amount));
+  }
+
+  /**
    * Generate SHA-1 security hash for KHQRcc Checkout request
    */
   static generateHash(
@@ -62,7 +69,7 @@ export class ABAPayWayService {
     customerEmail: string = 'customer@kiyotopup.com'
   ) {
     const { merchantId, apiUrl } = this.getCredentials();
-    const formattedAmount = amount.toFixed(2);
+    const formattedAmount = this.formatAmount(amount);
     const remark = orderNumber;
     const successUrl = `${env.CLIENT_URL}/tracking`;
 
