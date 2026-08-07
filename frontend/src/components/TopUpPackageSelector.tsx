@@ -335,37 +335,19 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
       <div className="pointer-events-none absolute -left-20 top-24 h-44 w-44 rounded-full bg-cyan-400/[0.07] blur-3xl" />
 
-      <div className="relative flex flex-col items-center text-center gap-3.5 p-5 sm:p-6 border-b border-white/[0.07] bg-gradient-to-b from-cyan-400/[0.05] to-transparent">
+      <div className="relative flex items-center gap-2.5 p-5 sm:p-6 border-b border-white/[0.07] bg-[#0d1527]/40">
         {step && (
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-lg font-black text-white shadow-lg shadow-rose-300/30 sm:h-14 sm:w-14 sm:text-xl animate-bounce-subtle">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-[#061221]">
             {step}
           </span>
         )}
-        <div className="space-y-1 max-w-lg">
-          <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
-            <Zap className="h-3.5 w-3.5 text-amber-300 animate-pulse" /> Instant digital delivery
-          </div>
-          <h2 id="package-selector-title" className="text-xl font-black tracking-tight text-white sm:text-3xl">
-            Select Top-Up Package
+        <div className="min-w-0">
+          <h2 id="package-selector-title" className="text-sm font-black text-white sm:text-base">
+            សូមជ្រើសរើសកញ្ចប់ពេជ្រ / Select Top-Up Package
           </h2>
-          <p className="text-[11px] leading-5 text-slate-400 sm:text-sm">
-            Choose the best value for your account. Prices are shown in USD and Khmer Riel.
+          <p className="mt-0.5 text-[10px] text-slate-500">
+            Choose the best package for your account. Prices in USD & KHR.
           </p>
-        </div>
-
-        <div className={`mt-2 min-w-0 rounded-2xl border px-5 py-2.5 w-full max-w-xs ${selectedPackage ? 'border-emerald-400/25 bg-emerald-400/[0.08]' : 'border-white/[0.07] bg-black/20'}`}>
-          <div className="flex items-center justify-center gap-2.5">
-            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${selectedPackage ? 'bg-emerald-300 text-[#06120e]' : 'bg-white/[0.05] text-slate-600'}`}>
-              {selectedPackage ? <Check className="h-4 w-4" strokeWidth={3} /> : <Gem className="h-4 w-4" />}
-            </span>
-            <div className="min-w-0 text-left">
-              <p className="text-[7px] font-black uppercase tracking-[0.18em] text-slate-500">{selectedPackage ? 'Selected package' : 'Nothing selected'}</p>
-              <p className={`mt-0.5 truncate text-[10px] font-black ${selectedPackage ? 'text-white' : 'text-slate-500'}`}>
-                {selectedPackage?.title || 'Tap a package below'}
-              </p>
-            </div>
-            {selectedPackage && <span className="ml-auto shrink-0 text-xs font-black text-emerald-300">${selectedPackage.price.toFixed(2)}</span>}
-          </div>
         </div>
       </div>
 
