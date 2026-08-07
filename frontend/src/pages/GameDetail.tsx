@@ -54,6 +54,10 @@ export function GameDetail() {
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const purchasablePackages = useMemo(() => {
+    return packages.filter((pkg) => pkg.isPurchasable !== false);
+  }, [packages]);
+
   useEffect(() => {
     const fetchGame = async () => {
       try {
@@ -199,9 +203,6 @@ export function GameDetail() {
   const categoryName = typeof game.categoryId === 'object' ? game.categoryId?.name : 'Game Top-Up';
   const hasRequiredPlayerFields = (game.inputFields || []).every((field) => !field.required || playerFields[field.name]?.trim());
   const isPurchasable = game.isPurchasable !== false;
-  const purchasablePackages = useMemo(() => {
-    return packages.filter((pkg) => pkg.isPurchasable !== false);
-  }, [packages]);
   const activeDetailBanner = detailBanners[0];
   const gameFallbackBanner = game.detailBannerDesktop || game.coverImageUrl || game.bannerUrl || game.thumbnail;
   const { desktop: bannerDesktop, mobile: bannerMobile } = activeDetailBanner
