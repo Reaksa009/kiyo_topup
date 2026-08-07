@@ -98,7 +98,11 @@ export function GameDetail() {
     setVerifiedPlayerInfo(null);
     try {
       const response = await apiClient.post('/games/verify-player', { slug: game.slug, fields: playerFields });
-      setVerifiedPlayerInfo(response.data.data);
+      const verifyResult = response.data.data;
+      setVerifiedPlayerInfo(verifyResult);
+      if (verifyResult && verifyResult.valid) {
+        setAgreedToTerms(true);
+      }
     } catch (error: any) {
       setVerifiedPlayerInfo({ valid: false, message: error.response?.data?.message || 'Verification failed' });
     } finally {
