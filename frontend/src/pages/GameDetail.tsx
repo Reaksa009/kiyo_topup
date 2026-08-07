@@ -186,7 +186,12 @@ export function GameDetail() {
       }
       const details = response.data.data.paymentDetails;
       if (paymentMethod === 'ABA_PAYWAY' && details?.checkoutUrl) {
-        window.location.href = details.checkoutUrl;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile && details.appDeeplink) {
+          window.location.href = details.appDeeplink;
+        } else {
+          window.location.href = details.checkoutUrl;
+        }
         return;
       }
       setActiveOrder(orderData);
