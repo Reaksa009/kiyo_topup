@@ -74,12 +74,6 @@ const filters: Array<{
   { id: 'standard', label: 'Standard', shortLabel: 'Standard', icon: PackageOpen }
 ];
 
-const groupTone = {
-  popular: 'border-amber-400/30 bg-amber-400/10 text-amber-200',
-  event: 'border-violet-400/30 bg-violet-400/10 text-violet-200',
-  standard: 'border-cyan-400/25 bg-cyan-400/[0.08] text-cyan-200'
-};
-
 export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
   packages,
   selectedPackage,
@@ -189,28 +183,22 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
 
   if (compact) {
     return (
-      <section className={`relative overflow-hidden border border-white/[0.08] bg-[#081325]/95 shadow-2xl backdrop-blur-md ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
-        <div className="absolute -right-16 -top-16 pointer-events-none h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
-        <div className="absolute -left-16 bottom-0 pointer-events-none h-32 w-32 rounded-full bg-violet-500/5 blur-2xl" />
-
-         <div className="relative flex flex-col items-center text-center gap-3 border-b border-white/[0.06] bg-[#0c1c33]/80 px-4 py-5 sm:px-5">
+      <section className={`relative overflow-hidden border border-slate-200/80 bg-white shadow-sm ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
+        
+         <div className="relative flex items-center gap-2.5 bg-[#f8fafc] px-4 py-4 sm:px-5 border-b border-slate-200/60">
            {step && (
-             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-violet-500 text-base font-black text-white shadow-lg shadow-rose-300/30 sm:h-14 sm:w-14 sm:text-lg animate-bounce-subtle">
+             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-xs font-bold text-white shadow-sm">
                {step}
              </span>
            )}
            <div className="min-w-0">
-             <h2 id="package-selector-title" className="text-lg font-black tracking-tight text-white sm:text-2xl">Select Top-Up Package</h2>
-             <p className="mt-1 text-[11px] font-bold text-rose-400 sm:text-sm">{packages.length} choices available</p>
-           </div>
-           <div className={`mt-1 min-w-0 rounded-xl border px-4 py-1 text-center ${compactMobileLead ? 'hidden md:block' : ''} ${selectedPackage ? 'border-cyan-300/30 bg-cyan-300/[0.08]' : 'border-white/[0.06] bg-black/20'}`}>
-             <p className="max-w-[180px] truncate text-[9px] font-bold text-slate-500">{selectedPackage?.title || 'No package selected'}</p>
-             {selectedPackage && <p className="mt-0.5 text-xs font-black text-cyan-200">${selectedPackage.price.toFixed(2)}</p>}
+             <h2 id="package-selector-title" className="text-sm font-black text-slate-800 sm:text-base">សូមជ្រើសរើសកញ្ចប់ពេជ្រ / Select Top-Up Package</h2>
+             <p className="mt-0.5 text-[10px] text-slate-500 font-bold">{packages.length} choices available</p>
            </div>
          </div>
 
         <div className="relative space-y-3.5 p-3.5 sm:p-5">
-          <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.05] bg-black/15 p-1 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200/60 bg-slate-100/60 p-1 sm:grid-cols-4">
             {filters.map(({ id, shortLabel, icon: Icon }) => {
               const active = activeFilter === id;
               return (
@@ -219,32 +207,32 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                   type="button"
                   onClick={() => setActiveFilter(id)}
                   aria-pressed={active}
-                  className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-[9px] font-black uppercase transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+                  className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-[9px] font-black uppercase transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
                     active
-                      ? 'bg-white/[0.08] text-white shadow-sm'
-                      : 'text-slate-500 hover:text-slate-300'
+                      ? 'bg-white text-slate-800 shadow-sm border border-slate-200/60'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-300' : id === 'event' ? 'text-violet-300' : 'text-cyan-300' : 'text-slate-600'}`} />
+                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-500' : id === 'event' ? 'text-violet-500' : 'text-sky-500' : 'text-slate-400'}`} />
                   {shortLabel}
-                  <span className="rounded-md bg-black/20 px-1 py-0.5 text-[7px] text-slate-400">{counts[id]}</span>
+                  <span className="rounded-md bg-slate-200/80 px-1 py-0.5 text-[7px] text-slate-500">{counts[id]}</span>
                 </button>
               );
             })}
           </div>
 
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-3 h-3.5 w-3.5 text-slate-600" />
+            <Search className="pointer-events-none absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search diamonds or passes..."
-              className="h-9 w-full rounded-xl border border-white/[0.07] bg-black/20 pl-9 pr-9 text-[10px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40"
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-[10px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
               aria-label="Search top-up packages"
             />
             {query && (
-              <button type="button" onClick={() => setQuery('')} className="absolute right-2.5 top-2.5 text-slate-600 hover:text-white" aria-label="Clear package search">
+              <button type="button" onClick={() => setQuery('')} className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600" aria-label="Clear package search">
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
@@ -253,7 +241,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
           {compactMobileLead && <div className="md:hidden">{compactMobileLead}</div>}
 
           {visiblePackages.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-6">
               {visiblePackages.map((pkg) => {
                 const selected = selectedPackage?._id === pkg._id;
                 return (
@@ -264,8 +252,8 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                     aria-pressed={selected}
                     className={`group relative flex min-h-[160px] min-w-0 flex-col items-center justify-center overflow-hidden rounded-2xl border p-3 text-center transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
                       selected
-                        ? 'border-sky-400 bg-sky-400/[0.06] shadow-lg shadow-sky-500/10 scale-[1.02]'
-                        : 'border-white/[0.06] bg-[#0c1626]/80 hover:border-white/[0.15] hover:bg-[#0f1d31]'
+                        ? 'border-sky-500 bg-sky-50 shadow-md shadow-sky-500/5 scale-[1.02]'
+                        : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
                     {pkg.badge && (
@@ -274,7 +262,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                       </span>
                     )}
                     {selected && (
-                      <span className="absolute right-2 top-2 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-sky-400 text-slate-900 shadow">
+                      <span className="absolute right-2 top-2 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white shadow">
                         <Check className="h-3 w-3" strokeWidth={3.5} />
                       </span>
                     )}
@@ -288,14 +276,14 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                       className="h-12 w-12 object-contain transition-transform duration-300 group-hover:scale-110"
                     />
                     <div className="mt-2.5 flex flex-col items-center">
-                      <span className="text-sm font-extrabold tracking-tight text-sky-400">${pkg.price.toFixed(2)}</span>
-                      <span className="text-[7.5px] font-bold text-slate-500">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</span>
+                      <span className="text-sm font-extrabold tracking-tight text-sky-600">${pkg.price.toFixed(2)}</span>
+                      <span className="text-[7.5px] font-bold text-slate-400">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</span>
                     </div>
-                    <h3 className={`mt-1.5 text-[10px] font-medium leading-snug ${selected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                    <h3 className={`mt-1.5 text-[10px] font-bold leading-snug ${selected ? 'text-slate-900 font-extrabold' : 'text-slate-700'}`}>
                       {pkg.title}
                     </h3>
                     {pkg.supportsBoth && (
-                      <span className="mt-1 inline-flex items-center gap-0.5 text-[6px] font-semibold uppercase tracking-wider text-sky-400/80">
+                      <span className="mt-1 inline-flex items-center gap-0.5 text-[6px] font-semibold uppercase tracking-wider text-sky-500">
                         <Globe2 className="h-1.5 w-1.5" /> Global & Regular
                       </span>
                     )}
@@ -304,10 +292,10 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
               })}
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-white/[0.09] bg-black/15 py-8 text-center">
-              <PackageOpen className="mx-auto h-6 w-6 text-slate-700" />
-              <p className="mt-2 text-[10px] font-black text-slate-300">No packages found</p>
-              <button type="button" onClick={() => { setActiveFilter('all'); setQuery(''); }} className="mt-2 text-[8px] font-black text-cyan-300">Show all packages</button>
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-8 text-center">
+              <PackageOpen className="mx-auto h-6 w-6 text-slate-400" />
+              <p className="mt-2 text-[10px] font-black text-slate-600">No packages found</p>
+              <button type="button" onClick={() => { setActiveFilter('all'); setQuery(''); }} className="mt-2 text-[8px] font-black text-sky-500 hover:underline">Show all packages</button>
             </div>
           )}
 
@@ -315,9 +303,9 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
             <button
               type="button"
               onClick={() => setVisibleCount((count) => count + initialVisibleCount)}
-              className="flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] text-[8px] font-black uppercase text-slate-400 hover:border-cyan-300/20 hover:bg-cyan-300/[0.05] hover:text-cyan-200"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 text-[8px] font-black uppercase text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             >
-              Load more packages <span className="text-slate-600">({filteredPackages.length - visiblePackages.length})</span>
+              Load more packages <span className="text-slate-400">({filteredPackages.length - visiblePackages.length})</span>
             </button>
           )}
         </div>
@@ -327,22 +315,19 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
 
   return (
     <section
-      className={`relative overflow-hidden border border-white/[0.08] bg-[#0b1019]/95 shadow-2xl shadow-black/20 ${
-        embedded ? 'rounded-[26px]' : 'glass-panel rounded-3xl'
+      className={`relative overflow-hidden border border-slate-200/80 bg-white shadow-sm ${
+        embedded ? 'rounded-[26px]' : 'rounded-3xl'
       }`}
       aria-labelledby="package-selector-title"
     >
-      <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
-      <div className="pointer-events-none absolute -left-20 top-24 h-44 w-44 rounded-full bg-cyan-400/[0.07] blur-3xl" />
-
-      <div className="relative flex items-center gap-2.5 p-5 sm:p-6 border-b border-white/[0.07] bg-[#0d1527]/40">
+      <div className="relative flex items-center gap-2.5 p-5 sm:p-6 border-b border-slate-200/60 bg-[#f8fafc]">
         {step && (
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-[#061221]">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-xs font-bold text-white shadow-sm">
             {step}
           </span>
         )}
         <div className="min-w-0">
-          <h2 id="package-selector-title" className="text-sm font-black text-white sm:text-base">
+          <h2 id="package-selector-title" className="text-sm font-black text-slate-800 sm:text-base">
             សូមជ្រើសរើសកញ្ចប់ពេជ្រ / Select Top-Up Package
           </h2>
           <p className="mt-0.5 text-[10px] text-slate-500">
@@ -353,7 +338,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
 
       <div className="relative space-y-5 p-4 sm:p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="grid flex-1 grid-cols-2 gap-2 rounded-2xl border border-white/[0.07] bg-black/20 p-1.5 sm:grid-cols-4">
+          <div className="grid flex-1 grid-cols-2 gap-2 rounded-xl border border-slate-200/60 bg-slate-100/60 p-1 sm:grid-cols-4">
             {filters.map(({ id, label, shortLabel, icon: Icon }) => {
               const active = activeFilter === id;
               return (
@@ -361,34 +346,34 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                   key={id}
                   type="button"
                   onClick={() => setActiveFilter(id)}
-                  className={`group flex min-h-10 items-center justify-center gap-2 rounded-xl px-2.5 text-[10px] font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+                  className={`group flex min-h-10 items-center justify-center gap-2 rounded-xl px-2.5 text-[10px] font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
                     active
-                      ? 'bg-white/[0.09] text-white shadow-md ring-1 ring-white/[0.09]'
-                      : 'text-slate-500 hover:bg-white/[0.04] hover:text-slate-200'
+                      ? 'bg-white text-slate-800 shadow-sm border border-slate-200/60'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                   aria-pressed={active}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-300' : id === 'event' ? 'text-violet-300' : 'text-cyan-300' : 'text-slate-600 group-hover:text-slate-400'}`} />
+                  <Icon className={`h-3.5 w-3.5 ${active ? id === 'popular' ? 'text-amber-500' : id === 'event' ? 'text-violet-500' : 'text-sky-500' : 'text-slate-400'}`} />
                   <span className="sm:hidden">{shortLabel}</span>
                   <span className="hidden sm:inline">{label}</span>
-                  <span className="rounded-md bg-black/25 px-1.5 py-0.5 text-[8px] text-slate-400">{counts[id]}</span>
+                  <span className="rounded-md bg-slate-200/80 px-1.5 py-0.5 text-[8px] text-slate-500">{counts[id]}</span>
                 </button>
               );
             })}
           </div>
 
           <div className="relative lg:w-64">
-            <Search className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-slate-600" />
+            <Search className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search diamonds, passes..."
-              className="h-11 w-full rounded-2xl border border-white/[0.08] bg-black/25 pl-10 pr-10 text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-10 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
               aria-label="Search top-up packages"
             />
             {query && (
-              <button type="button" onClick={() => setQuery('')} className="absolute right-3 top-3 rounded-lg p-1 text-slate-600 hover:bg-white/[0.05] hover:text-white" aria-label="Clear package search">
+              <button type="button" onClick={() => setQuery('')} className="absolute right-3 top-3 rounded-lg p-1 text-slate-400 hover:text-slate-600" aria-label="Clear package search">
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
@@ -408,20 +393,20 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                   key={pkg._id}
                   type="button"
                   onClick={() => onSelect(pkg)}
-                  className={`group relative flex min-h-[175px] overflow-hidden rounded-3xl border p-4 flex-col items-center justify-center text-center transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+                  className={`group relative flex min-h-[175px] overflow-hidden rounded-3xl border p-4 flex-col items-center justify-center text-center transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
                     selected
-                      ? 'border-amber-400 bg-amber-400/[0.06] shadow-lg shadow-amber-500/10 scale-[1.02]'
-                      : 'border-white/[0.07] bg-[#10151f] hover:-translate-y-1 hover:border-white/[0.16] hover:bg-[#121a27] hover:shadow-xl hover:shadow-black/30'
+                      ? 'border-sky-500 bg-sky-50 shadow-md shadow-sky-500/5 scale-[1.02]'
+                      : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50'
                   }`}
                   aria-pressed={selected}
                 >
                   {pkg.badge && (
-                    <span className="absolute left-2.5 top-2.5 rounded bg-amber-500 px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
+                    <span className="absolute left-2.5 top-2.5 rounded bg-sky-500 px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
                       {pkg.badge}
                     </span>
                   )}
                   {selected && (
-                    <span className="absolute right-2.5 top-2.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-slate-900 shadow">
+                    <span className="absolute right-2.5 top-2.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white shadow">
                       <Check className="h-3 w-3" strokeWidth={3.5} />
                     </span>
                   )}
@@ -432,16 +417,16 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                   />
                   <div className="mt-3 flex flex-col items-center">
                     <div className="flex items-center gap-1">
-                      <span className="text-base font-extrabold tracking-tight text-amber-400 sm:text-[17px]">${pkg.price.toFixed(2)}</span>
-                      {originalPrice && <span className="text-[8px] text-slate-600 line-through">${originalPrice.toFixed(2)}</span>}
+                      <span className="text-base font-extrabold tracking-tight text-sky-600 sm:text-[17px]">${pkg.price.toFixed(2)}</span>
+                      {originalPrice && <span className="text-[8px] text-slate-400 line-through">${originalPrice.toFixed(2)}</span>}
                     </div>
-                    <p className="text-[8.5px] font-semibold text-slate-500">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
+                    <p className="text-[8.5px] font-semibold text-slate-400">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</p>
                   </div>
-                  <h3 className={`mt-2 text-xs font-black leading-snug ${selected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                  <h3 className={`mt-2 text-xs font-bold leading-snug ${selected ? 'text-slate-900 font-extrabold' : 'text-slate-700'}`}>
                     {pkg.title}
                   </h3>
                   {pkg.supportsBoth && (
-                    <span className="mt-1 inline-flex items-center gap-0.5 text-[6.5px] font-bold uppercase tracking-wider text-amber-400/80">
+                    <span className="mt-1 inline-flex items-center gap-0.5 text-[6.5px] font-bold uppercase tracking-wider text-sky-500">
                       <Globe2 className="h-2 w-2" /> Global & Regular
                     </span>
                   )}
@@ -450,11 +435,11 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
             })}
           </div>
         ) : (
-          <div className="flex min-h-44 flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.09] bg-black/15 px-6 text-center">
-            <PackageOpen className="h-8 w-8 text-slate-700" />
-            <p className="mt-3 text-sm font-black text-slate-300">No packages found</p>
-            <p className="mt-1 text-[10px] text-slate-600">Try another package type or clear your search.</p>
-            <button type="button" onClick={() => { setActiveFilter('all'); setQuery(''); }} className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] px-4 py-2 text-[10px] font-black text-cyan-300 hover:bg-cyan-300/[0.1]">
+          <div className="flex min-h-44 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+            <PackageOpen className="h-8 w-8 text-slate-400" />
+            <p className="mt-3 text-sm font-black text-slate-600">No packages found</p>
+            <p className="mt-1 text-[10px] text-slate-500">Try another package type or clear your search.</p>
+            <button type="button" onClick={() => { setActiveFilter('all'); setQuery(''); }} className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-black text-sky-500 hover:bg-slate-100">
               Show all packages
             </button>
           </div>
@@ -464,10 +449,10 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
           <button
             type="button"
             onClick={() => setVisibleCount((count) => count + initialVisibleCount)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.025] py-3 text-[10px] font-black uppercase tracking-wider text-slate-400 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05] hover:text-cyan-200"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500 transition hover:bg-slate-100"
           >
             Load more packages
-            <span className="rounded-md bg-black/30 px-2 py-0.5 text-[8px] text-slate-500">{filteredPackages.length - visiblePackages.length} remaining</span>
+            <span className="rounded-md bg-slate-200/85 px-2 py-0.5 text-[8px] text-slate-500">{filteredPackages.length - visiblePackages.length} remaining</span>
           </button>
         )}
       </div>
