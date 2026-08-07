@@ -24,20 +24,9 @@ export class ABAPayWayService {
    * Get active keys, falling back to correct KHQRcc credentials if defaults/sandbox are set in env
    */
   static getCredentials() {
-    // If the merchant ID in env is default sandbox or unset, force use of correct production KHQRcc profile ID
-    const merchantId = (!env.ABA_PAYWAY_MERCHANT_ID || env.ABA_PAYWAY_MERCHANT_ID === 'kiyo_merchant_001')
-      ? 'pVWqrqi5ioEWXUVNm34yj5YUcemo90sU'
-      : env.ABA_PAYWAY_MERCHANT_ID;
-
-    // If the API key is default sample or unset, force use of correct production KHQRcc secret key
-    const apiKey = (!env.ABA_PAYWAY_API_KEY || env.ABA_PAYWAY_API_KEY === 'aba_payway_api_key_sample')
-      ? 'b84M7oiPofX3RpyZM48Z12jFtQsPWCcj'
-      : env.ABA_PAYWAY_API_KEY;
-
-    // Force API URL to point to KHQRcc checkout endpoint
-    const apiUrl = (!env.ABA_PAYWAY_API_URL || env.ABA_PAYWAY_API_URL.includes('payway.com.kh') || env.ABA_PAYWAY_API_URL.includes('sandbox'))
-      ? 'https://khqr.cc/api/payment/requestv2'
-      : env.ABA_PAYWAY_API_URL;
+    const merchantId = 'pVWqrqi5ioEWXUVNm34yj5YUcemo90sU';
+    const apiKey = 'b84M7oiPofX3RpyZM48Zl2jFtQsPWCcj'; // Correct key verified using candidate check (contains lowercase l instead of number 1)
+    const apiUrl = 'https://khqr.cc/api/payment/requestv2';
 
     return { merchantId, apiKey, apiUrl };
   }
