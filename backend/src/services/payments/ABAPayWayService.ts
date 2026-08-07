@@ -21,112 +21,110 @@ export interface ABAPurchasePayload {
 
 export class ABAPayWayService {
   /**
-   * Generate HMAC SHA-256 signature hash for ABA PayWay request payload
+   * Generate SHA-1 security hash for KHQRcc Checkout request
    */
   static generateHash(
-    reqTime: string,
-    tranId: string,
+    transactionId: string,
     amount: string,
-    items: string,
-    shipping: string,
-    firstname: string,
-    lastname: string,
-    email: string,
-    phone: string,
-    type: string,
-    paymentOption: string
+    successUrl: string,
+    remark: string
   ): string {
-    const rawString = `${reqTime}${env.ABA_PAYWAY_MERCHANT_ID}${tranId}${amount}${items}${shipping}${firstname}${lastname}${email}${phone}${type}${paymentOption}`;
-    return crypto.createHmac('sha256', env.ABA_PAYWAY_API_KEY).update(rawString).digest('base64');
+    const rawString = `${env.ABA_PAYWAY_API_KEY}${transactionId}${amount}${successUrl}${remark}`;
+    return crypto.createHash('sha1').update(rawString).digest('hex');
   }
 
   /**
-   * Generate PayWay Checkout details & KHQR payload for an order
+   * Generate KHQRcc Checkout redirect URL for an order
    */
   static async createPaymentCheckout(
     orderNumber: string,
     amount: number,
     customerEmail: string = 'customer@kiyotopup.com'
   ) {
-    const reqTime = Math.floor(Date.now() / 1000).toString();
     const formattedAmount = amount.toFixed(2);
-    const items = Buffer.from(JSON.stringify([{ name: `TopUp Order ${orderNumber}`, quantity: '1', price: formattedAmount }])).toString('base64');
-    const firstname = 'KIYO';
-    const lastname = 'Customer';
-    const phone = '012345678';
-    const type = 'purchase';
-    const paymentOption = 'abapay_khqr'; // ABA PayWay KHQR option
+    const remark = `Order ${orderNumber}`;
+    const successUrl = `${env.CLIENT_URL}/tracking?orderNumber=${orderNumber}`;
 
     const hash = this.generateHash(
-      reqTime,
       orderNumber,
       formattedAmount,
-      items,
-      '0.00',
-      firstname,
-      lastname,
-      customerEmail,
-      phone,
-      type,
-      paymentOption
+      successUrl,
+      remark
     );
 
-    const checkoutUrl = `${env.ABA_PAYWAY_API_URL}`;
-
-    // Generate mock/sample KHQR payload string for immediate scanning
-    const qrString = `00020101021238580016A00000077000010112${env.ABA_PAYWAY_MERCHANT_ID}520459995303840540${formattedAmount}5802KH5910KIYO TOPUP6010Phnom Penh6304`;
+    // Build the final gateway redirection checkout URL
+    const checkoutUrl = `${env.ABA_PAYWAY_API_URL}/${env.ABA_PAYWAY_MERCHANT_ID}?transaction_id=${orderNumber}&amount=${formattedAmount}&success_url=${encodeURIComponent(successUrl)}&remark=${encodeURIComponent(remark)}&hash=${hash}`;
 
     return {
       merchantId: env.ABA_PAYWAY_MERCHANT_ID,
-      reqTime,
       tranId: orderNumber,
       amount: formattedAmount,
       currency: 'USD',
       hash,
-      checkoutUrl,
-      qrString: `${qrString}${crypto.createHash('md5').update(qrString).digest('hex').substring(0, 4).toUpperCase()}`,
-      deepLink: `abapay://qr?data=${encodeURIComponent(qrString)}`
+      checkoutUrl
     };
   }
 
   /**
-   * Verify incoming Webhook Signature from ABA PayWay
+   * Verify incoming Webhook Signature from KHQRcc (SHA-256) or PayWay standard fallback (HMAC-SHA256)
    */
   static verifyWebhookSignature(payload: Record<string, any>): boolean {
-    const { tran_id, status, amount, hash } = payload;
-    if (!tran_id || !status || !hash) return false;
+    const { transaction_id, status, amount, hash, req_time } = payload;
+    const orderIdKey = transaction_id || payload.tran_id;
+    const finalHash = hash || payload.success_hash;
 
-    const rawString = `${tran_id}${status}${amount || ''}`;
-    const calculatedHash = crypto.createHmac('sha256', env.ABA_PAYWAY_API_KEY).update(rawString).digest('base64');
+    if (!orderIdKey || !finalHash) return false;
 
-    if (hash.length !== calculatedHash.length) return false;
-    return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(calculatedHash));
+    const secret = env.ABA_PAYWAY_API_KEY;
+
+    // Check SHA-256 (KHQRcc Webhook standard)
+    // Formula: sha256(secret + req_time + transaction_id + amount + "SUCCESS")
+    const khqrccCalculatedHash = crypto
+      .createHash('sha256')
+      .update(`${secret}${req_time || ''}${orderIdKey}${amount || ''}SUCCESS`)
+      .digest('hex');
+
+    if (finalHash.toLowerCase() === khqrccCalculatedHash.toLowerCase()) {
+      return true;
+    }
+
+    // Check HMAC-SHA256 (ABA PayWay standard fallback)
+    try {
+      const rawString = `${orderIdKey}${status || '00'}${amount || ''}`;
+      const calculatedPaywayHash = crypto.createHmac('sha256', secret).update(rawString).digest('base64');
+      return finalHash === calculatedPaywayHash;
+    } catch {
+      return false;
+    }
   }
 
   /**
-   * Check transaction status directly from ABA API
+   * Poll check status directly from KHQRcc Check Transaction v2 API with Bakong fallback
    */
   static async checkTransactionStatus(tranId: string) {
     try {
-      if (env.ABA_PAYWAY_API_KEY.includes('sample')) {
-        return { status: '00', description: 'Success (Mock)', tran_id: tranId, amount: '1.00' };
-      }
-      const reqTime = Math.floor(Date.now() / 1000).toString();
-      const hash = crypto
-        .createHmac('sha256', env.ABA_PAYWAY_API_KEY)
-        .update(`${reqTime}${env.ABA_PAYWAY_MERCHANT_ID}${tranId}`)
-        .digest('base64');
+      const url = `https://khqr.cc/api/${env.ABA_PAYWAY_MERCHANT_ID}/payment-gateway/v1/payments/check-transv2-khqrcc`;
+      const secret = env.ABA_PAYWAY_API_KEY;
+      const hashStr = `${secret}${tranId}`;
+      const hash = crypto.createHash('sha1').update(hashStr).digest('hex');
 
-      const res = await axios.post(`${env.ABA_PAYWAY_API_URL}/check-transaction`, {
-        req_time: reqTime,
-        merchant_id: env.ABA_PAYWAY_MERCHANT_ID,
-        tran_id: tranId,
-        hash
+      const response = await axios.post(url, new URLSearchParams({
+        transaction_id: tranId,
+        hash: hash
+      }).toString(), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        timeout: 8000
       });
 
-      return res.data;
+      const result = response.data;
+      if (result && result.responseCode === 0 && result.data?.status === 'success') {
+        return { status: '00', description: 'Success', tran_id: tranId, amount: result.data.amount };
+      }
+      return { status: 'pending', description: result?.data?.status || 'Pending' };
     } catch (error: any) {
-      logger.error('ABA Transaction Check Error:', error.message);
+      logger.error('KHQRcc Transaction Check Error:', error.message);
       return { status: 'error', message: error.message };
     }
   }

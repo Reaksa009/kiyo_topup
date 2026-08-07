@@ -43,27 +43,34 @@ export class WebhookController {
         return res.status(400).json({ status: 'error', message: 'Invalid signature' });
       }
 
-      const { tran_id, status } = payload;
-      const order = await Order.findOne({ orderNumber: tran_id });
+      const orderIdKey = payload.transaction_id || payload.tran_id;
+      const status = payload.status;
+      const order = await Order.findOne({ orderNumber: orderIdKey });
 
       if (!order) {
         return res.status(404).json({ status: 'error', message: 'Order not found' });
       }
 
-      if (status === '00' || status === '0') {
+      if (status === 'SUCCESS' || status === 'success' || status === '00' || status === '0') {
         if (order.paymentStatus !== 'paid') {
-          order.paymentStatus = 'paid';
-          order.overallStatus = 'processing';
-          await order.save();
+          const paidOrder = await Order.findOneAndUpdate(
+            { _id: order._id, paymentStatus: { $ne: 'paid' } },
+            { $set: { paymentStatus: 'paid', overallStatus: 'processing' } },
+            { new: true }
+          );
+
+          if (!paidOrder) {
+            return res.json({ status: 'success' });
+          }
 
           await Payment.findOneAndUpdate(
             { orderId: order._id },
             { status: 'success', rawPayload: payload, paidAt: new Date() }
           );
 
-          await fulfillBatchIfApplicable(order.orderNumber);
-          await orderQueue.add('fulfill', { orderId: order._id.toString() });
-          await TelegramService.notifyPaymentSuccess(order.orderNumber, order.amount, 'ABA PayWay Webhook');
+          await fulfillBatchIfApplicable(paidOrder.orderNumber);
+          await orderQueue.add('fulfill', { orderId: paidOrder._id.toString() });
+          await TelegramService.notifyPaymentSuccess(paidOrder.orderNumber, paidOrder.amount, 'ABA KHQRcc Webhook');
         }
       } else {
         order.paymentStatus = 'failed';

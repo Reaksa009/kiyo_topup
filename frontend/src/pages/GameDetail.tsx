@@ -183,8 +183,13 @@ export function GameDetail() {
         navigate(`/tracking?orderNumber=${orderData.orderNumber}`);
         return;
       }
+      const details = response.data.data.paymentDetails;
+      if (paymentMethod === 'ABA_PAYWAY' && details?.checkoutUrl) {
+        window.location.href = details.checkoutUrl;
+        return;
+      }
       setActiveOrder(orderData);
-      setPaymentDetails(response.data.data.paymentDetails);
+      setPaymentDetails(details);
       setShowPaymentModal(true);
     } catch (error: any) {
       setErrorMsg(error.response?.data?.message || 'Failed to initialize order.');
