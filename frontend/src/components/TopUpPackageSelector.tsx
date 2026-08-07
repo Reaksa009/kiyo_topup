@@ -262,19 +262,19 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                     type="button"
                     onClick={() => onSelect(pkg)}
                     aria-pressed={selected}
-                    className={`group relative flex min-h-[160px] min-w-0 flex-col items-center justify-center overflow-hidden rounded-2xl border p-3 text-center transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+                    className={`group relative flex min-h-[160px] min-w-0 flex-col items-center justify-center overflow-hidden rounded-2xl border p-3 text-center transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
                       selected
-                        ? 'border-amber-400 bg-amber-400/[0.06] shadow-lg shadow-amber-500/10 scale-[1.02]'
+                        ? 'border-sky-400 bg-sky-400/[0.06] shadow-lg shadow-sky-500/10 scale-[1.02]'
                         : 'border-white/[0.06] bg-[#0c1626]/80 hover:border-white/[0.15] hover:bg-[#0f1d31]'
                     }`}
                   >
                     {pkg.badge && (
-                      <span className="absolute left-2 top-2 rounded bg-amber-500 px-1 py-0.5 text-[6px] font-bold uppercase tracking-wider text-white">
+                      <span className="absolute left-2 top-2 rounded bg-sky-500 px-1 py-0.5 text-[6px] font-bold uppercase tracking-wider text-white">
                         {pkg.badge}
                       </span>
                     )}
                     {selected && (
-                      <span className="absolute right-2 top-2 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-slate-900 shadow">
+                      <span className="absolute right-2 top-2 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-sky-400 text-slate-900 shadow">
                         <Check className="h-3 w-3" strokeWidth={3.5} />
                       </span>
                     )}
@@ -288,14 +288,14 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                       className="h-12 w-12 object-contain transition-transform duration-300 group-hover:scale-110"
                     />
                     <div className="mt-2.5 flex flex-col items-center">
-                      <span className="text-sm font-extrabold tracking-tight text-amber-400">${pkg.price.toFixed(2)}</span>
+                      <span className="text-sm font-extrabold tracking-tight text-sky-400">${pkg.price.toFixed(2)}</span>
                       <span className="text-[7.5px] font-bold text-slate-500">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</span>
                     </div>
                     <h3 className={`mt-1.5 text-[10px] font-medium leading-snug ${selected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
                       {pkg.title}
                     </h3>
                     {pkg.supportsBoth && (
-                      <span className="mt-1 inline-flex items-center gap-0.5 text-[6px] font-semibold uppercase tracking-wider text-amber-400/80">
+                      <span className="mt-1 inline-flex items-center gap-0.5 text-[6px] font-semibold uppercase tracking-wider text-sky-400/80">
                         <Globe2 className="h-1.5 w-1.5" /> Global & Regular
                       </span>
                     )}

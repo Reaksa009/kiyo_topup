@@ -206,7 +206,7 @@ export function GameDetail() {
             {/* Step 1: User ID */}
             <section className="rounded-3xl border border-white/[0.08] bg-[#0b1019]/90 p-5 shadow-2xl relative">
               <div className="flex items-center gap-2.5 border-b border-white/[0.07] pb-3.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-[#061221]">1</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-xs font-bold text-white">1</span>
                 <h2 className="text-sm font-black text-white sm:text-base">បញ្ចូល ID របស់អ្នក / Enter User ID</h2>
               </div>
 
@@ -271,7 +271,7 @@ export function GameDetail() {
             {/* Step 3: Select Payment Method & Terms */}
             <section className="rounded-3xl border border-white/[0.08] bg-[#0b1019]/90 p-5 shadow-2xl relative">
               <div className="flex items-center gap-2.5 border-b border-white/[0.07] pb-3.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-[#061221]">3</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-xs font-bold text-white">3</span>
                 <h2 className="text-sm font-black text-white sm:text-base">ជ្រើសរើសវិធីបង់ប្រាក់ / Select Payment Method</h2>
               </div>
 
@@ -285,7 +285,7 @@ export function GameDetail() {
                       onClick={() => setPaymentMethod(option.id)}
                       className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition duration-300 ${
                         active
-                          ? 'border-amber-400 bg-amber-400/[0.06] shadow-lg shadow-amber-400/5'
+                          ? 'border-sky-400 bg-sky-400/[0.06] shadow-lg shadow-sky-400/5'
                           : 'border-white/[0.08] bg-[#061522] hover:border-white/[0.16] hover:bg-[#071928]'
                       }`}
                     >
@@ -294,7 +294,7 @@ export function GameDetail() {
                         <span className="block text-[11px] font-black text-white">{option.label}</span>
                         <span className="mt-0.5 block truncate text-[9px] text-slate-500">{option.subtitle}</span>
                       </span>
-                      {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-amber-400" />}
+                      {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-sky-400" />}
                     </button>
                   );
                 })}
@@ -344,7 +344,7 @@ export function GameDetail() {
                     type="checkbox"
                     checked={agreedToTerms}
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 rounded border-white/20 bg-transparent text-amber-400 focus:ring-0 focus:ring-offset-0"
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-white/20 bg-transparent text-sky-400 focus:ring-0 focus:ring-offset-0"
                   />
                   <span>
                     ខ្ញុំយល់ព្រមលើលក្ខខណ្ឌនៃការបង់ប្រាក់។ រាល់ការបង់ប្រាក់រួចរាល់ មិនអាចដកវិញបានឡើយ។
@@ -395,7 +395,7 @@ export function GameDetail() {
               {/* Total Price Display */}
               <div className="bg-black/25 rounded-2xl p-4 border border-white/[0.04] text-center space-y-1">
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Total / តម្លៃសរុប</p>
-                <p className="text-3xl font-black text-amber-300">${finalPrice.toFixed(2)}</p>
+                <p className="text-3xl font-black text-emerald-400">${finalPrice.toFixed(2)}</p>
                 <p className="text-[10px] font-bold text-slate-400">
                   ≈ KHR {(Math.round((finalPrice * 4100) / 100) * 100).toLocaleString('en-US')}
                 </p>
@@ -428,7 +428,7 @@ export function GameDetail() {
           <div className="mx-auto flex w-full max-w-lg items-center gap-3">
             <div className="min-w-0 shrink-0">
               <p className="text-[7px] font-black uppercase tracking-[0.16em] text-slate-500">Total</p>
-              <p className="mt-0.5 text-lg font-black text-amber-300">${finalPrice.toFixed(2)}</p>
+              <p className="mt-0.5 text-lg font-black text-emerald-400">${finalPrice.toFixed(2)}</p>
             </div>
             <button
               type="button"
