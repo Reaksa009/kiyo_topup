@@ -60,6 +60,7 @@ export class ABAPayWayService {
   ): string {
     const { apiKey } = this.getCredentials();
     const rawString = `${apiKey}${transactionId}${amount}${successUrl}${remark}`;
+    logger.info(`[ABA Hash Generation] rawString: "${rawString}"`);
     return crypto.createHash('sha1').update(rawString).digest('hex');
   }
 
@@ -71,7 +72,9 @@ export class ABAPayWayService {
     const { merchantId, apiUrl } = this.getCredentials();
     const formattedAmount = amount.toFixed(2);
     const remark = orderNumber;
-    const successUrl = `${env.CLIENT_URL}/tracking`;
+    let successUrl = `${env.CLIENT_URL}/tracking`;
+    // Prevent double slashes when CLIENT_URL ends with a slash
+    successUrl = successUrl.replace(/([^:]\/)\/+/g, "$1");
 
     const hash = this.generateHash(
       orderNumber,
