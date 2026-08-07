@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { io } from 'socket.io-client';
-import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff, Download } from 'lucide-react';
+import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff, Download, ExternalLink } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 interface PaymentModalProps {
@@ -50,6 +50,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   useEffect(() => {
     closeButtonRef.current?.focus();
   }, []);
+
+  // Auto-open ABA app link if payment method is ABA PayWay
+  useEffect(() => {
+    if (paymentMethod === 'ABA_PAYWAY' && paymentDetails?.checkoutUrl) {
+      const timer = setTimeout(() => {
+        window.open(paymentDetails.checkoutUrl, '_blank');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [paymentMethod, paymentDetails]);
 
   // Listen to Socket.IO for real-time payment confirmation
   useEffect(() => {
@@ -109,18 +119,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [rawQrPayload]);
 
-  const handleSimulatePayment = async () => {
-    setSimulating(true);
-    try {
-      await apiClient.post('/payments/simulate', { orderNumber });
-      setIsPaid(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 1500);
-    } catch (err) {
-      alert('Simulation error');
-    } finally {
-      setSimulating(false);
+  const handleDownloadQr = () => {
+    const link = qrDataUrl || qrImageUrl;
+    if (link) {
+      const a = document.createElement('a');
+      a.href = link;
+      a.download = `kiyo-topup-order-${orderNumber}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
   };
 
@@ -132,31 +139,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
-  const handleDownloadQr = () => {
-    const canvas = document.getElementById('khqr-download-canvas') as HTMLCanvasElement;
-    if (canvas) {
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `KHQR-${orderNumber}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else if (qrImageUrl) {
-      const a = document.createElement('a');
-      a.href = qrImageUrl;
-      a.target = '_blank';
-      a.download = `KHQR-${orderNumber}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSimulatePayment = async () => {
+    setSimulating(true);
+    try {
+      await apiClient.post('/payments/simulate', { orderNumber });
+      setIsPaid(true);
+      setTimeout(() => {
+        onSuccess();
+      }, 1500);
+    } catch (err) {
+      // ignore
+    } finally {
+      setSimulating(false);
+    }
   };
 
   return (
@@ -181,12 +182,83 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <h3 id="payment-dialog-title" className="text-2xl font-black text-white">Payment Confirmed!</h3>
             <p className="text-sm text-gray-300">Your top-up order <span className="font-mono text-cyan-400">{orderNumber}</span> has been paid successfully and is being fulfilled.</p>
           </div>
+        ) : paymentMethod === 'ABA_PAYWAY' ? (
+          <>
+            <div className="text-center space-y-1">
+              <span className="inline-flex items-center space-x-1 text-xs font-bold text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full border border-sky-500/20">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>ABA PayWay Checkout</span>
+              </span>
+              <h3 id="payment-dialog-title" className="text-2xl font-black text-white">Open ABA Mobile</h3>
+              <p className="text-xs text-gray-400">Order #{orderNumber}</p>
+            </div>
+
+            {/* ABA Pay Icon/Logo container */}
+            <div className="bg-[#005c8a] p-8 rounded-2xl flex flex-col items-center justify-center shadow-lg space-y-4">
+              <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-md animate-pulse">
+                <span className="text-[#005c8a] text-4xl font-black italic tracking-tighter">ABA</span>
+              </div>
+              <div className="text-center space-y-1">
+                <span className="text-xs font-bold text-sky-200 uppercase tracking-widest">Total Amount</span>
+                <p className="text-3xl font-black text-white">${amount.toFixed(2)} USD</p>
+              </div>
+            </div>
+
+            {/* Premium auto-open tip */}
+            <div className="text-center bg-sky-500/10 border border-sky-500/20 px-4 py-3 rounded-xl">
+              <p className="text-[10px] font-black text-sky-300">
+                🚀 ចុចប៊ូតុងខាងក្រោម ដើម្បីបើកកម្មវិធី ABA Mobile របស់អ្នក
+              </p>
+              <p className="text-[9px] text-slate-400 mt-1">
+                Press the button below to launch your ABA Mobile app and pay instantly.
+              </p>
+            </div>
+
+            {/* Direct Open App Link/Button */}
+            <a
+              href={paymentDetails?.checkoutUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center space-x-2 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-black py-4 rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all text-center"
+            >
+              <ExternalLink className="w-4.5 h-4.5" />
+              <span>Open ABA Mobile App</span>
+            </a>
+
+            {/* Timer Section */}
+            <div className="flex items-center justify-center text-xs">
+              <div className="flex items-center space-x-1.5 text-amber-400 font-mono font-bold">
+                <Clock className="w-4 h-4" />
+                <span>Expires in: {formatTime(timeLeft)}</span>
+              </div>
+            </div>
+
+            {/* Instant Test Payment Simulator Button (development only) */}
+            {import.meta.env.DEV && (
+              <div className="pt-2">
+                <button
+                  onClick={handleSimulatePayment}
+                  disabled={simulating}
+                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-bold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-lg glow-cyan transition-all"
+                >
+                  {simulating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <PlayCircle className="w-4 h-4" />
+                      <span>Simulate Payment Success (Dev Test)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <>
             <div className="text-center space-y-1">
               <span className="inline-flex items-center space-x-1 text-xs font-bold text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{paymentMethod === 'ABA_PAYWAY' ? 'ABA PayWay KHQR' : 'Bakong KHQR Payment'}</span>
+                <span>Bakong KHQR Payment</span>
               </span>
               <h3 id="payment-dialog-title" className="text-2xl font-black text-white">Scan to Pay</h3>
               <p className="text-xs text-gray-400">Order #{orderNumber}</p>
@@ -281,22 +353,24 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             {/* Instant Test Payment Simulator Button (development only) */}
-            {import.meta.env.DEV && <div className="pt-2">
-              <button
-                onClick={handleSimulatePayment}
-                disabled={simulating}
-                className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-bold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-lg glow-cyan transition-all"
-              >
-                {simulating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <PlayCircle className="w-4 h-4" />
-                    <span>Simulate Payment Success (Dev Test)</span>
-                  </>
-                )}
-              </button>
-            </div>}
+            {import.meta.env.DEV && (
+              <div className="pt-2">
+                <button
+                  onClick={handleSimulatePayment}
+                  disabled={simulating}
+                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-bold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-lg glow-cyan transition-all"
+                >
+                  {simulating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <PlayCircle className="w-4 h-4" />
+                      <span>Simulate Payment Success (Dev Test)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </>
         )}
 
