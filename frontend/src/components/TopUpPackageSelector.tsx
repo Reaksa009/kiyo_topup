@@ -89,11 +89,15 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(initialVisibleCount);
 
+  const packageIdsHash = useMemo(() => {
+    return packages.map((p) => p._id).join(',');
+  }, [packages]);
+
   useEffect(() => {
     setActiveFilter('all');
     setQuery('');
     setVisibleCount(initialVisibleCount);
-  }, [packages, initialVisibleCount]);
+  }, [packageIdsHash, initialVisibleCount]);
 
   useEffect(() => {
     setVisibleCount(initialVisibleCount);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -199,6 +199,9 @@ export function GameDetail() {
   const categoryName = typeof game.categoryId === 'object' ? game.categoryId?.name : 'Game Top-Up';
   const hasRequiredPlayerFields = (game.inputFields || []).every((field) => !field.required || playerFields[field.name]?.trim());
   const isPurchasable = game.isPurchasable !== false;
+  const purchasablePackages = useMemo(() => {
+    return packages.filter((pkg) => pkg.isPurchasable !== false);
+  }, [packages]);
   const activeDetailBanner = detailBanners[0];
   const gameFallbackBanner = game.detailBannerDesktop || game.coverImageUrl || game.bannerUrl || game.thumbnail;
   const { desktop: bannerDesktop, mobile: bannerMobile } = activeDetailBanner
@@ -293,7 +296,7 @@ export function GameDetail() {
             </section>
 
             {/* Step 2: Select Package */}
-            <TopUpPackageSelector packages={packages.filter((pkg) => pkg.isPurchasable !== false)} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact compactJoined gameSlug={game.slug} initialVisibleCount={48} />
+            <TopUpPackageSelector packages={purchasablePackages} selectedPackage={selectedPackage} onSelect={setSelectedPackage} step="2" compact compactJoined gameSlug={game.slug} initialVisibleCount={48} />
 
             {/* Step 3: Select Payment Method & Terms */}
             <section className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm relative">
