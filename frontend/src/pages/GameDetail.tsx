@@ -24,9 +24,9 @@ import { resolveBannerImages } from '../utils/bannerPresentation';
 
 type PaymentMethod = 'ABA_PAYWAY' | 'BAKONG_KHQR' | 'WALLET';
 
-const paymentOptions: Array<{ id: PaymentMethod; label: string; short: string; subtitle: string; tone: string }> = [
-  { id: 'ABA_PAYWAY', label: 'ABA Pay', short: 'ABA', subtitle: 'Pay with ABA Mobile app', tone: 'from-sky-500 to-blue-600 text-white font-extrabold shadow-sm' },
-  { id: 'BAKONG_KHQR', label: 'Bakong KHQR', short: 'KHQR', subtitle: 'Scan with any Cambodian banking app', tone: 'from-rose-500 to-red-600 text-white font-extrabold shadow-sm' }
+const paymentOptions: Array<{ id: PaymentMethod; label: string; icon: string; subtitle: string; activeClass: string; checkClass: string }> = [
+  { id: 'ABA_PAYWAY', label: 'ABA Pay', icon: '/images/payment/aba.svg', subtitle: 'Pay with ABA Mobile app', activeClass: 'border-sky-500 bg-sky-50', checkClass: 'text-sky-600' },
+  { id: 'BAKONG_KHQR', label: 'Bakong KHQR', icon: '/images/payment/bakong.svg', subtitle: 'Scan with any Cambodian banking app', activeClass: 'border-rose-500 bg-rose-50', checkClass: 'text-rose-600' }
 ];
 
 export function GameDetail() {
@@ -348,18 +348,19 @@ export function GameDetail() {
                       key={option.id}
                       type="button"
                       onClick={() => setPaymentMethod(option.id)}
+                      aria-pressed={active}
                       className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition duration-300 ${
                         active
-                          ? 'border-amber-400 bg-amber-50 shadow-sm'
+                          ? `${option.activeClass} shadow-sm`
                           : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
                       }`}
                     >
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-[10px] font-black ${option.tone}`}>{option.short}</span>
+                      <img src={option.icon} alt="" width="48" height="48" className="h-12 w-12 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-black/5" />
                       <span className="min-w-0 flex-1">
                         <span className="block text-[11px] font-black text-slate-850">{option.label}</span>
                         <span className="mt-0.5 block truncate text-[9px] text-slate-400">{option.subtitle}</span>
                       </span>
-                      {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-amber-500" />}
+                      {active && <CheckCircle2 className={`h-5 w-5 shrink-0 ${option.checkClass}`} />}
                     </button>
                   );
                 })}

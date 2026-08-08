@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Bakong</title>
+  <rect width="512" height="512" rx="72" fill="#df001f"/>
+  <path d="M256 70 310 124h82v81l52 51-52 51v82h-82l-54 55-54-55h-82v-82l-52-51 52-51v-81h82z" fill="none" stroke="#fff" stroke-width="24" stroke-linejoin="miter"/>
+  <path d="M331 216H211v84h111" fill="none" stroke="#fff" stroke-width="24" stroke-linejoin="round"/>
+  <path d="M321 300a68 68 0 1 1 0-88" fill="none" stroke="#fff" stroke-width="24" stroke-linecap="square"/>
+</svg>
