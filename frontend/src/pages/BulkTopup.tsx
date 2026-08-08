@@ -228,6 +228,12 @@ export function BulkTopup() {
 
       const parentOrder = res.data.data.order;
       const details = res.data.data.paymentDetails;
+      if (paymentMethod === 'ABA_PAYWAY' && details?.appDeeplink) {
+        setActiveOrder(parentOrder);
+        setPaymentDetails(details);
+        setShowPaymentModal(true);
+        return;
+      }
       if (paymentMethod === 'ABA_PAYWAY' && details?.checkoutUrl) {
         window.location.assign(details.checkoutUrl);
         return;

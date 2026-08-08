@@ -6,6 +6,71 @@ import { logger } from '../../utils/logger';
 export class ABAPayWayService {
   private static readonly REQUEST_TIMEOUT_MS = 8000;
 
+  private static async resolveMobilePaymentDetails(initialUrl: string, merchantId: string) {
+    try {
+      const response = await axios.get(initialUrl, {
+        maxRedirects: 0,
+        validateStatus: (status) => status >= 200 && status < 400,
+        timeout: this.REQUEST_TIMEOUT_MS
+      });
+
+      let redirectLocation = response.headers.location || '';
+      if (!redirectLocation && typeof response.data === 'string') {
+        redirectLocation = response.data.match(/url=['"]([^'"]+)['"]/i)?.[1] || '';
+      }
+
+      if (!redirectLocation) return {};
+
+      const resolvedCheckoutUrl = new URL(redirectLocation, initialUrl);
+      if (resolvedCheckoutUrl.protocol !== 'https:' || resolvedCheckoutUrl.hostname !== 'checkout.khqr.cc') {
+        throw new Error('KHQRcc returned an untrusted checkout URL');
+      }
+
+      const payload = resolvedCheckoutUrl.pathname.split('/').filter(Boolean).at(-1);
+      if (!payload) return { checkoutUrl: resolvedCheckoutUrl.toString() };
+
+      const qrDataUrl = new URL(`/api/payment/qr-data/${encodeURIComponent(merchantId)}`, 'https://khqr.cc');
+      qrDataUrl.searchParams.set('payload', payload);
+
+      const qrDataResponse = await axios.get(qrDataUrl.toString(), {
+        timeout: this.REQUEST_TIMEOUT_MS
+      });
+      const encryptedToken = qrDataResponse.data?.token || qrDataResponse.data?.data;
+      if (typeof encryptedToken !== 'string') {
+        return { checkoutUrl: resolvedCheckoutUrl.toString() };
+      }
+
+      const [ivHex, authTagHex, ciphertextHex] = encryptedToken.split(':');
+      if (!ivHex || !authTagHex || !ciphertextHex) {
+        return { checkoutUrl: resolvedCheckoutUrl.toString() };
+      }
+
+      const key = crypto.createHash('sha256').update(merchantId).digest();
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+      decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+      const decrypted = Buffer.concat([
+        decipher.update(Buffer.from(ciphertextHex, 'hex')),
+        decipher.final()
+      ]);
+      const qrPayload = JSON.parse(decrypted.toString('utf8'))?.qr_raw;
+
+      if (typeof qrPayload !== 'string' || !qrPayload.startsWith('000201') || qrPayload.length > 4096) {
+        return { checkoutUrl: resolvedCheckoutUrl.toString() };
+      }
+
+      return {
+        checkoutUrl: resolvedCheckoutUrl.toString(),
+        qrString: qrPayload,
+        appDeeplink: `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(qrPayload)}`
+      };
+    } catch (error: any) {
+      logger.warn('KHQRcc mobile deep-link fallback unavailable', {
+        message: error.response?.data?.responseMessage || error.message
+      });
+      return {};
+    }
+  }
+
   /** Return the KHQRcc profile and server-side payment secret. */
   static getCredentials() {
     const merchantId = env.ABA_PAYWAY_MERCHANT_ID.trim();
@@ -74,13 +139,20 @@ export class ABAPayWayService {
     checkoutUrl.searchParams.set('cancel_url', cancelUrl.toString());
     checkoutUrl.searchParams.set('hash', hash);
 
+    const mobilePaymentDetails = await this.resolveMobilePaymentDetails(
+      checkoutUrl.toString(),
+      merchantId
+    );
+
     return {
       merchantId,
       tranId: orderNumber,
       amount: formattedAmount,
       currency: 'USD',
       hash,
-      checkoutUrl: checkoutUrl.toString()
+      checkoutUrl: mobilePaymentDetails.checkoutUrl || checkoutUrl.toString(),
+      qrString: mobilePaymentDetails.qrString || '',
+      appDeeplink: mobilePaymentDetails.appDeeplink || ''
     };
   }
 

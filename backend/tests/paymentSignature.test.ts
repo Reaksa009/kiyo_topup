@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import axios from 'axios';
 import { ABAPayWayService } from '../src/services/payments/ABAPayWayService';
 import { BakongKHQRService } from '../src/services/payments/BakongKHQRService';
 
@@ -34,6 +35,11 @@ describe('Payment Gateways Signature & KHQR Verification', () => {
   });
 
   it('should create the documented managed-checkout redirect URL', async () => {
+    const checkoutRequest = jest.spyOn(axios, 'get').mockResolvedValueOnce({
+      status: 200,
+      headers: {},
+      data: ''
+    } as any);
     const payment = await ABAPayWayService.createPaymentCheckout('ORD-123456', 5.0);
     expect(payment).toBeDefined();
     expect(payment.tranId).toBe('ORD-123456');
@@ -48,6 +54,7 @@ describe('Payment Gateways Signature & KHQR Verification', () => {
     expect(checkoutUrl.searchParams.get('success_url')).toContain('/tracking?orderNumber=ORD-123456');
     expect(checkoutUrl.searchParams.get('remark')).toBe('ORD-123456');
     expect(checkoutUrl.searchParams.get('hash')).toBe(payment.hash);
+    checkoutRequest.mockRestore();
   });
 
   it('should verify KHQRcc webhook signature correctly', () => {

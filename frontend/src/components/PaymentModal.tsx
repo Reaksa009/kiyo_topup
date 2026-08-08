@@ -38,6 +38,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isPaid, setIsPaid] = useState(false);
   const [qrImageError, setQrImageError] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const attemptedMobileLaunchRef = useRef(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -114,6 +115,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const merchantName = paymentDetails?.merchantName || 'KIYO TOPUP';
   const currency = paymentDetails?.currency || 'USD';
   const hasQr = Boolean((qrImageUrl && !qrImageError) || rawQrPayload);
+
+  useEffect(() => {
+    if (
+      !attemptedMobileLaunchRef.current &&
+      abaAppDeeplink &&
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    ) {
+      attemptedMobileLaunchRef.current = true;
+      window.location.assign(abaAppDeeplink);
+    }
+  }, [abaAppDeeplink]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-white/95 px-4 py-8 backdrop-blur-sm" role="presentation">
