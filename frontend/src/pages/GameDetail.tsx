@@ -54,8 +54,6 @@ export function GameDetail() {
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showWebviewModal, setShowWebviewModal] = useState(false);
-  const [webviewDetails, setWebviewDetails] = useState<any>(null);
 
   const purchasablePackages = useMemo(() => {
     return packages.filter((pkg) => pkg.isPurchasable !== false);
@@ -189,16 +187,11 @@ export function GameDetail() {
       const details = response.data.data.paymentDetails;
       if (paymentMethod === 'ABA_PAYWAY' && details?.checkoutUrl) {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isInAppBrowser = /FBAN|FBIOS|Instagram|Messenger|Twitter|Line|LinkedIn|TikTok|MicroMessenger/i.test(navigator.userAgent);
-
-        if (isMobile && isInAppBrowser) {
-          setWebviewDetails(details);
-          setShowWebviewModal(true);
-          return;
-        }
-
         if (isMobile && details.appDeeplink) {
           window.location.href = details.appDeeplink;
+          setTimeout(() => {
+            window.location.href = details.checkoutUrl;
+          }, 800);
         } else {
           window.location.href = details.checkoutUrl;
         }
@@ -503,63 +496,6 @@ export function GameDetail() {
         </div>
       )}
        {showPaymentModal && activeOrder && <PaymentModal orderNumber={activeOrder.orderNumber} amount={activeOrder.totalAmount || activeOrder.amount || 0} paymentMethod={paymentMethod} paymentDetails={paymentDetails} onSuccess={() => navigate(`/tracking?orderNumber=${activeOrder.orderNumber}`)} onClose={() => setShowPaymentModal(false)} />}
-      
-      {showWebviewModal && webviewDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100 flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-sky-400 to-blue-600 p-5 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5" />
-                <h3 className="font-extrabold text-sm uppercase tracking-wider text-white">Browser Warning</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowWebviewModal(false)}
-                className="text-white/80 hover:text-white transition-colors text-lg font-black"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-4 text-slate-750 text-left">
-              <p className="text-xs font-bold leading-relaxed text-slate-500">
-                You are currently opening this page inside a social media App (Facebook, Messenger, etc.), which blocks auto-opening bank apps.
-              </p>
-
-              <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 space-y-3">
-                <p className="text-xs font-black text-sky-800 uppercase tracking-wide">💡 To Pay Automatically with ABA Mobile:</p>
-                <ol className="list-decimal list-inside text-xs font-bold text-slate-600 space-y-2 leading-relaxed">
-                  <li>Tap the menu/three dots (<span className="font-black">•••</span> or <span className="font-black">⋮</span>) at the top-right corner.</li>
-                  <li>Select <span className="text-blue-655 font-black">"Open in Browser"</span> (or <span className="text-blue-655 font-black">"Open in Safari"</span> / <span className="text-blue-655 font-black">"Open in Chrome"</span>).</li>
-                  <li>This page will launch in Safari/Chrome and automatically open ABA Mobile instantly!</li>
-                </ol>
-              </div>
-
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowWebviewModal(false);
-                    window.location.href = webviewDetails.checkoutUrl;
-                  }}
-                  className="w-full h-11 flex items-center justify-center rounded-xl bg-slate-900 text-white font-extrabold text-xs uppercase tracking-wide hover:bg-slate-800 transition-colors shadow-md"
-                >
-                  Proceed to Web QR Code
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowWebviewModal(false)}
-                  className="w-full h-11 flex items-center justify-center rounded-xl border border-slate-200 text-slate-650 font-extrabold text-xs uppercase tracking-wide hover:bg-slate-50 transition-colors"
-                >
-                  Cancel / ត្រឡប់ក្រោយ
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
