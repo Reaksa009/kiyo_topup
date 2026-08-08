@@ -348,6 +348,23 @@ body:not(.admin-active) section[aria-label="Featured gaming banner"] span.bg-cya
   color: #ffffff !important;
 }
 
+/* Game detail hero sits on an image and must keep high-contrast colors. */
+body:not(.admin-active) section[aria-label="Game details banner"] .game-detail-hero-back,
+body:not(.admin-active) section[aria-label="Game details banner"] .game-detail-hero-copy,
+body:not(.admin-active) section[aria-label="Game details banner"] .game-detail-hero-title,
+body:not(.admin-active) section[aria-label="Game details banner"] .game-detail-hero-meta {
+  color: #ffffff !important;
+}
+
+body:not(.admin-active) section[aria-label="Game details banner"] .game-detail-hero-eyebrow,
+body:not(.admin-active) section[aria-label="Game details banner"] .game-detail-hero-rating {
+  color: #fcd34d !important;
+}
+
+body:not(.admin-active) section[aria-label="Game details banner"] .game-detail-hero-secure {
+  color: #d1fae5 !important;
+}
+
 /* Highlights Section */
 body:not(.admin-active) .grid-cols-3.divide-x {
   background-color: var(--kiyo-surface-strong) !important;
@@ -406,25 +423,48 @@ body:not(.admin-active) button.whitespace-nowrap.rounded-lg.border[class*="bg-cy
   color: var(--kiyo-cyan) !important;
 }
 
-/* Game Card redone */
-body:not(.admin-active) article.group {
-  background-color: var(--kiyo-surface-strong) !important;
-  border-color: rgba(255, 90, 146, 0.12) !important;
-  box-shadow: 0 8px 24px rgba(255, 90, 146, 0.04) !important;
+/* Popular Games cards */
+body:not(.admin-active) .game-card {
+  background: linear-gradient(155deg, #ffffff 0%, #fff7fa 100%) !important;
+  border-color: rgba(255, 90, 146, 0.18) !important;
+  box-shadow: 0 8px 24px rgba(73, 35, 87, 0.07) !important;
 }
 
-body:not(.admin-active) article.group:hover {
-  border-color: var(--kiyo-cyan) !important;
-  box-shadow: 0 15px 35px rgba(255, 90, 146, 0.12), 0 8px 20px rgba(192, 132, 252, 0.08) !important;
-  transform: translateY(-3px) !important;
+body:not(.admin-active) .game-card--active:hover {
+  border-color: #ff5a92 !important;
+  box-shadow: 0 16px 34px rgba(255, 90, 146, 0.16), 0 8px 18px rgba(192, 132, 252, 0.1) !important;
 }
 
-body:not(.admin-active) article.group h3 {
-  color: var(--kiyo-text-strong) !important;
+body:not(.admin-active) .game-card--inactive {
+  background: #f5f1f6 !important;
+  border-color: rgba(107, 92, 119, 0.15) !important;
 }
 
-body:not(.admin-active) article.group p.text-cyan-300\/70 {
-  color: var(--kiyo-cyan) !important;
+body:not(.admin-active) .game-card-image {
+  background-color: #fdf0f5 !important;
+}
+
+body:not(.admin-active) .game-card-title {
+  color: #2f1838 !important;
+}
+
+body:not(.admin-active) .game-card-action {
+  background: linear-gradient(135deg, #ff5a92 0%, #ff7ca4 55%, #a855f7 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 5px 14px rgba(255, 90, 146, 0.22);
+}
+
+body:not(.admin-active) .group:hover .game-card-action {
+  background: linear-gradient(135deg, #f43f7f 0%, #ff5a92 50%, #9333ea 100%) !important;
+}
+
+body:not(.admin-active) .game-card-discount {
+  background-color: #ff5a92 !important;
+  color: #ffffff !important;
+}
+
+body:not(.admin-active) .game-card-status {
+  color: #8d7a98 !important;
 }
 
 body:not(.admin-active) article.group div.bg-\[\#071024\] {
@@ -724,5 +764,3 @@ body:not(.admin-active) .fixed.inset-x-0.bottom-0 button:disabled {
   border: 1px solid rgba(255, 90, 146, 0.08) !important;
   box-shadow: none !important;
 }
-
-

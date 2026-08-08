@@ -5,6 +5,7 @@
   "private": true,
   "workspaces": ["backend", "frontend"],
   "scripts": {
+    "dev": "npm --prefix frontend run dev",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "build": "npm run build:frontend",

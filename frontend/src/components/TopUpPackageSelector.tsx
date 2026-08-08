@@ -201,7 +201,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
     ].filter((section) => section.packages.length > 0);
 
     return (
-      <section className={`relative border border-slate-200/80 bg-white shadow-sm ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
+      <section className={`relative min-w-0 overflow-hidden border border-slate-200/80 bg-white shadow-sm ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
         <div className="relative flex items-center gap-3 border-b border-slate-100 px-4 py-5 sm:px-7">
           {step && (
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-black text-amber-700">
@@ -223,7 +223,7 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                 <span className={`h-2.5 w-2.5 rounded-full ${section.dotClass}`} aria-hidden="true" />
                 <h3 className="text-sm font-black tracking-wide text-slate-900">{section.title}</h3>
               </div>
-              <div className="grid auto-cols-[132px] grid-flow-col gap-3 overflow-x-auto overscroll-x-contain pb-2 sm:auto-cols-[145px] md:grid-flow-row md:grid-cols-4 md:overflow-visible lg:grid-cols-6">
+              <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                 {section.packages.map((pkg) => {
                   const selected = selectedPackage?._id === pkg._id;
                   return (

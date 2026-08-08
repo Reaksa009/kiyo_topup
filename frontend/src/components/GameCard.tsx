@@ -25,13 +25,13 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
   const isMaintenance = game.status === 'maintenance' || game.comingSoon;
 
   const cardContent = (
-    <div className={`relative flex flex-col h-full rounded-2xl border p-2 bg-[#0d1a36] shadow-md transition-all duration-300 ${
-      isPurchasable 
-        ? 'border-[#1c4773]/60 hover:-translate-y-1 hover:border-cyan-400/40 hover:shadow-cyan-950/20' 
-        : 'border-white/[0.04] bg-[#0c1322]'
+    <div className={`game-card relative flex h-full flex-col rounded-2xl border p-2 shadow-md transition-all duration-300 ${
+      isPurchasable
+        ? 'game-card--active hover:-translate-y-1'
+        : 'game-card--inactive'
     }`}>
       {/* Thumbnail Container */}
-      <div className="relative aspect-square overflow-hidden rounded-xl bg-[#071024]">
+      <div className="game-card-image relative aspect-square overflow-hidden rounded-xl">
         <img
           src={image}
           alt={game.title}
@@ -53,7 +53,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
 
         {/* Discount Badge */}
         {isPurchasable && game.discount && (
-          <span className="absolute left-1.5 top-1.5 rounded bg-emerald-300 px-1.5 py-0.5 text-[6px] font-black uppercase text-emerald-950 shadow">
+          <span className="game-card-discount absolute left-1.5 top-1.5 rounded-full px-2 py-1 text-[6px] font-black uppercase shadow">
             {game.discount}
           </span>
         )}
@@ -61,17 +61,17 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
 
       {/* Info Area */}
       <div className="flex flex-col flex-1 mt-2 text-center">
-        <h3 className="line-clamp-2 min-h-[28px] text-[10px] font-black leading-tight text-slate-100 sm:text-xs">
+        <h3 className="game-card-title line-clamp-2 min-h-[28px] text-[10px] font-black leading-tight sm:text-xs">
           {game.title}
         </h3>
         
         <div className="mt-2.5">
           {isPurchasable ? (
-            <span className="block w-full rounded-lg bg-[#ffcd45] py-1.5 text-center text-[10px] font-black uppercase tracking-wide text-black transition-colors duration-200 group-hover:bg-[#ffb700]">
+            <span className="game-card-action block w-full rounded-lg py-1.5 text-center text-[10px] font-black uppercase tracking-wide transition duration-200">
               Top Up
             </span>
           ) : (
-            <span className="block w-full py-1.5 text-center text-[10px] font-black uppercase tracking-wide text-slate-500">
+            <span className="game-card-status block w-full py-1.5 text-center text-[10px] font-black uppercase tracking-wide">
               {isMaintenance ? 'maintenance' : 'inactive'}
             </span>
           )}

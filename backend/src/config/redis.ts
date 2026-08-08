@@ -2,11 +2,17 @@ import Redis from 'ioredis';
 import { env } from './env';
 import { logger } from '../utils/logger';
 
+const isLocalRedis = /^redis:\/\/(?:localhost|127\.0\.0\.1)(?::|\/|$)/i.test(env.REDIS_URI);
+const isOptionalLocalRedis = env.NODE_ENV !== 'production' && isLocalRedis;
+
 export const redisClient = new Redis(env.REDIS_URI, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
   lazyConnect: true,
   retryStrategy: (times) => {
+    // Local development works without Redis. Avoid noisy reconnect loops when
+    // no local Redis service is installed; queue operations use sync fallback.
+    if (isOptionalLocalRedis) return null;
     if (times > 3) {
       // Stop retrying to prevent event loop lag if Redis is offline
       return null;
@@ -20,12 +26,13 @@ redisClient.on('connect', () => {
 });
 
 redisClient.on('error', (err) => {
-  if (err.message.includes('ECONNREFUSED')) return; // Silence connection refused spams
+  // ioredis can emit an AggregateError with an empty message for a refused
+  // localhost connection. This is expected while local fallback mode is active.
+  if (isOptionalLocalRedis || err.message.includes('ECONNREFUSED')) return;
   logger.error('Redis client error:', err.message);
 });
 
 export const connectRedis = async () => {
-  const isLocalRedis = /^redis:\/\/(?:localhost|127\.0\.0\.1)(?::|\/|$)/i.test(env.REDIS_URI);
   if (process.env.VERCEL === '1' && isLocalRedis) {
     logger.info('Skipping unavailable local Redis connection in Vercel runtime.');
     return;
