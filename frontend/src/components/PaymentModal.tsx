@@ -1,7 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { io } from 'socket.io-client';
-import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff, Download, Smartphone, ExternalLink } from 'lucide-react';
+import {
+  CheckCircle2,
+  ExternalLink,
+  ImageOff,
+  Loader2,
+  PlayCircle,
+  ShieldCheck,
+  Smartphone,
+  X
+} from 'lucide-react';
 import { apiClient } from '../api/client';
 
 interface PaymentModalProps {
@@ -25,18 +34,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const expiresAt = paymentDetails?.expiresAt ? new Date(paymentDetails.expiresAt).getTime() : 0;
     return expiresAt > Date.now() ? Math.ceil((expiresAt - Date.now()) / 1000) : 600;
   });
-  const [copied, setCopied] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [qrImageError, setQrImageError] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    const timer = window.setInterval(() => {
+      setTimeLeft((previous) => (previous > 0 ? previous - 1 : 0));
     }, 1000);
-    return () => clearInterval(timer);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -51,281 +58,189 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     closeButtonRef.current?.focus();
   }, []);
 
-
-
-  // Listen to Socket.IO for real-time payment confirmation
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_SOCKET_URL?.trim();
-    const socket = import.meta.env.DEV || socketUrl
-      ? io(socketUrl || undefined)
-      : null;
+    const socket = import.meta.env.DEV || socketUrl ? io(socketUrl || undefined) : null;
 
     socket?.on(`order_update_${orderNumber}`, (data: any) => {
       if (data.overallStatus === 'completed' || data.overallStatus === 'processing') {
         setIsPaid(true);
-        setTimeout(() => {
-          onSuccess();
-        }, 1500);
+        window.setTimeout(onSuccess, 1500);
       }
     });
 
-    // Also poll backend every 4 seconds in fallback mode
-    const pollTimer = setInterval(async () => {
+    const pollTimer = window.setInterval(async () => {
       try {
-        const res = await apiClient.get(`/payments/status/${orderNumber}`);
-        if (res.data.status === 'paid') {
+        const response = await apiClient.get(`/payments/status/${orderNumber}`);
+        if (response.data.status === 'paid') {
           setIsPaid(true);
-          clearInterval(pollTimer);
-          setTimeout(() => {
-            onSuccess();
-          }, 1500);
+          window.clearInterval(pollTimer);
+          window.setTimeout(onSuccess, 1500);
         }
-      } catch (err) {
-        // ignore
+      } catch {
+        // The next poll will retry while the payment remains pending.
       }
     }, 4000);
 
     return () => {
       socket?.disconnect();
-      clearInterval(pollTimer);
+      window.clearInterval(pollTimer);
     };
   }, [orderNumber, onSuccess]);
-
-  const qrImageUrl = paymentDetails?.qrImageUrl || paymentDetails?.qr;
-  const rawQrPayload = paymentDetails?.qrString;
-  const abaAppDeeplink = paymentMethod === 'ABA_PAYWAY' ? paymentDetails?.appDeeplink : undefined;
-  const checkoutUrl = paymentMethod === 'ABA_PAYWAY' ? paymentDetails?.checkoutUrl : undefined;
-
-  // Convert raw payload to base64 PNG data URL so mobile users can long-press and save to Photos
-  useEffect(() => {
-    if (rawQrPayload) {
-      const timer = setTimeout(() => {
-        const canvas = document.getElementById('khqr-download-canvas') as HTMLCanvasElement;
-        if (canvas) {
-          try {
-            setQrDataUrl(canvas.toDataURL('image/png'));
-          } catch (err) {
-            console.error('Failed to convert canvas to data URL:', err);
-          }
-        }
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [rawQrPayload]);
 
   const handleSimulatePayment = async () => {
     setSimulating(true);
     try {
       await apiClient.post('/payments/simulate', { orderNumber });
       setIsPaid(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 1500);
-    } catch (err) {
-      alert('Simulation error');
+      window.setTimeout(onSuccess, 1500);
+    } catch {
+      window.alert('Simulation error');
     } finally {
       setSimulating(false);
     }
   };
 
-  const copyQrText = () => {
-    if (rawQrPayload) {
-      navigator.clipboard.writeText(rawQrPayload);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleDownloadQr = () => {
-    const canvas = document.getElementById('khqr-download-canvas') as HTMLCanvasElement;
-    if (canvas) {
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `KHQR-${orderNumber}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else if (qrImageUrl) {
-      const a = document.createElement('a');
-      a.href = qrImageUrl;
-      a.target = '_blank';
-      a.download = `KHQR-${orderNumber}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  };
-
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  const qrImageUrl = paymentDetails?.qrImageUrl || paymentDetails?.qr;
+  const rawQrPayload = paymentDetails?.qrString;
+  const abaAppDeeplink = paymentMethod === 'ABA_PAYWAY' ? paymentDetails?.appDeeplink : undefined;
+  const checkoutUrl = paymentMethod === 'ABA_PAYWAY' ? paymentDetails?.checkoutUrl : undefined;
+  const merchantName = paymentDetails?.merchantName || 'KIYO TOPUP';
+  const currency = paymentDetails?.currency || 'USD';
+  const hasQr = Boolean((qrImageUrl && !qrImageError) || rawQrPayload);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" role="presentation">
-      <div role="dialog" aria-modal="true" aria-labelledby="payment-dialog-title" className="relative w-full max-w-md p-6 glass-panel rounded-3xl border border-cyan-500/30 shadow-2xl space-y-6">
-        
-        {/* Close Button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-white/95 px-4 py-8 backdrop-blur-sm" role="presentation">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="payment-dialog-title"
+        className="relative w-full max-w-[410px] rounded-[28px] bg-white px-5 py-7 text-slate-950 shadow-[0_24px_80px_rgba(15,23,42,0.12)] sm:px-8"
+      >
         <button
           onClick={onClose}
           ref={closeButtonRef}
           aria-label="Close payment dialog"
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors"
+          className="absolute right-4 top-4 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
         >
-          <X className="w-5 h-5" />
+          <X className="h-5 w-5" />
         </button>
 
         {isPaid ? (
-          <div className="py-8 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center glow-cyan">
-              <CheckCircle2 className="w-10 h-10" />
+          <div className="py-16 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <CheckCircle2 className="h-10 w-10" />
             </div>
-            <h3 id="payment-dialog-title" className="text-2xl font-black text-white">Payment Confirmed!</h3>
-            <p className="text-sm text-gray-300">Your top-up order <span className="font-mono text-cyan-400">{orderNumber}</span> has been paid successfully and is being fulfilled.</p>
+            <h3 id="payment-dialog-title" className="mt-5 text-2xl font-black">Payment Confirmed!</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Order <span className="font-mono font-bold text-slate-800">#{orderNumber}</span> is being fulfilled.
+            </p>
           </div>
         ) : (
-          <>
-            <div className="text-center space-y-1">
-              <span className="inline-flex items-center space-x-1 text-xs font-bold text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{paymentMethod === 'ABA_PAYWAY' ? 'ABA PayWay KHQR' : 'Bakong KHQR Payment'}</span>
-              </span>
-              <h3 id="payment-dialog-title" className="text-2xl font-black text-white">Scan to Pay</h3>
-              <p className="text-xs text-gray-400">Order #{orderNumber}</p>
-            </div>
-
-            {/* QR Display Card */}
-            <div className="bg-white p-6 rounded-2xl flex flex-col items-center justify-center shadow-inner space-y-3">
-              {qrImageUrl && !qrImageError ? (
-                <img
-                  src={qrImageUrl}
-                  alt="Bakong KHQR payment code"
-                  width={220}
-                  height={220}
-                  className="h-[220px] w-[220px] object-contain"
-                  referrerPolicy="no-referrer"
-                  onError={() => setQrImageError(true)}
-                />
-              ) : qrDataUrl ? (
-                <img
-                  src={qrDataUrl}
-                  alt="KHQR payment code"
-                  width={220}
-                  height={220}
-                  className="h-[220px] w-[220px] object-contain"
-                />
-              ) : rawQrPayload ? (
-                <QRCodeSVG
-                  value={rawQrPayload}
-                  size={220}
-                  level="H"
-                  includeMargin={true}
-                />
-              ) : (
-                <div className="flex h-[220px] w-[220px] flex-col items-center justify-center gap-3 rounded-xl bg-red-50 px-5 text-center text-red-700">
-                  <ImageOff className="h-9 w-9" />
-                  <p className="text-sm font-bold">QR code could not be loaded. Please close this window and try again.</p>
-                </div>
-              )}
-              <div className="text-center">
-                <span className="text-xs font-bold text-gray-600 uppercase">Total Amount</span>
-                <p className="text-2xl font-black text-gray-900">${amount.toFixed(2)} USD</p>
+          <div className="mx-auto max-w-[342px]">
+            <div className="mb-7 flex items-center justify-between pr-9">
+              <h2 id="payment-dialog-title" className="text-[28px] font-medium tracking-[-0.04em] text-slate-950">
+                KHQR<span className="font-light">cc</span>
+              </h2>
+              <div className="flex items-center gap-2 font-mono text-base font-bold text-slate-900">
+                <span className="h-7 w-7 animate-spin rounded-full border-[5px] border-slate-100 border-r-cyan-400 border-t-cyan-500" aria-hidden="true" />
+                <span>{formatTime(timeLeft)}</span>
               </div>
             </div>
 
-            {/* Save to Phone Help Tip (Khmer & English) */}
-            <div className="text-center bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 rounded-xl">
-              <p className="text-[9.5px] font-black text-amber-300">
-                📱 រក្សាទុកក្នុងទូរស័ព្ទ៖ ចុចសង្កត់លើរូប QR ខាងលើ រួចជ្រើសរើស "រក្សាទុកក្នុងរូបភាព"
-              </p>
-              <p className="text-[8.5px] text-slate-400 mt-1">
-                Tip: Long-press the QR image to save directly to your phone's Photo Library / Gallery
-              </p>
+            <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.12)]">
+              <div className="relative flex h-[60px] items-center justify-center bg-[#ed1c24] text-2xl font-black text-white">
+                KHQR
+                <span className="absolute -bottom-7 right-0 h-14 w-14 rotate-45 bg-white" aria-hidden="true" />
+              </div>
+
+              <div className="px-12 pb-10 pt-8">
+                <p className="truncate text-xs font-medium text-slate-900">{merchantName}</p>
+                <div className="mt-1 flex items-baseline gap-3">
+                  <span className="text-[27px] font-black tracking-tight">{amount.toFixed(2)}</span>
+                  <span className="text-xs font-medium text-slate-600">{currency}</span>
+                </div>
+              </div>
+
+              <div className="mx-5 border-t border-dashed border-slate-300" />
+
+              <div className="flex min-h-[300px] items-center justify-center px-7 py-8">
+                {qrImageUrl && !qrImageError ? (
+                  <div className="relative">
+                    <img
+                      src={qrImageUrl}
+                      alt="KHQR payment code"
+                      width={244}
+                      height={244}
+                      className="h-[244px] w-[244px] object-contain"
+                      referrerPolicy="no-referrer"
+                      onError={() => setQrImageError(true)}
+                    />
+                    {paymentMethod === 'ABA_PAYWAY' && (
+                      <span className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-slate-950 text-xl font-bold text-white shadow-sm">$</span>
+                    )}
+                  </div>
+                ) : rawQrPayload ? (
+                  <div className="relative">
+                    <QRCodeSVG value={rawQrPayload} size={244} level="H" includeMargin={false} />
+                    <span className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-slate-950 text-xl font-bold text-white shadow-sm">$</span>
+                  </div>
+                ) : (
+                  <div className="flex h-[244px] w-[244px] flex-col items-center justify-center gap-3 text-center text-rose-600">
+                    <ImageOff className="h-10 w-10" />
+                    <p className="text-sm font-bold">QR code could not be loaded.</p>
+                  </div>
+                )}
+              </div>
             </div>
 
+            <p className="mx-auto mt-9 max-w-[290px] text-center text-[17px] leading-6 text-slate-400">
+              Scan with ABA Mobile, or another Mobile Banking App supporting KHQR
+            </p>
 
-
-            {/* Download Button */}
             {abaAppDeeplink && (
               <a
                 href={abaAppDeeplink}
-                className="w-full flex items-center justify-center space-x-2 bg-[#0057b8] hover:bg-[#004694] text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all"
+                className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0057b8] py-3.5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-[#004694]"
               >
-                <Smartphone className="w-4 h-4" />
-                <span>Open in ABA Mobile</span>
+                <Smartphone className="h-4 w-4" />
+                Open in ABA Mobile
               </a>
             )}
 
-            {checkoutUrl && (
+            {!hasQr && checkoutUrl && (
               <a
                 href={checkoutUrl}
-                className="w-full flex items-center justify-center space-x-2 border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-bold py-3 rounded-2xl text-xs uppercase tracking-wider transition-all"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 py-3.5 text-xs font-black uppercase tracking-wider text-slate-700 transition hover:bg-slate-50"
               >
-                <ExternalLink className="w-4 h-4" />
-                <span>Pay in Browser</span>
+                <ExternalLink className="h-4 w-4" />
+                Continue to secure checkout
               </a>
             )}
 
-            <button
-              onClick={handleDownloadQr}
-              type="button"
-              className="w-full flex items-center justify-center space-x-2 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download KHQR Image</span>
-            </button>
-
-            {rawQrPayload && (
-              <div style={{ display: 'none' }}>
-                <QRCodeCanvas
-                  id="khqr-download-canvas"
-                  value={rawQrPayload}
-                  size={512}
-                  level="H"
-                  includeMargin={true}
-                />
-              </div>
-            )}
-
-            {/* Timer & Copy Section */}
-            <div className="flex items-center justify-between text-xs px-2">
-              <div className="flex items-center space-x-1.5 text-amber-400 font-mono font-bold">
-                <Clock className="w-4 h-4" />
-                <span>Expires in: {formatTime(timeLeft)}</span>
-              </div>
-              {rawQrPayload && (
-                <button
-                  onClick={copyQrText}
-                  className="flex items-center space-x-1 text-cyan-400 hover:text-cyan-300 font-semibold"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>{copied ? 'Copied QR Payload!' : 'Copy Payload'}</span>
-                </button>
-              )}
+            <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-400">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Secure KHQR payment · Order #{orderNumber}
             </div>
 
-            {/* Instant Test Payment Simulator Button (development only) */}
-            {import.meta.env.DEV && <div className="pt-2">
+            {import.meta.env.DEV && (
               <button
                 onClick={handleSimulatePayment}
                 disabled={simulating}
-                className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-bold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-lg glow-cyan transition-all"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 text-xs font-bold text-slate-950 disabled:opacity-60"
               >
-                {simulating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <PlayCircle className="w-4 h-4" />
-                    <span>Simulate Payment Success (Dev Test)</span>
-                  </>
-                )}
+                {simulating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+                Simulate Payment Success
               </button>
-            </div>}
-          </>
+            )}
+          </div>
         )}
-
       </div>
     </div>
   );
