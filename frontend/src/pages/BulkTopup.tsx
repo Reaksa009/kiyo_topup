@@ -227,8 +227,13 @@ export function BulkTopup() {
       });
 
       const parentOrder = res.data.data.order;
+      const details = res.data.data.paymentDetails;
+      if (paymentMethod === 'ABA_PAYWAY' && details?.checkoutUrl) {
+        window.location.assign(details.checkoutUrl);
+        return;
+      }
       setActiveOrder(parentOrder);
-      setPaymentDetails(res.data.data.paymentDetails);
+      setPaymentDetails(details);
       setShowPaymentModal(true);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Failed to submit bulk order.');
