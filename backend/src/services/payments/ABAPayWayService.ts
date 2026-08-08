@@ -24,9 +24,9 @@ export class ABAPayWayService {
    * Get active keys, falling back to correct KHQRcc credentials if defaults/sandbox are set in env
    */
   static getCredentials() {
-    const merchantId = 'pVWqrqi5ioEWXUVNm34yj5YUcemo90sU';
-    const apiKey = 'b84M7oiPofX3RpyZM48Zl2jFtQsPWCcj'; // Correct key verified using candidate check (contains lowercase l instead of number 1)
-    const apiUrl = 'https://khqr.cc/api/payment/requestv2';
+    const merchantId = env.ABA_PAYWAY_MERCHANT_ID;
+    const apiKey = env.ABA_PAYWAY_API_KEY;
+    const apiUrl = env.ABA_PAYWAY_API_URL.replace(/\/$/, '');
 
     return { merchantId, apiKey, apiUrl };
   }
@@ -49,7 +49,6 @@ export class ABAPayWayService {
   ): string {
     const { apiKey } = this.getCredentials();
     const rawString = `${apiKey}${transactionId}${amount}${successUrl}${remark}`;
-    logger.info(`[ABA Hash Generation] rawString: "${rawString}"`);
     return crypto.createHash('sha1').update(rawString).digest('hex');
   }
 
@@ -100,7 +99,7 @@ export class ABAPayWayService {
 
       if (redirectUrl) {
         checkoutUrl = redirectUrl;
-        logger.info(`[ABA PayWay] Pre-resolved direct checkout URL: ${checkoutUrl}`);
+        logger.info(`[ABA PayWay] Pre-resolved checkout for order ${orderNumber}`);
 
         // Extract base64 payload to fetch and decrypt the raw EMVCo QR string from the API
         const urlWithoutQuery = checkoutUrl.split('?')[0];
@@ -137,7 +136,7 @@ export class ABAPayWayService {
             if (decData.qr_raw) {
               qrString = decData.qr_raw;
               appDeeplink = `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(qrString)}`;
-              logger.info(`[ABA PayWay] Successfully decrypted qr_raw and generated direct native deep link: ${appDeeplink}`);
+              logger.info(`[ABA PayWay] Generated native app link for order ${orderNumber}`);
             }
           }
         }

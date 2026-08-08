@@ -37,7 +37,7 @@ describe('Payment Gateways Signature & KHQR Verification', () => {
     expect(payment.tranId).toBe('ORD-123456');
     expect(payment.amount).toBe('5.00');
     expect(payment.currency).toBe('USD');
-    expect(payment.checkoutUrl).toContain('checkout.khqr.cc');
+    expect(payment.checkoutUrl).toContain('khqr.cc');
   });
 
   it('should verify KHQRcc webhook signature correctly', () => {

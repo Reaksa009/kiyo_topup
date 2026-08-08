@@ -185,12 +185,6 @@ export function GameDetail() {
         return;
       }
       const details = response.data.data.paymentDetails;
-      if (paymentMethod === 'ABA_PAYWAY' && details?.checkoutUrl) {
-        window.location.href = details.checkoutUrl;
-        return;
-      }
-
-
       setActiveOrder(orderData);
       setPaymentDetails(details);
       setShowPaymentModal(true);

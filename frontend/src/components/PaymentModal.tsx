@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { io } from 'socket.io-client';
-import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff, Download } from 'lucide-react';
+import { X, CheckCircle2, Clock, Copy, ShieldCheck, PlayCircle, Loader2, ImageOff, Download, Smartphone, ExternalLink } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 interface PaymentModalProps {
@@ -93,6 +93,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const qrImageUrl = paymentDetails?.qrImageUrl || paymentDetails?.qr;
   const rawQrPayload = paymentDetails?.qrString;
+  const abaAppDeeplink = paymentMethod === 'ABA_PAYWAY' ? paymentDetails?.appDeeplink : undefined;
+  const checkoutUrl = paymentMethod === 'ABA_PAYWAY' ? paymentDetails?.checkoutUrl : undefined;
 
   // Convert raw payload to base64 PNG data URL so mobile users can long-press and save to Photos
   useEffect(() => {
@@ -246,6 +248,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
 
             {/* Download Button */}
+            {abaAppDeeplink && (
+              <a
+                href={abaAppDeeplink}
+                className="w-full flex items-center justify-center space-x-2 bg-[#0057b8] hover:bg-[#004694] text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Open in ABA Mobile</span>
+              </a>
+            )}
+
+            {checkoutUrl && (
+              <a
+                href={checkoutUrl}
+                className="w-full flex items-center justify-center space-x-2 border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-bold py-3 rounded-2xl text-xs uppercase tracking-wider transition-all"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Pay in Browser</span>
+              </a>
+            )}
+
             <button
               onClick={handleDownloadQr}
               type="button"

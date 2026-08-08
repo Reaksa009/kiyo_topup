@@ -32,9 +32,10 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().default('kiyo_topup_secret_refresh_jwt_key_2026'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
 
-  ABA_PAYWAY_MERCHANT_ID: z.string().default('kiyo_merchant_001'),
+  // The KHQRcc profile ID is public and appears in checkout URLs; only the API key is secret.
+  ABA_PAYWAY_MERCHANT_ID: z.string().default('pVWqrqi5ioEWXUVNm34yj5YUcemo90sU'),
   ABA_PAYWAY_API_KEY: z.string().default('aba_payway_api_key_sample'),
-  ABA_PAYWAY_API_URL: z.string().default('https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/purchase'),
+  ABA_PAYWAY_API_URL: z.string().url().default('https://khqr.cc/api/payment/requestv2'),
   ABA_PAYWAY_PUBLIC_KEY: z.string().default('aba_public_key_sample'),
 
   BAKONG_MERCHANT_NAME: z.string().default('KIYO TOPUP STORE'),
@@ -53,8 +54,8 @@ const envSchema = z.object({
   KHQR_CURRENCY: z.enum(['USD', 'KHR']).default('USD'),
 
   G2BULK_API_URL: z.string().default('https://api.g2bulk.com/v1'),
-  G2BULK_API_KEY: z.string().default('5fdcdd6b1a6d04645af01f89d21cd68a55b839ae8b36308f1ccab8f6cf982bfe'),
-  G2BULK_API_SECRET: z.string().default('5fdcdd6b1a6d04645af01f89d21cd68a55b839ae8b36308f1ccab8f6cf982bfe'),
+  G2BULK_API_KEY: z.string().default('g2bulk_api_key_sample'),
+  G2BULK_API_SECRET: z.string().default('g2bulk_api_secret_sample'),
   G2BULK_USER_ID: z.string().default('kiyo_topup_user'),
   MINIMUM_PROFIT_MINOR: z.coerce.number().int().min(0).default(0),
   MAX_PROVIDER_PRICE_CHANGE_BPS: z.coerce.number().int().min(0).default(500),
@@ -62,10 +63,10 @@ const envSchema = z.object({
   G2BULK_WEBHOOK_SECRET: z.string().default(''),
 
   TELEGRAM_BOT_TOKEN: z.string().default(''),
-  TELEGRAM_FAILED_BOT_TOKEN: z.string().default('8609122116:AAEEiRYM-zfd0Kk0RZalnnoXPeeOWwOiFSc'),
-  TELEGRAM_ORDER_WP_BOT_TOKEN: z.string().default('8901048774:AAG_IUboKFh-LBZ9QPQbmxArurX7RcKnGLs'),
-  TELEGRAM_PAYMENT_RECEIVED_BOT_TOKEN: z.string().default('7905738025:AAEcvK_hSE2CfxDM5FACZ8yXfSVSbikBJ7Q'),
-  TELEGRAM_PROVIDER_LOW_BALANCE_BOT_TOKEN: z.string().default('8984621483:AAEXT72GVBU-nPZifJRahykUPF93-o0TjyA'),
+  TELEGRAM_FAILED_BOT_TOKEN: z.string().default(''),
+  TELEGRAM_ORDER_WP_BOT_TOKEN: z.string().default(''),
+  TELEGRAM_PAYMENT_RECEIVED_BOT_TOKEN: z.string().default(''),
+  TELEGRAM_PROVIDER_LOW_BALANCE_BOT_TOKEN: z.string().default(''),
   TELEGRAM_CHAT_ID: z.string().default(''),
 
   SEED_ADMIN_EMAIL: z.string().default('admin@kiyotopup.com'),
