@@ -115,6 +115,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const merchantName = paymentDetails?.merchantName || 'KIYO TOPUP';
   const currency = paymentDetails?.currency || 'USD';
   const hasQr = Boolean((qrImageUrl && !qrImageError) || rawQrPayload);
+  const usesHostedAbaCheckout = paymentMethod === 'ABA_PAYWAY' && Boolean(checkoutUrl);
 
   useEffect(() => {
     if (
@@ -133,7 +134,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-dialog-title"
-        className="relative w-full max-w-[410px] rounded-[28px] bg-white px-5 py-7 text-slate-950 shadow-[0_24px_80px_rgba(15,23,42,0.12)] sm:px-8"
+        className={`relative w-full rounded-[28px] bg-white text-slate-950 shadow-[0_24px_80px_rgba(15,23,42,0.12)] ${usesHostedAbaCheckout ? 'max-w-[460px] p-3 sm:p-4' : 'max-w-[410px] px-5 py-7 sm:px-8'}`}
       >
         <button
           onClick={onClose}
@@ -153,6 +154,43 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Order <span className="font-mono font-bold text-slate-800">#{orderNumber}</span> is being fulfilled.
             </p>
+          </div>
+        ) : usesHostedAbaCheckout ? (
+          <div className="mx-auto w-full overflow-hidden rounded-[22px] bg-white">
+            <h2 id="payment-dialog-title" className="sr-only">ABA Pay KHQR checkout</h2>
+            <iframe
+              src={checkoutUrl}
+              title="KHQRcc secure payment checkout"
+              className="w-full rounded-[18px] border-0 bg-white"
+              style={{ height: 'min(680px, calc(100dvh - 190px))' }}
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+
+            {abaAppDeeplink && (
+              <a
+                href={abaAppDeeplink}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0057b8] py-3.5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-[#004694]"
+              >
+                <Smartphone className="h-4 w-4" />
+                Open in ABA Mobile
+              </a>
+            )}
+
+            <div className="mt-3 flex items-center justify-center gap-1.5 pb-1 text-[11px] font-semibold text-slate-400">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Secure KHQRcc payment · Order #{orderNumber}
+            </div>
+
+            {import.meta.env.DEV && (
+              <button
+                onClick={handleSimulatePayment}
+                disabled={simulating}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 text-xs font-bold text-slate-950 disabled:opacity-60"
+              >
+                {simulating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+                Simulate Payment Success
+              </button>
+            )}
           </div>
         ) : (
           <div className="mx-auto max-w-[342px]">
