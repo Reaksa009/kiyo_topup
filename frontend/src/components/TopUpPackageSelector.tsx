@@ -189,41 +189,50 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
       {
         id: 'deals',
         title: 'PASSES & DEALS',
-        dotClass: 'bg-orange-500',
+        icon: Flame,
+        accentClass: 'package-group-icon--deals',
         packages: sortedPackages.filter((pkg) => packageGroup(pkg) === 'popular')
       },
       {
         id: 'normal',
         title: 'NORMAL TOP-UP',
-        dotClass: 'bg-amber-400',
+        icon: Gem,
+        accentClass: 'package-group-icon--normal',
         packages: sortedPackages.filter((pkg) => packageGroup(pkg) === 'standard')
       }
     ].filter((section) => section.packages.length > 0);
 
     return (
-      <section className={`relative min-w-0 overflow-hidden border border-slate-200/80 bg-white shadow-sm ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
+      <section className={`package-selector-compact relative w-full min-w-0 max-w-full overflow-hidden border border-slate-200/80 bg-white shadow-sm ${compactJoined ? 'rounded-b-[24px] rounded-t-none border-t-0 md:rounded-2xl md:border-t' : 'rounded-2xl'}`} aria-labelledby="package-selector-title">
         <div className="relative flex items-center gap-3 border-b border-slate-100 px-4 py-5 sm:px-7">
           {step && (
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-black text-amber-700">
+            <span className="package-selector-step flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black">
               {step}
             </span>
           )}
+          <span className="package-selector-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+            <Gem className="h-4 w-4" />
+          </span>
           <div className="min-w-0">
-            <h2 id="package-selector-title" className="text-base font-black text-slate-900 sm:text-lg">Select Top-Up Package</h2>
-            <p className="mt-0.5 text-xs font-medium text-slate-500">Choose your preferred package</p>
+            <h2 id="package-selector-title" className="package-selector-heading text-base font-black sm:text-lg">Select Top-Up Package</h2>
+            <p className="package-selector-subtitle mt-0.5 text-xs font-medium">Choose your preferred package</p>
           </div>
         </div>
 
-        <div className="relative space-y-7 p-4 sm:p-7">
+        <div className="relative w-full min-w-0 max-w-full space-y-7 overflow-hidden p-3 sm:p-7">
           {compactMobileLead && <div className="md:hidden">{compactMobileLead}</div>}
 
-          {packageSections.length > 0 ? packageSections.map((section) => (
-            <div key={section.id}>
-              <div className="mb-3 flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${section.dotClass}`} aria-hidden="true" />
-                <h3 className="text-sm font-black tracking-wide text-slate-900">{section.title}</h3>
+          {packageSections.length > 0 ? packageSections.map((section) => {
+            const SectionIcon = section.icon;
+            return (
+            <div key={section.id} className="w-full min-w-0 max-w-full">
+              <div className="mb-3 flex items-center gap-2.5">
+                <span className={`package-group-icon flex h-7 w-7 items-center justify-center rounded-lg ${section.accentClass}`} aria-hidden="true">
+                  <SectionIcon className="h-3.5 w-3.5" />
+                </span>
+                <h3 className="package-group-heading text-sm font-black tracking-wide">{section.title}</h3>
               </div>
-              <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              <div className="grid w-full min-w-0 max-w-full grid-cols-3 gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-6">
                 {section.packages.map((pkg) => {
                   const selected = selectedPackage?._id === pkg._id;
                   return (
@@ -234,17 +243,17 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                       aria-pressed={selected}
                       className={`group relative flex min-h-[166px] min-w-0 flex-col items-center justify-center overflow-hidden rounded-xl border px-2 py-4 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
                         selected
-                          ? 'border-amber-400 bg-amber-50 shadow-md shadow-amber-500/10'
-                          : 'border-slate-200 bg-gradient-to-b from-white to-slate-50 hover:border-amber-300 hover:shadow-sm'
+                          ? 'package-card--selected border-blue-400 bg-blue-50 shadow-md shadow-blue-500/10'
+                          : 'package-card border-slate-200 bg-gradient-to-b from-white to-slate-50 hover:border-blue-300 hover:shadow-sm'
                       }`}
                     >
                       {pkg.badge && (
-                        <span className="absolute left-2 top-2 max-w-[70%] truncate rounded-full bg-rose-500 px-2 py-0.5 text-[7px] font-black uppercase tracking-wide text-white">
+                        <span className="package-card-badge absolute left-2 top-2 max-w-[70%] truncate rounded-full px-2 py-0.5 text-[7px] font-black uppercase tracking-wide text-white">
                           {pkg.badge}
                         </span>
                       )}
                       {selected && (
-                        <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-slate-950 shadow-sm">
+                        <span className="package-card-check absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full shadow-sm">
                           <Check className="h-3 w-3" strokeWidth={3.5} />
                         </span>
                       )}
@@ -257,15 +266,15 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                         decoding="async"
                         className="h-14 w-14 object-contain transition-transform duration-300 group-hover:scale-110"
                       />
-                      <h4 className="mt-3 line-clamp-2 min-h-[30px] text-[10px] font-bold leading-snug text-slate-700">
+                      <h4 className="package-card-title mt-3 line-clamp-2 min-h-[30px] text-[10px] font-bold leading-snug">
                         {pkg.title}
                       </h4>
                       <div className="mt-2 flex flex-col items-center">
-                        <span className="text-base font-black tracking-tight text-amber-500">${pkg.price.toFixed(2)}</span>
-                        <span className="text-[8px] font-bold text-slate-400">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</span>
+                        <span className="package-card-price text-base font-black tracking-tight">${pkg.price.toFixed(2)}</span>
+                        <span className="package-card-khr text-[8px] font-bold">KHR {formatKhr(pkg.price).toLocaleString('en-US')}</span>
                       </div>
                       {pkg.supportsBoth && (
-                        <span className="mt-1 inline-flex items-center gap-1 text-[7px] font-bold uppercase tracking-wider text-slate-400">
+                        <span className="package-card-global mt-1 inline-flex items-center gap-1 text-[7px] font-bold uppercase tracking-wider">
                           <Globe2 className="h-2 w-2" /> Global
                         </span>
                       )}
@@ -274,7 +283,8 @@ export const TopUpPackageSelector: React.FC<TopUpPackageSelectorProps> = ({
                 })}
               </div>
             </div>
-          )) : (
+            );
+          }) : (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-8 text-center">
               <PackageOpen className="mx-auto h-6 w-6 text-slate-400" />
               <p className="mt-2 text-[10px] font-black text-slate-600">No packages found</p>
