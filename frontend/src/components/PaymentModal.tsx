@@ -51,6 +51,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     closeButtonRef.current?.focus();
   }, []);
 
+  // Auto open bank app on mobile if deep link exists
+  useEffect(() => {
+    if (paymentDetails?.appDeeplink) {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = paymentDetails.appDeeplink;
+      }
+    }
+  }, [paymentDetails]);
+
   // Listen to Socket.IO for real-time payment confirmation
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_SOCKET_URL?.trim();
@@ -240,6 +250,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 Tip: Long-press the QR image to save directly to your phone's Photo Library / Gallery
               </p>
             </div>
+
+            {paymentDetails?.appDeeplink && (
+              <a
+                href={paymentDetails.appDeeplink}
+                className="w-full flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-blue-500/10 active:scale-[0.98] transition-all text-center"
+              >
+                Open in ABA Mobile
+              </a>
+            )}
 
             {/* Download Button */}
             <button

@@ -185,18 +185,7 @@ export function GameDetail() {
         return;
       }
       const details = response.data.data.paymentDetails;
-      if (paymentMethod === 'ABA_PAYWAY' && details?.checkoutUrl) {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile && details.appDeeplink) {
-          window.location.href = details.appDeeplink;
-          setTimeout(() => {
-            window.location.href = details.checkoutUrl;
-          }, 800);
-        } else {
-          window.location.href = details.checkoutUrl;
-        }
-        return;
-      }
+
       setActiveOrder(orderData);
       setPaymentDetails(details);
       setShowPaymentModal(true);
