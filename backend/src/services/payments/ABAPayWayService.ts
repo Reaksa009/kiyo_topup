@@ -82,54 +82,62 @@ export class ABAPayWayService {
 
     try {
       const response = await axios.get(initialUrl, {
+        maxRedirects: 0,
+        validateStatus: (status) => status >= 200 && status < 400,
         headers: {
           'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
         },
         timeout: 4000
       });
-      if (typeof response.data === 'string') {
+
+      let redirectUrl = response.headers.location || '';
+      if (!redirectUrl && typeof response.data === 'string') {
         const match = response.data.match(/url='([^']+)'/);
         if (match && match[1]) {
-          checkoutUrl = match[1];
-          logger.info(`[ABA PayWay] Pre-resolved direct checkout URL: ${checkoutUrl}`);
+          redirectUrl = match[1];
+        }
+      }
 
-          // Extract base64 payload to fetch and decrypt the raw EMVCo QR string from the API
-          const urlWithoutQuery = checkoutUrl.split('?')[0];
-          const pathParts = urlWithoutQuery.split('/');
-          const payloadB64 = pathParts[pathParts.length - 1];
+      if (redirectUrl) {
+        checkoutUrl = redirectUrl;
+        logger.info(`[ABA PayWay] Pre-resolved direct checkout URL: ${checkoutUrl}`);
 
-          const qrDataUrl = `https://khqr.cc/api/payment/qr-data/${merchantId}?payload=${encodeURIComponent(payloadB64)}`;
-          const qrDataResponse = await axios.get(qrDataUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-            },
-            timeout: 4000
-          });
+        // Extract base64 payload to fetch and decrypt the raw EMVCo QR string from the API
+        const urlWithoutQuery = checkoutUrl.split('?')[0];
+        const pathParts = urlWithoutQuery.split('/');
+        const payloadB64 = pathParts[pathParts.length - 1];
 
-          const token = qrDataResponse.data?.token || qrDataResponse.data?.data;
-          if (token) {
-            const parts = token.split(':');
-            if (parts.length === 3) {
-              const iv = Buffer.from(parts[0], 'hex');
-              const authTag = Buffer.from(parts[1], 'hex');
-              const ciphertext = Buffer.from(parts[2], 'hex');
+        const qrDataUrl = `https://khqr.cc/api/payment/qr-data/${merchantId}?payload=${encodeURIComponent(payloadB64)}`;
+        const qrDataResponse = await axios.get(qrDataUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+          },
+          timeout: 4000
+        });
 
-              // Key derivation (sha256 of Profile ID)
-              const key = crypto.createHash('sha256').update(merchantId).digest();
-              const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-              decipher.setAuthTag(authTag);
+        const token = qrDataResponse.data?.token || qrDataResponse.data?.data;
+        if (token) {
+          const parts = token.split(':');
+          if (parts.length === 3) {
+            const iv = Buffer.from(parts[0], 'hex');
+            const authTag = Buffer.from(parts[1], 'hex');
+            const ciphertext = Buffer.from(parts[2], 'hex');
 
-              const decrypted = Buffer.concat([
-                decipher.update(ciphertext),
-                decipher.final()
-              ]);
+            // Key derivation (sha256 of Profile ID)
+            const key = crypto.createHash('sha256').update(merchantId).digest();
+            const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+            decipher.setAuthTag(authTag);
 
-              const decData = JSON.parse(decrypted.toString('utf8'));
-              if (decData.qr_raw) {
-                qrString = decData.qr_raw;
-                appDeeplink = `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(qrString)}`;
-                logger.info(`[ABA PayWay] Successfully decrypted qr_raw and generated direct native deep link: ${appDeeplink}`);
-              }
+            const decrypted = Buffer.concat([
+              decipher.update(ciphertext),
+              decipher.final()
+            ]);
+
+            const decData = JSON.parse(decrypted.toString('utf8'));
+            if (decData.qr_raw) {
+              qrString = decData.qr_raw;
+              appDeeplink = `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(qrString)}`;
+              logger.info(`[ABA PayWay] Successfully decrypted qr_raw and generated direct native deep link: ${appDeeplink}`);
             }
           }
         }
