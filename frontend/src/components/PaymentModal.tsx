@@ -244,14 +244,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
 
-            {paymentDetails?.appDeeplink && (
-              <a
-                href={paymentDetails.appDeeplink}
-                className="w-full flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-blue-500/10 active:scale-[0.98] transition-all text-center items-center justify-center"
-              >
-                Open ABA Mobile
-              </a>
-            )}
 
             {/* Download Button */}
             <button
